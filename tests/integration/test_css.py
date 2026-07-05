@@ -1,0 +1,56 @@
+"""Integration tests for CSS actions against a real Chrome browser."""
+
+import pytest
+
+from browsix.actions.css import CSSAction, CSSActionParams
+from browsix.backend.cdp import CDPBackend
+from browsix.config import BrowserOptions, WaitStrategy
+
+pytestmark = [pytest.mark.integration, pytest.mark.chrome]
+
+
+@pytest.fixture
+def backend() -> CDPBackend:
+    return CDPBackend()
+
+
+@pytest.fixture
+def browser_opts() -> BrowserOptions:
+    return BrowserOptions(headless=True)
+
+
+async def test_css_styles(backend: CDPBackend, browser_opts: BrowserOptions) -> None:
+    params = CSSActionParams(
+        url="https://example.com",
+        action="styles",
+        selector="body",
+        wait=WaitStrategy(strategy="load"),
+        browser=browser_opts,
+    )
+    result = await CSSAction(params).execute(backend)
+    assert isinstance(result, dict)
+    assert "inlineStyles" in result
+
+
+async def test_css_stylesheets(backend: CDPBackend, browser_opts: BrowserOptions) -> None:
+    params = CSSActionParams(
+        url="https://example.com",
+        action="stylesheets",
+        wait=WaitStrategy(strategy="load"),
+        browser=browser_opts,
+    )
+    result = await CSSAction(params).execute(backend)
+    assert isinstance(result, list)
+
+
+async def test_css_computed(backend: CDPBackend, browser_opts: BrowserOptions) -> None:
+    params = CSSActionParams(
+        url="https://example.com",
+        action="computed",
+        selector="body",
+        wait=WaitStrategy(strategy="load"),
+        browser=browser_opts,
+    )
+    result = await CSSAction(params).execute(backend)
+    assert isinstance(result, dict)
+    assert "color" in result or "display" in result
