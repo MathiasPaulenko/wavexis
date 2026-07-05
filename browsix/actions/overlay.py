@@ -50,6 +50,14 @@ class OverlayAction(BaseAction[OverlayParams, None]):
             await backend.close()
 
     async def _run_action(self, backend: AbstractBackend) -> None:
+        """Execute the overlay action against the backend.
+
+        Args:
+            backend: The browser backend to use.
+
+        Raises:
+            ValueError: If required parameters are missing or action is unknown.
+        """
         action = self.params.action
         if action == "highlight":
             if not self.params.selector:

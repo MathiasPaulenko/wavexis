@@ -42,6 +42,14 @@ class ActionFactory(Protocol):
     """Protocol for action factory functions."""
 
     def __call__(self, params: dict[str, Any]) -> BaseAction[Any, Any]:
+        """Create an action instance from params.
+
+        Args:
+            params: Action parameters dictionary.
+
+        Returns:
+            A BaseAction instance configured with the given params.
+        """
         ...
 
 

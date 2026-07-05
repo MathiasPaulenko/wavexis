@@ -14,6 +14,7 @@ class BackendManager:
     """
 
     def __init__(self) -> None:
+        """Initialize the manager and register built-in backends."""
         self._registry: dict[str, type[AbstractBackend]] = {}
         self._register_defaults()
 

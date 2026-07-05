@@ -58,6 +58,17 @@ class CSSAction(BaseAction[CSSActionParams, dict[str, Any] | list[dict[str, Any]
     async def _run_action(
         self, backend: AbstractBackend
     ) -> dict[str, Any] | list[dict[str, Any]]:
+        """Execute the CSS action against the backend.
+
+        Args:
+            backend: The browser backend to use.
+
+        Returns:
+            CSS data as a dict or list of dicts depending on the action.
+
+        Raises:
+            ValueError: If required parameters are missing for the action.
+        """
         action = self.params.action
         if action == "styles":
             if not self.params.selector:

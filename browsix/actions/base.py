@@ -19,6 +19,11 @@ class BaseAction(ABC, Generic[P, R]):
     """
 
     def __init__(self, params: P) -> None:
+        """Initialize the action with parameters.
+
+        Args:
+            params: Action-specific parameters.
+        """
         self.params = params
 
     @abstractmethod

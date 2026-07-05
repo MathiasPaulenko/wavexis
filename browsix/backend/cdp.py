@@ -34,6 +34,11 @@ class CDPBackend(AbstractBackend):
     """Chrome DevTools Protocol backend via cdpwave."""
 
     def __init__(self) -> None:
+        """Initialize the CDP backend.
+
+        Raises:
+            ImportError: If cdpwave is not installed.
+        """
         if CDPClient is None:
             raise ImportError(
                 "cdpwave is not installed. Run: pip install browsix[cdp]"
@@ -365,6 +370,11 @@ class CDPBackend(AbstractBackend):
         frames: list[bytes] = []
 
         def on_frame(event_params: dict[str, Any]) -> None:
+            """Handle a screencast frame event and decode the image data.
+
+            Args:
+                event_params: CDP event parameters containing base64-encoded frame data.
+            """
             data = event_params.get("data")
             if data:
                 frames.append(base64.b64decode(data))
@@ -445,6 +455,11 @@ class CDPBackend(AbstractBackend):
         entries: list[dict[str, Any]] = []
 
         def on_console_api(event_params: dict[str, Any]) -> None:
+            """Handle a Runtime.consoleAPICalled event and append matching entries.
+
+            Args:
+                event_params: CDP event parameters with console API call data.
+            """
             entry_type = event_params.get("type", "log")
             if level == "all" or entry_type == level:
                 entries.append({
@@ -473,6 +488,11 @@ class CDPBackend(AbstractBackend):
         entries: list[dict[str, Any]] = []
 
         def on_log_entry(event_params: dict[str, Any]) -> None:
+            """Handle a Log.entryAdded event and append the log entry.
+
+            Args:
+                event_params: CDP event parameters containing the log entry.
+            """
             entry = event_params.get("entry", {})
             entries.append({
                 "level": entry.get("level", "info"),
@@ -625,6 +645,11 @@ class CDPBackend(AbstractBackend):
         finished: dict[str, dict[str, Any]] = {}
 
         def on_request(event_params: dict[str, Any]) -> None:
+            """Handle Network.requestWillBeSent and record the request.
+
+            Args:
+                event_params: CDP event parameters with request data.
+            """
             req_id = event_params.get("requestId", "")
             request = event_params.get("request", {})
             requests[req_id] = {
@@ -646,6 +671,11 @@ class CDPBackend(AbstractBackend):
             }
 
         def on_response(event_params: dict[str, Any]) -> None:
+            """Handle Network.responseReceived and record the response.
+
+            Args:
+                event_params: CDP event parameters with response data.
+            """
             req_id = event_params.get("requestId", "")
             response = event_params.get("response", {})
             responses[req_id] = {
@@ -666,6 +696,11 @@ class CDPBackend(AbstractBackend):
             }
 
         def on_loading_finished(event_params: dict[str, Any]) -> None:
+            """Handle Network.loadingFinished and mark a request as complete.
+
+            Args:
+                event_params: CDP event parameters with loading finish data.
+            """
             req_id = event_params.get("requestId", "")
             finished[req_id] = {
                 "timestamp": event_params.get("timestamp", 0),
@@ -1225,6 +1260,11 @@ class CDPBackend(AbstractBackend):
         fulfilled: list[bool] = [False]
 
         async def on_request_paused(event_params: dict[str, Any]) -> None:
+            """Handle Fetch.requestPaused and fulfill with the mocked response.
+
+            Args:
+                event_params: CDP event parameters with the paused request ID.
+            """
             request_id = event_params.get("requestId", "")
             await self._session.send(  # type: ignore[union-attr]
                 "Fetch.fulfillRequest",
@@ -1501,6 +1541,11 @@ class CDPBackend(AbstractBackend):
         trace_events: list[dict[str, Any]] = []
 
         async def _on_tracing_complete(params: dict[str, Any]) -> None:
+            """Handle Tracing.tracingComplete and extract trace events from the stream.
+
+            Args:
+                params: CDP event parameters containing the trace data stream handle.
+            """
             import io
             import zipfile
 
@@ -2331,9 +2376,21 @@ class CDPBackend(AbstractBackend):
         await self._session.send("BluetoothEmulation.disable", {})
 
     async def __aenter__(self) -> CDPBackend:
+        """Enter async context manager, returning self.
+
+        Returns:
+            The CDPBackend instance.
+        """
         return self
 
     async def __aexit__(
         self, exc_type: object, exc_val: object, exc_tb: object
     ) -> None:
+        """Exit async context manager, closing the backend.
+
+        Args:
+            exc_type: Exception type if raised, else None.
+            exc_val: Exception value if raised, else None.
+            exc_tb: Traceback if raised, else None.
+        """
         await self.close()

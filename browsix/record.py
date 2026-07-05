@@ -65,6 +65,15 @@ class Recorder:
         attr = getattr(self._backend, name)
         if callable(attr):
             def wrapper(*args: Any, **kwargs: Any) -> Any:
+                """Record the method call and delegate to the wrapped backend.
+
+                Args:
+                    *args: Positional arguments passed to the original method.
+                    **kwargs: Keyword arguments passed to the original method.
+
+                Returns:
+                    The return value of the original backend method.
+                """
                 params: dict[str, Any] = {}
                 if args:
                     params["_args"] = list(args)

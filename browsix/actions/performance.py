@@ -53,6 +53,17 @@ class PerformanceAction(BaseAction[PerformanceParams, dict[str, Any]]):
             await backend.close()
 
     async def _run_action(self, backend: AbstractBackend) -> dict[str, Any]:
+        """Execute the performance action against the backend.
+
+        Args:
+            backend: The browser backend to use.
+
+        Returns:
+            Performance data as a dictionary.
+
+        Raises:
+            ValueError: If the action is not recognized.
+        """
         action = self.params.action
         if action == "metrics":
             return await backend.perf_metrics()

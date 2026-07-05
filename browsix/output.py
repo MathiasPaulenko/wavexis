@@ -20,6 +20,11 @@ except ImportError:
 
 
 def _has_rich() -> bool:
+    """Check if rich console output is available.
+
+    Returns:
+        True if both error and output consoles are initialized, False otherwise.
+    """
     return _console_err is not None and _console_out is not None
 
 

@@ -1230,6 +1230,11 @@ def network_block(
 
 
 async def _network_block(patterns: list[str]) -> None:
+    """Block network requests matching the given patterns.
+
+    Args:
+        patterns: List of URL patterns to block.
+    """
     backend = _get_backend()
     try:
         await backend.launch(BrowserOptions())
@@ -1257,6 +1262,11 @@ def network_throttle(
 
 
 async def _network_throttle(params: ThrottleParams) -> None:
+    """Apply network throttling conditions.
+
+    Args:
+        params: Throttle parameters with offline, latency, and bandwidth settings.
+    """
     backend = _get_backend()
     try:
         await backend.launch(BrowserOptions())
@@ -1278,6 +1288,11 @@ def network_cache(
 
 
 async def _network_cache(disabled: bool) -> None:
+    """Enable or disable the browser cache.
+
+    Args:
+        disabled: True to disable cache, False to enable.
+    """
     backend = _get_backend()
     try:
         await backend.launch(BrowserOptions())
@@ -1303,6 +1318,11 @@ def network_intercept(
 
 
 async def _network_intercept(pattern: dict[str, Any]) -> None:
+    """Intercept network requests matching a pattern.
+
+    Args:
+        pattern: Fetch.enable pattern dict with urlPattern and optional resourceType.
+    """
     backend = _get_backend()
     try:
         await backend.launch(BrowserOptions())
@@ -1330,6 +1350,12 @@ def network_mock(
 
 
 async def _network_mock(url: str, response: dict[str, Any]) -> None:
+    """Mock a response for requests matching a URL pattern.
+
+    Args:
+        url: URL pattern to mock.
+        response: Response dict with status, body, and content_type.
+    """
     backend = _get_backend()
     try:
         await backend.launch(BrowserOptions())
@@ -1362,6 +1388,16 @@ def a11y(
 
 
 async def _a11y(url: str, action: str, node_id: str) -> Any:
+    """Execute an accessibility action on a web page.
+
+    Args:
+        url: URL to navigate to.
+        action: Accessibility action ("tree", "node", or "ancestors").
+        node_id: Node ID for node-specific actions.
+
+    Returns:
+        Accessibility tree or node data.
+    """
     from browsix.actions.accessibility import AccessibilityAction
 
     backend = _get_backend()
@@ -1395,6 +1431,15 @@ def download(
 
 
 async def _download(url: str, pattern: str) -> bytes:
+    """Intercept a file download from a web page.
+
+    Args:
+        url: URL to navigate to that triggers a download.
+        pattern: URL pattern to match download requests.
+
+    Returns:
+        Downloaded file bytes.
+    """
     from browsix.actions.download import DownloadAction
 
     backend = _get_backend()
@@ -1424,6 +1469,13 @@ def dialog(
 
 
 async def _dialog(url: str, action: str, prompt_text: str | None) -> None:
+    """Accept or dismiss a JavaScript dialog on a web page.
+
+    Args:
+        url: URL to navigate to.
+        action: Dialog action ("accept" or "dismiss").
+        prompt_text: Text to enter in prompt dialogs, if applicable.
+    """
     from browsix.actions.dialog import DialogAction
 
     backend = _get_backend()
@@ -1458,6 +1510,13 @@ def permissions(
 
 
 async def _permissions(action: str, permission: str, url: str) -> None:
+    """Grant or reset browser permissions.
+
+    Args:
+        action: Permission action ("grant", "deny", "reset", or "query").
+        permission: Permission name (e.g. "geolocation").
+        url: URL to navigate to (optional).
+    """
     from browsix.actions.permissions import PermissionsAction
 
     backend = _get_backend()
@@ -1499,6 +1558,15 @@ def security(
 
 
 async def _security(url: str, action: str) -> Any:
+    """Execute a security action on a web page.
+
+    Args:
+        url: URL to navigate to.
+        action: Security action ("state" or "ignore-cert-errors").
+
+    Returns:
+        Security state data if action is "state".
+    """
     from browsix.actions.security import SecurityAction
 
     backend = _get_backend()
@@ -1541,6 +1609,15 @@ def screencast(
 
 
 async def _screencast(params: ScreencastParams, output_dir: str) -> list[str]:
+    """Capture screencast frames and save them to a directory.
+
+    Args:
+        params: Screencast parameters including URL, format, and duration.
+        output_dir: Directory to save captured frames.
+
+    Returns:
+        List of saved frame file paths.
+    """
     from browsix.actions.screencast import ScreencastAction
 
     backend = _get_backend()
@@ -1638,6 +1715,16 @@ def perf_css_coverage(
 async def _perf_action(
     url: str, action: str, duration_ms: int = 3000
 ) -> dict[str, Any]:
+    """Execute a performance action on a web page.
+
+    Args:
+        url: URL to navigate to.
+        action: Performance action ("metrics", "trace", "profile", "heap", "coverage", "css-coverage").
+        duration_ms: Duration in milliseconds for trace/profile actions.
+
+    Returns:
+        Performance data as a dictionary.
+    """
     from browsix.actions.performance import PerformanceAction, PerformanceParams
 
     params = PerformanceParams(
@@ -1807,6 +1894,17 @@ async def _css_action(
     selector: str | None = None,
     stylesheet_id: str | None = None,
 ) -> dict[str, Any] | list[dict[str, Any]]:
+    """Execute a CSS action on a web page.
+
+    Args:
+        url: URL to navigate to.
+        action: CSS action ("styles", "stylesheets", "rules", "computed").
+        selector: CSS selector for styles/computed actions.
+        stylesheet_id: Stylesheet ID for rules action.
+
+    Returns:
+        CSS data as a dict or list of dicts depending on the action.
+    """
     from browsix.actions.css import CSSAction, CSSActionParams
 
     params = CSSActionParams(
@@ -1957,6 +2055,22 @@ async def _debug_action(
     breakpoint_id: str | None = None,
     selector: str | None = None,
 ) -> Any:
+    """Execute a debug action on a web page.
+
+    Args:
+        url: URL to navigate to.
+        action: Debug action ("breakpoint", "function_breakpoint", "remove_breakpoint",
+            "step_over", "step_into", "step_out", "pause", "resume", "listeners").
+        script_url: Script URL for breakpoint action.
+        line: Line number for breakpoint action.
+        condition: Condition expression for conditional breakpoints.
+        function_name: Function name for function_breakpoint action.
+        breakpoint_id: Breakpoint ID for remove_breakpoint action.
+        selector: CSS selector for listeners action.
+
+    Returns:
+        Result of the debug operation.
+    """
     from browsix.actions.debug import DebugAction, DebugActionParams
 
     params = DebugActionParams(
@@ -1992,6 +2106,14 @@ def dom_snapshot(
 
 
 async def _dom_snapshot_action(url: str) -> dict[str, Any]:
+    """Capture a DOM snapshot of a web page.
+
+    Args:
+        url: URL to navigate to.
+
+    Returns:
+        DOM snapshot data as a dictionary.
+    """
     from browsix.actions.dom_snapshot import DOMSnapshotAction, DOMSnapshotParams
 
     params = DOMSnapshotParams(
@@ -2042,6 +2164,14 @@ async def _overlay_action(
     selector: str | None = None,
     color: str = "rgba(255,0,0,0.5)",
 ) -> None:
+    """Execute an overlay action on a web page.
+
+    Args:
+        url: URL to navigate to.
+        action: Overlay action ("highlight" or "clear").
+        selector: CSS selector for highlight action.
+        color: RGBA color for highlight overlay.
+    """
     from browsix.actions.overlay import OverlayAction, OverlayParams
 
     params = OverlayParams(
@@ -2446,6 +2576,11 @@ def raw(
         raise typer.Exit(2) from e
 
     async def _raw() -> dict[str, Any]:
+        """Execute a raw protocol command against a browser backend.
+
+        Returns:
+            Raw protocol response as a dictionary.
+        """
         backend = _get_backend()
         if backend_name:
             manager = BackendManager()
@@ -2500,6 +2635,11 @@ def auth(
     ctx = load_auth_context(context)
 
     async def _run_auth() -> Any:
+        """Execute an authenticated browser session.
+
+        Returns:
+            Result of the authenticated action.
+        """
         backend = _get_backend()
         await backend.launch(BrowserOptions(headless=True))
         try:

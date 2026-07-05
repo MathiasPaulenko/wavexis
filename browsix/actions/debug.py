@@ -65,6 +65,17 @@ class DebugAction(BaseAction[DebugActionParams, Any]):
             await backend.close()
 
     async def _run_action(self, backend: AbstractBackend) -> Any:
+        """Execute the debug action against the backend.
+
+        Args:
+            backend: The browser backend to use.
+
+        Returns:
+            Result of the debug operation.
+
+        Raises:
+            ValueError: If required parameters are missing for the action.
+        """
         action = self.params.action
         if action == "breakpoint":
             if self.params.script_url is None or self.params.line is None:

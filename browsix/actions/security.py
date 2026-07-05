@@ -20,6 +20,15 @@ class SecurityAction(BaseAction[str, Any]):
         url: str = "",
         wait: WaitStrategy | None = None,
     ) -> None:
+        """Initialize the security action.
+
+        Args:
+            params: Security parameters.
+            action: Security action ("state" or "ignore-cert-errors").
+            ignore: Whether to ignore certificate errors.
+            url: URL to navigate to before the action.
+            wait: Wait strategy after navigation.
+        """
         self.params = params
         self._action = action
         self._ignore = ignore

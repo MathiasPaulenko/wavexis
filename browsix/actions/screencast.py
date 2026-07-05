@@ -13,6 +13,12 @@ class ScreencastAction(BaseAction[ScreencastParams, list[str]]):
     """Action for capturing screencast frames and saving them to a directory."""
 
     def __init__(self, params: ScreencastParams, output_dir: str = "screencast") -> None:
+        """Initialize the screencast action.
+
+        Args:
+            params: Screencast parameters including URL, format, and duration.
+            output_dir: Directory to save captured frames.
+        """
         self.params = params
         self._output_dir = output_dir
 

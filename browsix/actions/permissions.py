@@ -20,6 +20,15 @@ class PermissionsAction(BaseAction[str, None]):
         url: str = "",
         wait: WaitStrategy | None = None,
     ) -> None:
+        """Initialize the permissions action.
+
+        Args:
+            params: Permissions parameters.
+            action: Permission action ("grant", "deny", "reset", or "query").
+            permission: Permission name (e.g. "geolocation", "notifications").
+            url: URL to navigate to before the action.
+            wait: Wait strategy after navigation.
+        """
         self.params = params
         self._action = action
         self._permission = permission

@@ -16,6 +16,13 @@ class DownloadAction(BaseAction[str, bytes]):
         url: str = "",
         wait: WaitStrategy | None = None,
     ) -> None:
+        """Initialize the download action.
+
+        Args:
+            params: Download parameters or URL filter.
+            url: URL to navigate to before intercepting downloads.
+            wait: Wait strategy after navigation.
+        """
         self.params = params
         self._url = url
         self._wait = wait or WaitStrategy(strategy="load")

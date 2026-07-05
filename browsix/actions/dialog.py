@@ -20,6 +20,15 @@ class DialogAction(BaseAction[str, None]):
         url: str = "",
         wait: WaitStrategy | None = None,
     ) -> None:
+        """Initialize the dialog action.
+
+        Args:
+            params: Dialog parameters or selector.
+            action: Dialog action ("accept" or "dismiss").
+            prompt_text: Text to enter in prompt dialogs.
+            url: URL to navigate to before the action.
+            wait: Wait strategy after navigation.
+        """
         self.params = params
         self._action = action
         self._prompt_text = prompt_text

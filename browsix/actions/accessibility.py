@@ -20,6 +20,15 @@ class AccessibilityAction(BaseAction[Any, Any]):
         url: str = "",
         wait: WaitStrategy | None = None,
     ) -> None:
+        """Initialize the accessibility action.
+
+        Args:
+            params: Action parameters.
+            action: Accessibility action type ("tree" or "node").
+            node_id: Node ID for node-specific actions.
+            url: URL to navigate to before the action.
+            wait: Wait strategy after navigation.
+        """
         self.params = params
         self._action = action
         self._node_id = node_id

@@ -68,6 +68,11 @@ class BiDiBackend(AbstractBackend):
     """
 
     def __init__(self) -> None:
+        """Initialize the BiDi backend.
+
+        Raises:
+            ImportError: If bidiwave is not installed.
+        """
         if BiDiClient is None:
             raise ImportError(
                 "bidiwave is not installed. Run: pip install browsix[bidi]"
@@ -385,6 +390,11 @@ class BiDiBackend(AbstractBackend):
         min_level = level_order.get(level, 0)
 
         async def _handler(event: Any) -> None:
+            """Handle a console event and append it to entries if level matches.
+
+            Args:
+                event: The BiDi console event object.
+            """
             entry_level = getattr(event, "level", "info")
             if level_order.get(entry_level, 0) >= min_level or level == "all":
                 entries.append({
@@ -1575,6 +1585,19 @@ class BiDiBackend(AbstractBackend):
     # ── Storage ────────────────────────────────────────────
 
     async def storage_get(self, key: str, storage_type: str = "local") -> str:
+        """Get a value from DOM storage.
+
+        Args:
+            key: The storage key to retrieve.
+            storage_type: Storage type ("local" or "session").
+
+        Returns:
+            The stored value as a string, or empty string if not found.
+
+        Raises:
+            RuntimeError: If the session is not initialized.
+            ValueError: If storage_type is invalid.
+        """
         if self._client is None:
             raise RuntimeError("Session not initialized.")
         if storage_type not in ("local", "session"):
@@ -1590,6 +1613,17 @@ class BiDiBackend(AbstractBackend):
     async def storage_set(
         self, key: str, value: str, storage_type: str = "local"
     ) -> None:
+        """Set a value in DOM storage.
+
+        Args:
+            key: The storage key to set.
+            value: The value to store.
+            storage_type: Storage type ("local" or "session").
+
+        Raises:
+            RuntimeError: If the session is not initialized.
+            ValueError: If storage_type is invalid.
+        """
         if self._client is None:
             raise RuntimeError("Session not initialized.")
         if storage_type not in ("local", "session"):
@@ -1602,6 +1636,15 @@ class BiDiBackend(AbstractBackend):
         )
 
     async def storage_clear(self, storage_type: str = "local") -> None:
+        """Clear all items from DOM storage.
+
+        Args:
+            storage_type: Storage type ("local" or "session").
+
+        Raises:
+            RuntimeError: If the session is not initialized.
+            ValueError: If storage_type is invalid.
+        """
         if self._client is None:
             raise RuntimeError("Session not initialized.")
         if storage_type not in ("local", "session"):
@@ -1614,6 +1657,18 @@ class BiDiBackend(AbstractBackend):
         )
 
     async def storage_list(self, storage_type: str = "local") -> dict[str, str]:
+        """List all key-value pairs in DOM storage.
+
+        Args:
+            storage_type: Storage type ("local" or "session").
+
+        Returns:
+            Dict mapping storage keys to their string values.
+
+        Raises:
+            RuntimeError: If the session is not initialized.
+            ValueError: If storage_type is invalid.
+        """
         if self._client is None:
             raise RuntimeError("Session not initialized.")
         if storage_type not in ("local", "session"):
