@@ -12,6 +12,7 @@ class TestNavigateIntegration:
     """Integration tests for navigation against real Chrome."""
 
     async def test_navigate_basic(self):
+        """Test navigate basic."""
         manager = BackendManager()
         backend = manager.select()
         try:
@@ -25,6 +26,7 @@ class TestNavigateIntegration:
             await backend.close()
 
     async def test_navigate_wait_for_selector(self):
+        """Test navigate wait for selector."""
         manager = BackendManager()
         backend = manager.select()
         try:
@@ -38,6 +40,7 @@ class TestNavigateIntegration:
             await backend.close()
 
     async def test_reload(self):
+        """Test reload."""
         manager = BackendManager()
         backend = manager.select()
         try:

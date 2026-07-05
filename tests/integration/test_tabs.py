@@ -12,6 +12,7 @@ class TestTabsIntegration:
     """Integration tests for tab management against real Chrome."""
 
     async def test_list_tabs(self):
+        """Test list tabs."""
         manager = BackendManager()
         backend = manager.select()
         try:
@@ -24,6 +25,7 @@ class TestTabsIntegration:
             await backend.close()
 
     async def test_new_and_close_tab(self):
+        """Test new and close tab."""
         manager = BackendManager()
         backend = manager.select()
         try:

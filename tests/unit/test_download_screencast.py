@@ -13,6 +13,11 @@ from browsix.config import ScreencastParams
 
 
 def _make_backend() -> MagicMock:
+    """Create a mock backend for testing.
+
+        Returns:
+            A MagicMock backend instance.
+        """
     backend = MagicMock(spec=AbstractBackend)
     backend.launch = AsyncMock()
     backend.close = AsyncMock()
@@ -24,7 +29,9 @@ def _make_backend() -> MagicMock:
 
 @pytest.mark.unit
 class TestDownloadAction:
+    """Test suite for downloadaction."""
     async def test_intercept_download(self) -> None:
+        """Test intercept download."""
         backend = _make_backend()
         result = await DownloadAction(
             params=".*", url="https://example.com/download"
@@ -33,6 +40,7 @@ class TestDownloadAction:
         assert result == b"file content"
 
     async def test_intercept_download_no_url(self) -> None:
+        """Test intercept download no url."""
         backend = _make_backend()
         result = await DownloadAction(params=".*").execute(backend)
         backend.navigate.assert_not_called()
@@ -41,7 +49,9 @@ class TestDownloadAction:
 
 @pytest.mark.unit
 class TestScreencastAction:
+    """Test suite for screencastaction."""
     async def test_screencast_saves_frames(self) -> None:
+        """Test screencast saves frames."""
         backend = _make_backend()
         params = ScreencastParams(url="https://example.com", duration=1.0)
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -55,6 +65,7 @@ class TestScreencastAction:
                     assert data in [b"frame1", b"frame2", b"frame3"]
 
     async def test_screencast_creates_dir(self) -> None:
+        """Test screencast creates dir."""
         backend = _make_backend()
         params = ScreencastParams(url="https://example.com", duration=1.0)
         with tempfile.TemporaryDirectory() as tmpdir:

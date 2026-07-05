@@ -13,7 +13,9 @@ from browsix.multi import execute_actions, parse_yaml
 
 @pytest.mark.unit
 class TestParseYaml:
+    """Test suite for parseyaml."""
     def test_valid_config(self, tmp_path: Path) -> None:
+        """Test valid config."""
         config = tmp_path / "config.yml"
         config.write_text(
             """
@@ -34,28 +36,33 @@ actions:
         assert "pdf" in actions[1]
 
     def test_missing_file(self, tmp_path: Path) -> None:
+        """Test that missing file raises an appropriate error."""
         with pytest.raises(MultiConfigError, match="file"):
             parse_yaml(tmp_path / "nonexistent.yml")
 
     def test_non_dict_root(self, tmp_path: Path) -> None:
+        """Test non dict root."""
         config = tmp_path / "bad.yml"
         config.write_text("- just\n- a\n- list\n", encoding="utf-8")
         with pytest.raises(MultiConfigError, match="root"):
             parse_yaml(config)
 
     def test_missing_actions_key(self, tmp_path: Path) -> None:
+        """Test that missing actions key raises an appropriate error."""
         config = tmp_path / "bad.yml"
         config.write_text("foo: bar\n", encoding="utf-8")
         with pytest.raises(MultiConfigError, match="actions"):
             parse_yaml(config)
 
     def test_actions_not_list(self, tmp_path: Path) -> None:
+        """Test actions not list."""
         config = tmp_path / "bad.yml"
         config.write_text("actions: notalist\n", encoding="utf-8")
         with pytest.raises(MultiConfigError, match="actions"):
             parse_yaml(config)
 
     def test_action_not_single_key(self, tmp_path: Path) -> None:
+        """Test action not single key."""
         config = tmp_path / "bad.yml"
         config.write_text(
             "actions:\n  - screenshot: {}\n    pdf: {}\n",
@@ -65,6 +72,7 @@ actions:
             parse_yaml(config)
 
     def test_action_params_not_dict(self, tmp_path: Path) -> None:
+        """Test action params not dict."""
         config = tmp_path / "bad.yml"
         config.write_text(
             "actions:\n  - screenshot: notadict\n",
@@ -74,6 +82,7 @@ actions:
             parse_yaml(config)
 
     def test_empty_actions(self, tmp_path: Path) -> None:
+        """Test empty actions."""
         config = tmp_path / "empty.yml"
         config.write_text("actions: []\n", encoding="utf-8")
         actions = parse_yaml(config)
@@ -82,7 +91,9 @@ actions:
 
 @pytest.mark.unit
 class TestExecuteActions:
+    """Test suite for executeactions."""
     async def test_execute_screenshot(self) -> None:
+        """Test execute screenshot."""
         backend = MagicMock()
         backend.navigate = AsyncMock()
         backend.screenshot = AsyncMock(return_value=b"png")
@@ -92,6 +103,7 @@ class TestExecuteActions:
         assert results[0] == b"png"
 
     async def test_execute_multiple(self) -> None:
+        """Test execute multiple."""
         backend = MagicMock()
         backend.navigate = AsyncMock()
         backend.screenshot = AsyncMock(return_value=b"png")
@@ -106,11 +118,13 @@ class TestExecuteActions:
         assert results[1] == "title"
 
     async def test_execute_empty(self) -> None:
+        """Test execute empty."""
         backend = MagicMock()
         results = await execute_actions([], backend)
         assert results == []
 
     async def test_execute_unknown_action(self) -> None:
+        """Test execute unknown action."""
         backend = MagicMock()
         actions = [{"unknown_action": {"url": "https://example.com"}}]
         with pytest.raises(MultiConfigError, match="unknown_action"):

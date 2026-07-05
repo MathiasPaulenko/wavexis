@@ -12,12 +12,15 @@ from browsix.record import Recorder, record_to_yaml, replay_from_yaml
 
 @pytest.mark.unit
 class TestRecorder:
+    """Test suite for recorder."""
     def test_init(self) -> None:
+        """Test init."""
         backend = MagicMock(spec=AbstractBackend)
         recorder = Recorder(backend)
         assert recorder.actions == []
 
     def test_record_manual(self) -> None:
+        """Test record manual."""
         backend = MagicMock(spec=AbstractBackend)
         recorder = Recorder(backend)
         recorder.record("screenshot", {"url": "https://example.com"})
@@ -25,6 +28,7 @@ class TestRecorder:
         assert recorder.actions[0] == {"screenshot": {"url": "https://example.com"}}
 
     def test_record_multiple(self) -> None:
+        """Test record multiple."""
         backend = MagicMock(spec=AbstractBackend)
         recorder = Recorder(backend)
         recorder.record("screenshot", {"url": "https://example.com"})
@@ -36,7 +40,9 @@ class TestRecorder:
 
 @pytest.mark.unit
 class TestRecordToYaml:
+    """Test suite for recordtoyaml."""
     def test_save_and_load(self, tmp_path: Path) -> None:
+        """Test save and load."""
         actions = [
             {"screenshot": {"url": "https://example.com", "output": "out.png"}},
             {"eval": {"url": "https://example.com", "expression": "1+1"}},
@@ -50,6 +56,7 @@ class TestRecordToYaml:
         assert "screenshot" in data["actions"][0]
 
     def test_empty_actions(self, tmp_path: Path) -> None:
+        """Test empty actions."""
         path = tmp_path / "empty.yml"
         record_to_yaml([], path)
         data = yaml.safe_load(path.read_text())
@@ -58,7 +65,9 @@ class TestRecordToYaml:
 
 @pytest.mark.unit
 class TestReplayFromYaml:
+    """Test suite for replayfromyaml."""
     async def test_replay_valid(self, tmp_path: Path) -> None:
+        """Test replay valid."""
         actions = [
             {"screenshot": {"url": "https://example.com", "output": "out.png"}},
         ]
@@ -72,6 +81,7 @@ class TestReplayFromYaml:
         assert len(results) == 1
 
     async def test_replay_empty(self, tmp_path: Path) -> None:
+        """Test replay empty."""
         path = tmp_path / "empty.yml"
         record_to_yaml([], path)
 

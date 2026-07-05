@@ -11,17 +11,20 @@ pytestmark = [pytest.mark.integration, pytest.mark.chrome]
 
 @pytest.fixture
 def backend() -> CDPBackend:
+    """Backend."""
     return CDPBackend()
 
 
 @pytest.fixture
 def browser_opts() -> BrowserOptions:
+    """Browser opts."""
     return BrowserOptions(headless=True)
 
 
 async def test_media_get_players(
     backend: CDPBackend, browser_opts: BrowserOptions
 ) -> None:
+    """Test media get players."""
     params = MediaParams(
         url="https://example.com",
         action="list",

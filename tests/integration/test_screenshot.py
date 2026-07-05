@@ -12,6 +12,7 @@ class TestScreenshotIntegration:
     """Integration tests for screenshot against real Chrome."""
 
     async def test_basic_screenshot(self):
+        """Test basic screenshot."""
         manager = BackendManager()
         backend = manager.select()
         try:
@@ -29,6 +30,7 @@ class TestScreenshotIntegration:
             await backend.close()
 
     async def test_full_page_screenshot(self):
+        """Test full page screenshot."""
         manager = BackendManager()
         backend = manager.select()
         try:
@@ -46,6 +48,7 @@ class TestScreenshotIntegration:
             await backend.close()
 
     async def test_device_screenshot(self):
+        """Test device screenshot."""
         manager = BackendManager()
         backend = manager.select()
         try:

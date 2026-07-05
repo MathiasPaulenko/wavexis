@@ -11,17 +11,20 @@ pytestmark = [pytest.mark.integration, pytest.mark.chrome]
 
 @pytest.fixture
 def backend() -> CDPBackend:
+    """Backend."""
     return CDPBackend()
 
 
 @pytest.fixture
 def browser_opts() -> BrowserOptions:
+    """Browser opts."""
     return BrowserOptions(headless=True)
 
 
 async def test_sw_list(
     backend: CDPBackend, browser_opts: BrowserOptions
 ) -> None:
+    """Test sw list."""
     params = ServiceWorkerParams(
         url="https://example.com",
         action="list",

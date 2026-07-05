@@ -11,7 +11,9 @@ from browsix.config import ScreenshotParams
 
 @pytest.mark.unit
 class TestBiDiBackend:
+    """Test suite for bidibackend."""
     def test_import_error(self) -> None:
+        """Test import error."""
         with patch("browsix.backend.bidi.BiDiClient", None):
             from browsix.backend.bidi import BiDiBackend
 
@@ -19,6 +21,7 @@ class TestBiDiBackend:
                 BiDiBackend()
 
     async def test_implemented_methods_raise_runtime_without_launch(self) -> None:
+        """Test implemented methods raise runtime without launch."""
         with patch("browsix.backend.bidi.BiDiClient", MagicMock()):
             from browsix.backend.bidi import BiDiBackend
 
@@ -185,6 +188,7 @@ class TestBiDiBackend:
                 await backend.bluetooth_stop()
 
     async def test_bidi_paridad_methods_raise_runtime_without_launch(self) -> None:
+        """Test bidi paridad methods raise runtime without launch."""
         with patch("browsix.backend.bidi.BiDiClient", MagicMock()):
             from browsix.backend.bidi import BiDiBackend
 
@@ -217,6 +221,7 @@ class TestBiDiBackend:
                 await backend.set_window_bounds(100, 100)
 
     async def test_navigate_without_launch(self) -> None:
+        """Test navigate without launch."""
         with patch("browsix.backend.bidi.BiDiClient", MagicMock()):
             from browsix.backend.bidi import BiDiBackend
 
@@ -225,6 +230,7 @@ class TestBiDiBackend:
                 await backend.navigate("https://example.com")
 
     async def test_eval_without_launch(self) -> None:
+        """Test eval without launch."""
         with patch("browsix.backend.bidi.BiDiClient", MagicMock()):
             from browsix.backend.bidi import BiDiBackend
 
@@ -233,6 +239,7 @@ class TestBiDiBackend:
                 await backend.eval("document.title")
 
     async def test_raw_without_launch(self) -> None:
+        """Test raw without launch."""
         with patch("browsix.backend.bidi.BiDiClient", MagicMock()):
             from browsix.backend.bidi import BiDiBackend
 
@@ -241,6 +248,7 @@ class TestBiDiBackend:
                 await backend.raw("test.method")
 
     async def test_screenshot_without_launch(self) -> None:
+        """Test screenshot without launch."""
         with patch("browsix.backend.bidi.BiDiClient", MagicMock()):
             from browsix.backend.bidi import BiDiBackend
 
@@ -250,6 +258,7 @@ class TestBiDiBackend:
                 await backend.screenshot(params)
 
     async def test_close_without_launch(self) -> None:
+        """Test close without launch."""
         with patch("browsix.backend.bidi.BiDiClient", MagicMock()):
             from browsix.backend.bidi import BiDiBackend
 

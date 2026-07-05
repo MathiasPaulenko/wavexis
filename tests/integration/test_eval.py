@@ -14,6 +14,7 @@ class TestEvalIntegration:
     """Integration tests for JS evaluation against real Chrome."""
 
     async def test_eval_expression(self):
+        """Test eval expression."""
         manager = BackendManager()
         backend = manager.select()
         try:
@@ -30,6 +31,7 @@ class TestEvalIntegration:
             await backend.close()
 
     async def test_eval_from_file(self, tmp_path: Path):
+        """Test eval from file."""
         js_file = tmp_path / "script.js"
         js_file.write_text("document.title", encoding="utf-8")
 
@@ -49,6 +51,7 @@ class TestEvalIntegration:
             await backend.close()
 
     async def test_eval_await_promise(self):
+        """Test eval await promise."""
         manager = BackendManager()
         backend = manager.select()
         try:

@@ -10,7 +10,13 @@ from browsix.backend.base import AbstractBackend
 
 @pytest.mark.unit
 class TestCSSAction:
+    """Test suite for cssaction."""
     def _make_backend(self) -> MagicMock:
+        """Create a mock backend for testing.
+
+            Returns:
+                A MagicMock backend instance.
+            """
         backend = MagicMock(spec=AbstractBackend)
         backend.launch = AsyncMock()
         backend.close = AsyncMock()
@@ -30,6 +36,7 @@ class TestCSSAction:
         return backend
 
     async def test_styles_action(self) -> None:
+        """Test styles action."""
         backend = self._make_backend()
         params = CSSActionParams(
             url="https://example.com", action="styles", selector="body"
@@ -39,6 +46,7 @@ class TestCSSAction:
         assert "inlineStyles" in result
 
     async def test_stylesheets_action(self) -> None:
+        """Test stylesheets action."""
         backend = self._make_backend()
         params = CSSActionParams(url="https://example.com", action="stylesheets")
         result = await CSSAction(params).execute(backend)
@@ -47,6 +55,7 @@ class TestCSSAction:
         assert len(result) == 1
 
     async def test_rules_action(self) -> None:
+        """Test rules action."""
         backend = self._make_backend()
         params = CSSActionParams(
             url="https://example.com", action="rules", stylesheet_id="sheet-1"
@@ -56,6 +65,7 @@ class TestCSSAction:
         assert isinstance(result, list)
 
     async def test_computed_action(self) -> None:
+        """Test computed action."""
         backend = self._make_backend()
         params = CSSActionParams(
             url="https://example.com", action="computed", selector="#hero"
@@ -65,24 +75,28 @@ class TestCSSAction:
         assert "color" in result
 
     async def test_styles_missing_selector_raises(self) -> None:
+        """Test that styles missing selector raises raises an appropriate error."""
         backend = self._make_backend()
         params = CSSActionParams(url="https://example.com", action="styles")
         with pytest.raises(ValueError, match="selector is required"):
             await CSSAction(params).execute(backend)
 
     async def test_rules_missing_stylesheet_id_raises(self) -> None:
+        """Test that rules missing stylesheet id raises raises an appropriate error."""
         backend = self._make_backend()
         params = CSSActionParams(url="https://example.com", action="rules")
         with pytest.raises(ValueError, match="stylesheet_id is required"):
             await CSSAction(params).execute(backend)
 
     async def test_unknown_action_raises(self) -> None:
+        """Test that unknown action raises raises an appropriate error."""
         backend = self._make_backend()
         params = CSSActionParams(url="https://example.com", action="unknown")
         with pytest.raises(ValueError, match="Unknown CSS action"):
             await CSSAction(params).execute(backend)
 
     async def test_launch_and_close_called(self) -> None:
+        """Test launch and close called."""
         backend = self._make_backend()
         params = CSSActionParams(
             url="https://example.com", action="stylesheets"
@@ -92,6 +106,7 @@ class TestCSSAction:
         backend.close.assert_called_once()
 
     async def test_close_called_on_error(self) -> None:
+        """Test close called on error."""
         backend = self._make_backend()
         backend.css_get_stylesheets = AsyncMock(side_effect=RuntimeError("boom"))
         params = CSSActionParams(url="https://example.com", action="stylesheets")
@@ -100,6 +115,7 @@ class TestCSSAction:
         backend.close.assert_called_once()
 
     def test_params_defaults(self) -> None:
+        """Test params defaults."""
         params = CSSActionParams()
         assert params.action == "styles"
         assert params.url == ""

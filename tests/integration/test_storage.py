@@ -11,17 +11,20 @@ pytestmark = [pytest.mark.integration, pytest.mark.chrome]
 
 @pytest.fixture
 def backend() -> CDPBackend:
+    """Backend."""
     return CDPBackend()
 
 
 @pytest.fixture
 def browser_opts() -> BrowserOptions:
+    """Browser opts."""
     return BrowserOptions(headless=True)
 
 
 async def test_storage_set_and_get(
     backend: CDPBackend, browser_opts: BrowserOptions
 ) -> None:
+    """Test storage set and get."""
     params = StorageParams(
         url="https://example.com",
         action="set",
@@ -46,6 +49,7 @@ async def test_storage_set_and_get(
 async def test_storage_list(
     backend: CDPBackend, browser_opts: BrowserOptions
 ) -> None:
+    """Test storage list."""
     params = StorageParams(
         url="https://example.com",
         action="set",
@@ -70,6 +74,7 @@ async def test_storage_list(
 async def test_storage_clear(
     backend: CDPBackend, browser_opts: BrowserOptions
 ) -> None:
+    """Test storage clear."""
     params_set = StorageParams(
         url="https://example.com",
         action="set",
@@ -101,6 +106,7 @@ async def test_storage_clear(
 async def test_storage_session_set_and_get(
     backend: CDPBackend, browser_opts: BrowserOptions
 ) -> None:
+    """Test storage session set and get."""
     params = StorageParams(
         url="https://example.com",
         action="set",

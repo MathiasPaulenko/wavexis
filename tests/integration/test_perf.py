@@ -13,15 +13,18 @@ pytestmark = [pytest.mark.integration, pytest.mark.chrome]
 
 @pytest.fixture
 def backend() -> CDPBackend:
+    """Backend."""
     return CDPBackend()
 
 
 @pytest.fixture
 def browser_opts() -> BrowserOptions:
+    """Browser opts."""
     return BrowserOptions(headless=True)
 
 
 async def test_perf_metrics(backend: CDPBackend, browser_opts: BrowserOptions) -> None:
+    """Test perf metrics."""
     params = PerformanceParams(
         url="https://example.com",
         action="metrics",
@@ -34,6 +37,7 @@ async def test_perf_metrics(backend: CDPBackend, browser_opts: BrowserOptions) -
 
 
 async def test_perf_trace(backend: CDPBackend, browser_opts: BrowserOptions) -> None:
+    """Test perf trace."""
     params = PerformanceParams(
         url="https://example.com",
         action="trace",
@@ -47,6 +51,7 @@ async def test_perf_trace(backend: CDPBackend, browser_opts: BrowserOptions) -> 
 
 
 async def test_perf_profile(backend: CDPBackend, browser_opts: BrowserOptions) -> None:
+    """Test perf profile."""
     params = PerformanceParams(
         url="https://example.com",
         action="profile",
@@ -59,6 +64,7 @@ async def test_perf_profile(backend: CDPBackend, browser_opts: BrowserOptions) -
 
 
 async def test_perf_heap(backend: CDPBackend, browser_opts: BrowserOptions) -> None:
+    """Test perf heap."""
     params = PerformanceParams(
         url="https://example.com",
         action="heap",
@@ -70,6 +76,7 @@ async def test_perf_heap(backend: CDPBackend, browser_opts: BrowserOptions) -> N
 
 
 async def test_perf_coverage(backend: CDPBackend, browser_opts: BrowserOptions) -> None:
+    """Test perf coverage."""
     params = PerformanceParams(
         url="https://example.com",
         action="coverage",
@@ -83,6 +90,7 @@ async def test_perf_coverage(backend: CDPBackend, browser_opts: BrowserOptions) 
 async def test_perf_css_coverage(
     backend: CDPBackend, browser_opts: BrowserOptions
 ) -> None:
+    """Test perf css coverage."""
     params = PerformanceParams(
         url="https://example.com",
         action="css-coverage",
@@ -96,6 +104,7 @@ async def test_perf_css_coverage(
 async def test_perf_metrics_json_serializable(
     backend: CDPBackend, browser_opts: BrowserOptions
 ) -> None:
+    """Test perf metrics json serializable."""
     params = PerformanceParams(
         url="https://example.com",
         action="metrics",

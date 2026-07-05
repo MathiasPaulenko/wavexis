@@ -11,7 +11,13 @@ from browsix.actions.bluetooth import BluetoothAction, BluetoothParams
 
 @pytest.mark.unit
 class TestBluetoothAction:
+    """Test suite for bluetoothaction."""
     def _make_backend(self) -> MagicMock:
+        """Create a mock backend for testing.
+
+            Returns:
+                A MagicMock backend instance.
+            """
         backend = MagicMock()
         backend.launch = AsyncMock()
         backend.navigate = AsyncMock()
@@ -21,6 +27,7 @@ class TestBluetoothAction:
         return backend
 
     async def test_emulate(self) -> None:
+        """Test emulate."""
         backend = self._make_backend()
         params = BluetoothParams(
             url="https://example.com", action="emulate", name="Test Device"
@@ -32,6 +39,7 @@ class TestBluetoothAction:
         )
 
     async def test_emulate_custom_address(self) -> None:
+        """Test emulate custom address."""
         backend = self._make_backend()
         params = BluetoothParams(
             url="https://example.com",
@@ -45,12 +53,14 @@ class TestBluetoothAction:
         )
 
     async def test_emulate_missing_name_raises(self) -> None:
+        """Test that emulate missing name raises raises an appropriate error."""
         backend = self._make_backend()
         params = BluetoothParams(url="https://example.com", action="emulate")
         with pytest.raises(ValueError, match="name is required"):
             await BluetoothAction(params).execute(backend)
 
     async def test_stop(self) -> None:
+        """Test stop."""
         backend = self._make_backend()
         params = BluetoothParams(url="https://example.com", action="stop")
         result = await BluetoothAction(params).execute(backend)
@@ -58,12 +68,14 @@ class TestBluetoothAction:
         backend.bluetooth_stop.assert_called_once()
 
     async def test_unknown_action_raises(self) -> None:
+        """Test that unknown action raises raises an appropriate error."""
         backend = self._make_backend()
         params = BluetoothParams(url="https://example.com", action="invalid")
         with pytest.raises(ValueError, match="Unknown Bluetooth action"):
             await BluetoothAction(params).execute(backend)
 
     async def test_lifecycle(self) -> None:
+        """Test the action lifecycle (launch, execute, close)."""
         backend = self._make_backend()
         params = BluetoothParams(
             url="https://example.com", action="emulate", name="Test"

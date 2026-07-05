@@ -14,7 +14,9 @@ from browsix.config import (
 
 @pytest.mark.unit
 class TestInputParams:
+    """Test suite for inputparams."""
     def test_defaults(self) -> None:
+        """Test defaults."""
         p = InputParams()
         assert p.url == ""
         assert p.selector == ""
@@ -31,6 +33,7 @@ class TestInputParams:
         assert isinstance(p.browser, BrowserOptions)
 
     def test_custom_values(self) -> None:
+        """Test custom values."""
         p = InputParams(
             url="https://example.com",
             selector="#btn",
@@ -51,7 +54,9 @@ class TestInputParams:
 
 @pytest.mark.unit
 class TestThrottleParams:
+    """Test suite for throttleparams."""
     def test_defaults(self) -> None:
+        """Test defaults."""
         p = ThrottleParams()
         assert p.offline is False
         assert p.latency_ms == 0
@@ -59,6 +64,7 @@ class TestThrottleParams:
         assert p.upload_bps == -1
 
     def test_custom(self) -> None:
+        """Test custom."""
         p = ThrottleParams(offline=True, latency_ms=200, download_bps=1000, upload_bps=500)
         assert p.offline is True
         assert p.latency_ms == 200
@@ -68,12 +74,15 @@ class TestThrottleParams:
 
 @pytest.mark.unit
 class TestSensorParams:
+    """Test suite for sensorparams."""
     def test_defaults(self) -> None:
+        """Test defaults."""
         p = SensorParams()
         assert p.type == ""
         assert p.values == {}
 
     def test_custom(self) -> None:
+        """Test custom."""
         p = SensorParams(type="geolocation", values={"latitude": 37.77, "longitude": -122.41})
         assert p.type == "geolocation"
         assert p.values["latitude"] == 37.77
@@ -82,7 +91,9 @@ class TestSensorParams:
 
 @pytest.mark.unit
 class TestScreencastParams:
+    """Test suite for screencastparams."""
     def test_defaults(self) -> None:
+        """Test defaults."""
         p = ScreencastParams()
         assert p.url == ""
         assert p.format == "png"
@@ -93,6 +104,7 @@ class TestScreencastParams:
         assert isinstance(p.wait, WaitStrategy)
 
     def test_custom(self) -> None:
+        """Test custom."""
         p = ScreencastParams(
             url="https://example.com",
             format="jpeg",

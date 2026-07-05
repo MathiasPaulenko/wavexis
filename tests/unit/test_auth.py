@@ -13,6 +13,7 @@ class TestLoadAuthContext:
 
     @pytest.mark.unit
     def test_load_full_context(self, tmp_path: Path):
+        """Test load full context."""
         data = {
             "cookies": [{"name": "session", "value": "abc"}],
             "headers": {"X-Custom": "value"},
@@ -30,6 +31,7 @@ class TestLoadAuthContext:
 
     @pytest.mark.unit
     def test_load_empty_context(self, tmp_path: Path):
+        """Test load empty context."""
         path = tmp_path / "empty.json"
         path.write_text("{}", encoding="utf-8")
 
@@ -45,6 +47,7 @@ class TestLoadAuth:
 
     @pytest.mark.unit
     def test_load_cookies_list(self, tmp_path: Path):
+        """Test load cookies list."""
         data = [{"name": "c1", "value": "v1"}]
         path = tmp_path / "cookies.json"
         path.write_text(json.dumps(data), encoding="utf-8")
@@ -54,6 +57,7 @@ class TestLoadAuth:
 
     @pytest.mark.unit
     def test_load_cookies_from_key(self, tmp_path: Path):
+        """Test load cookies from key."""
         data = {"cookies": [{"name": "c2", "value": "v2"}]}
         path = tmp_path / "auth.json"
         path.write_text(json.dumps(data), encoding="utf-8")
@@ -63,6 +67,7 @@ class TestLoadAuth:
 
     @pytest.mark.unit
     def test_load_cookies_empty(self, tmp_path: Path):
+        """Test load cookies empty."""
         path = tmp_path / "empty.json"
         path.write_text("{}", encoding="utf-8")
 
@@ -75,6 +80,7 @@ class TestLoadHeaders:
 
     @pytest.mark.unit
     def test_load_headers_dict(self, tmp_path: Path):
+        """Test load headers dict."""
         data = {"X-API-Key": "secret", "Authorization": "Bearer token"}
         path = tmp_path / "headers.json"
         path.write_text(json.dumps(data), encoding="utf-8")
@@ -84,6 +90,7 @@ class TestLoadHeaders:
 
     @pytest.mark.unit
     def test_load_headers_from_key(self, tmp_path: Path):
+        """Test load headers from key."""
         data = {"headers": {"X-Custom": "val"}}
         path = tmp_path / "config.json"
         path.write_text(json.dumps(data), encoding="utf-8")
@@ -93,6 +100,7 @@ class TestLoadHeaders:
 
     @pytest.mark.unit
     def test_load_headers_empty(self, tmp_path: Path):
+        """Test load headers empty."""
         path = tmp_path / "empty.json"
         path.write_text("{}", encoding="utf-8")
 
@@ -105,6 +113,7 @@ class TestAuthContext:
 
     @pytest.mark.unit
     def test_defaults(self):
+        """Test defaults."""
         ctx = AuthContext()
         assert ctx.cookies == []
         assert ctx.headers == {}

@@ -10,7 +10,9 @@ pytestmark = [pytest.mark.integration, pytest.mark.chrome]
 
 @pytest.mark.integration
 class TestPermissionsIntegration:
+    """Test suite for permissionsintegration."""
     async def test_grant_and_reset(self) -> None:
+        """Test grant and reset."""
         backend = CDPBackend(BrowserOptions(headless=True))
         async with backend:
             await backend.navigate(

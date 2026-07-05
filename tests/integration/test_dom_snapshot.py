@@ -11,15 +11,18 @@ pytestmark = [pytest.mark.integration, pytest.mark.chrome]
 
 @pytest.fixture
 def backend() -> CDPBackend:
+    """Backend."""
     return CDPBackend()
 
 
 @pytest.fixture
 def browser_opts() -> BrowserOptions:
+    """Browser opts."""
     return BrowserOptions(headless=True)
 
 
 async def test_dom_snapshot(backend: CDPBackend, browser_opts: BrowserOptions) -> None:
+    """Test dom snapshot."""
     params = DOMSnapshotParams(
         url="https://example.com",
         wait=WaitStrategy(strategy="load"),

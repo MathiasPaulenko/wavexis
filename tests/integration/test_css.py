@@ -11,15 +11,18 @@ pytestmark = [pytest.mark.integration, pytest.mark.chrome]
 
 @pytest.fixture
 def backend() -> CDPBackend:
+    """Backend."""
     return CDPBackend()
 
 
 @pytest.fixture
 def browser_opts() -> BrowserOptions:
+    """Browser opts."""
     return BrowserOptions(headless=True)
 
 
 async def test_css_styles(backend: CDPBackend, browser_opts: BrowserOptions) -> None:
+    """Test css styles."""
     params = CSSActionParams(
         url="https://example.com",
         action="styles",
@@ -33,6 +36,7 @@ async def test_css_styles(backend: CDPBackend, browser_opts: BrowserOptions) -> 
 
 
 async def test_css_stylesheets(backend: CDPBackend, browser_opts: BrowserOptions) -> None:
+    """Test css stylesheets."""
     params = CSSActionParams(
         url="https://example.com",
         action="stylesheets",
@@ -44,6 +48,7 @@ async def test_css_stylesheets(backend: CDPBackend, browser_opts: BrowserOptions
 
 
 async def test_css_computed(backend: CDPBackend, browser_opts: BrowserOptions) -> None:
+    """Test css computed."""
     params = CSSActionParams(
         url="https://example.com",
         action="computed",

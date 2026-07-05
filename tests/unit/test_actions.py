@@ -30,6 +30,7 @@ class FakeBackend:
     """Mock backend for unit testing actions."""
 
     def __init__(self) -> None:
+        """  init  ."""
         self.navigate = AsyncMock()
         self.screenshot = AsyncMock(return_value=b"png-bytes")
         self.screenshot_selector = AsyncMock(return_value=b"selector-bytes")
@@ -77,6 +78,7 @@ class FakeBackend:
 
 @pytest.fixture
 def backend() -> FakeBackend:
+    """Backend."""
     return FakeBackend()
 
 
@@ -85,6 +87,7 @@ class TestScreenshotAction:
 
     @pytest.mark.unit
     async def test_execute_basic(self, backend: FakeBackend):
+        """Test execute basic."""
         params = ScreenshotParams(url="https://example.com")
         action = ScreenshotAction(params)
         result = await action.execute(backend)
@@ -93,6 +96,7 @@ class TestScreenshotAction:
 
     @pytest.mark.unit
     async def test_execute_with_js(self, backend: FakeBackend):
+        """Test execute with js."""
         params = ScreenshotParams(url="https://example.com", js="document.title='test'")
         action = ScreenshotAction(params)
         await action.execute(backend)
@@ -100,6 +104,7 @@ class TestScreenshotAction:
 
     @pytest.mark.unit
     async def test_execute_with_selector(self, backend: FakeBackend):
+        """Test execute with selector."""
         params = ScreenshotParams(url="https://example.com", selector="#hero")
         action = ScreenshotAction(params)
         result = await action.execute(backend)
@@ -112,6 +117,7 @@ class TestPDFAction:
 
     @pytest.mark.unit
     async def test_execute(self, backend: FakeBackend):
+        """Test execute."""
         params = PDFParams(url="https://example.com", paper="a4")
         action = PDFAction(params)
         result = await action.execute(backend)
@@ -121,6 +127,7 @@ class TestPDFAction:
 
     @pytest.mark.unit
     async def test_execute_with_js(self, backend: FakeBackend):
+        """Test execute with js."""
         params = PDFParams(url="https://example.com", js="document.title='test'")
         action = PDFAction(params)
         await action.execute(backend)
@@ -132,6 +139,7 @@ class TestEvalAction:
 
     @pytest.mark.unit
     async def test_execute(self, backend: FakeBackend):
+        """Test execute."""
         params = EvalParams(url="https://example.com", expression="document.title")
         action = EvalAction(params)
         result = await action.execute(backend)
@@ -140,6 +148,7 @@ class TestEvalAction:
 
     @pytest.mark.unit
     async def test_execute_with_file(self, backend: FakeBackend, tmp_path):
+        """Test execute with file."""
         js_file = tmp_path / "script.js"
         js_file.write_text("document.title", encoding="utf-8")
         params = EvalParams(url="https://example.com", file=str(js_file))
@@ -154,6 +163,7 @@ class TestNavigateActions:
 
     @pytest.mark.unit
     async def test_navigate(self, backend: FakeBackend):
+        """Test navigate."""
         params = NavigateParams(url="https://example.com")
         action = NavigateAction(params)
         await action.execute(backend)
@@ -161,24 +171,28 @@ class TestNavigateActions:
 
     @pytest.mark.unit
     async def test_back(self, backend: FakeBackend):
+        """Test back."""
         action = BackAction(None)
         await action.execute(backend)
         backend.go_back.assert_called_once()
 
     @pytest.mark.unit
     async def test_forward(self, backend: FakeBackend):
+        """Test forward."""
         action = ForwardAction(None)
         await action.execute(backend)
         backend.go_forward.assert_called_once()
 
     @pytest.mark.unit
     async def test_reload(self, backend: FakeBackend):
+        """Test reload."""
         action = ReloadAction(True)
         await action.execute(backend)
         backend.reload.assert_called_once()
 
     @pytest.mark.unit
     async def test_stop(self, backend: FakeBackend):
+        """Test stop."""
         action = StopAction(None)
         await action.execute(backend)
         backend.stop_loading.assert_called_once()
@@ -189,6 +203,7 @@ class TestTabsAction:
 
     @pytest.mark.unit
     async def test_list(self, backend: FakeBackend):
+        """Test list."""
         params = TabsParams(action="list")
         action = TabsAction(params)
         result = await action.execute(backend)
@@ -197,6 +212,7 @@ class TestTabsAction:
 
     @pytest.mark.unit
     async def test_new(self, backend: FakeBackend):
+        """Test new."""
         params = TabsParams(action="new", url="https://example.com")
         action = TabsAction(params)
         result = await action.execute(backend)
@@ -205,6 +221,7 @@ class TestTabsAction:
 
     @pytest.mark.unit
     async def test_close(self, backend: FakeBackend):
+        """Test close."""
         params = TabsParams(action="close", tab_id="tab1")
         action = TabsAction(params)
         await action.execute(backend)
@@ -212,6 +229,7 @@ class TestTabsAction:
 
     @pytest.mark.unit
     async def test_activate(self, backend: FakeBackend):
+        """Test activate."""
         params = TabsParams(action="activate", tab_id="tab1")
         action = TabsAction(params)
         await action.execute(backend)
@@ -223,6 +241,7 @@ class TestConsoleAction:
 
     @pytest.mark.unit
     async def test_console_capture(self, backend: FakeBackend):
+        """Test console capture."""
         params = ConsoleParams(url="https://example.com", capture="console")
         action = ConsoleAction(params)
         result = await action.execute(backend)
@@ -232,6 +251,7 @@ class TestConsoleAction:
 
     @pytest.mark.unit
     async def test_logs_capture(self, backend: FakeBackend):
+        """Test logs capture."""
         params = ConsoleParams(url="https://example.com", capture="logs")
         action = ConsoleAction(params)
         result = await action.execute(backend)
@@ -241,6 +261,7 @@ class TestConsoleAction:
 
     @pytest.mark.unit
     async def test_both_capture(self, backend: FakeBackend):
+        """Test both capture."""
         params = ConsoleParams(url="https://example.com", capture="both")
         action = ConsoleAction(params)
         result = await action.execute(backend)
@@ -253,6 +274,7 @@ class TestDOMAction:
 
     @pytest.mark.unit
     async def test_dom_get(self, backend: FakeBackend):
+        """Test dom get."""
         from browsix.actions.dom import DOMAction
         from browsix.config import DOMParams
 
@@ -264,6 +286,7 @@ class TestDOMAction:
 
     @pytest.mark.unit
     async def test_dom_get_inner(self, backend: FakeBackend):
+        """Test dom get inner."""
         from browsix.actions.dom import DOMAction
         from browsix.config import DOMParams
 
@@ -277,6 +300,7 @@ class TestDOMAction:
 
     @pytest.mark.unit
     async def test_dom_query_single(self, backend: FakeBackend):
+        """Test dom query single."""
         from browsix.actions.dom import DOMAction
         from browsix.config import DOMParams
 
@@ -290,6 +314,7 @@ class TestDOMAction:
 
     @pytest.mark.unit
     async def test_dom_query_all(self, backend: FakeBackend):
+        """Test dom query all."""
         from browsix.actions.dom import DOMAction
         from browsix.config import DOMParams
 
@@ -302,6 +327,7 @@ class TestDOMAction:
 
     @pytest.mark.unit
     async def test_dom_set_attr(self, backend: FakeBackend):
+        """Test dom set attr."""
         from browsix.actions.dom import DOMAction
         from browsix.config import DOMParams
 
@@ -318,6 +344,7 @@ class TestDOMAction:
 
     @pytest.mark.unit
     async def test_dom_get_attr(self, backend: FakeBackend):
+        """Test dom get attr."""
         from browsix.actions.dom import DOMAction
         from browsix.config import DOMParams
 
@@ -334,6 +361,7 @@ class TestDOMAction:
 
     @pytest.mark.unit
     async def test_dom_remove(self, backend: FakeBackend):
+        """Test dom remove."""
         from browsix.actions.dom import DOMAction
         from browsix.config import DOMParams
 
@@ -346,6 +374,7 @@ class TestDOMAction:
 
     @pytest.mark.unit
     async def test_dom_focus(self, backend: FakeBackend):
+        """Test dom focus."""
         from browsix.actions.dom import DOMAction
         from browsix.config import DOMParams
 
@@ -358,6 +387,7 @@ class TestDOMAction:
 
     @pytest.mark.unit
     async def test_dom_scroll(self, backend: FakeBackend):
+        """Test dom scroll."""
         from browsix.actions.dom import DOMAction
         from browsix.config import DOMParams
 
@@ -374,6 +404,7 @@ class TestScrapeAction:
 
     @pytest.mark.unit
     async def test_scrape_basic(self, backend: FakeBackend):
+        """Test scrape basic."""
         from browsix.actions.scrape import ScrapeAction
         from browsix.config import ScrapeParams
 
@@ -390,6 +421,7 @@ class TestScrapeAction:
 
     @pytest.mark.unit
     async def test_scrape_with_file(self, backend: FakeBackend, tmp_path):
+        """Test scrape with file."""
         from browsix.actions.scrape import ScrapeAction
         from browsix.config import ScrapeParams
 
@@ -410,6 +442,7 @@ class TestHARAction:
 
     @pytest.mark.unit
     async def test_har_capture(self, backend: FakeBackend):
+        """Test har capture."""
         from browsix.actions.har import HARAction
         from browsix.config import HarParams
 
@@ -426,6 +459,7 @@ class TestNetworkAction:
 
     @pytest.mark.unit
     async def test_cookies_get(self, backend: FakeBackend):
+        """Test cookies get."""
         from browsix.actions.network import NetworkAction
         from browsix.config import NetworkParams
 
@@ -437,6 +471,7 @@ class TestNetworkAction:
 
     @pytest.mark.unit
     async def test_cookies_set(self, backend: FakeBackend):
+        """Test cookies set."""
         from browsix.actions.network import NetworkAction
         from browsix.config import CookieParams, NetworkParams
 
@@ -448,6 +483,7 @@ class TestNetworkAction:
 
     @pytest.mark.unit
     async def test_cookies_clear(self, backend: FakeBackend):
+        """Test cookies clear."""
         from browsix.actions.network import NetworkAction
         from browsix.config import NetworkParams
 
@@ -458,6 +494,7 @@ class TestNetworkAction:
 
     @pytest.mark.unit
     async def test_headers(self, backend: FakeBackend):
+        """Test headers."""
         from browsix.actions.network import NetworkAction
         from browsix.config import NetworkParams
 
@@ -470,6 +507,7 @@ class TestNetworkAction:
 
     @pytest.mark.unit
     async def test_user_agent(self, backend: FakeBackend):
+        """Test user agent."""
         from browsix.actions.network import NetworkAction
         from browsix.config import NetworkParams
 
@@ -484,6 +522,7 @@ class TestBrowserAction:
 
     @pytest.mark.unit
     async def test_version(self, backend: FakeBackend):
+        """Test version."""
         from browsix.actions.browser import BrowserAction
 
         action = BrowserAction("version")
@@ -493,6 +532,7 @@ class TestBrowserAction:
 
     @pytest.mark.unit
     async def test_new_context(self, backend: FakeBackend):
+        """Test new context."""
         from browsix.actions.browser import BrowserAction
 
         action = BrowserAction("new_context")
@@ -502,6 +542,7 @@ class TestBrowserAction:
 
     @pytest.mark.unit
     async def test_list_contexts(self, backend: FakeBackend):
+        """Test list contexts."""
         from browsix.actions.browser import BrowserAction
 
         action = BrowserAction("list_contexts")

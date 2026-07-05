@@ -11,17 +11,20 @@ pytestmark = [pytest.mark.integration, pytest.mark.chrome]
 
 @pytest.fixture
 def backend() -> CDPBackend:
+    """Backend."""
     return CDPBackend()
 
 
 @pytest.fixture
 def browser_opts() -> BrowserOptions:
+    """Browser opts."""
     return BrowserOptions(headless=True)
 
 
 async def test_webauthn_add_virtual_authenticator(
     backend: CDPBackend, browser_opts: BrowserOptions
 ) -> None:
+    """Test webauthn add virtual authenticator."""
     params = WebAuthnParams(
         url="https://example.com",
         action="add-virtual-authenticator",
@@ -38,6 +41,7 @@ async def test_webauthn_add_virtual_authenticator(
 async def test_webauthn_add_and_get_credentials(
     backend: CDPBackend, browser_opts: BrowserOptions
 ) -> None:
+    """Test webauthn add and get credentials."""
     params_add = WebAuthnParams(
         url="https://example.com",
         action="add-virtual-authenticator",

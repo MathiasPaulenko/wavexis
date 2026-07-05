@@ -13,17 +13,20 @@ pytestmark = [pytest.mark.integration, pytest.mark.chrome]
 
 @pytest.fixture
 def backend() -> CDPBackend:
+    """Backend."""
     return CDPBackend()
 
 
 @pytest.fixture
 def browser_opts() -> BrowserOptions:
+    """Browser opts."""
     return BrowserOptions(headless=True)
 
 
 async def test_record_and_replay(
     backend: CDPBackend, browser_opts: BrowserOptions, tmp_path: Path
 ) -> None:
+    """Test record and replay."""
     actions = [
         {"eval": {"url": "https://example.com", "expression": "1 + 1"}},
     ]
@@ -42,6 +45,7 @@ async def test_record_and_replay(
 async def test_replay_multi_action(
     backend: CDPBackend, browser_opts: BrowserOptions, tmp_path: Path
 ) -> None:
+    """Test replay multi action."""
     actions = [
         {"eval": {"url": "https://example.com", "expression": "document.title"}},
         {"screenshot": {"url": "https://example.com", "output": "out.png"}},

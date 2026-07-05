@@ -11,6 +11,7 @@ class TestBrowserIntegration:
     """Integration tests for browser management against real Chrome."""
 
     async def test_browser_version(self):
+        """Test browser version."""
         manager = BackendManager()
         backend = manager.select()
         try:
@@ -22,6 +23,7 @@ class TestBrowserIntegration:
             await backend.close()
 
     async def test_new_and_list_contexts(self):
+        """Test new and list contexts."""
         manager = BackendManager()
         backend = manager.select()
         try:
@@ -38,6 +40,7 @@ class TestBrowserIntegration:
             await backend.close()
 
     async def test_get_window_bounds(self):
+        """Test get window bounds."""
         manager = BackendManager()
         backend = manager.select()
         try:
@@ -51,6 +54,7 @@ class TestBrowserIntegration:
             await backend.close()
 
     async def test_set_window_bounds(self):
+        """Test set window bounds."""
         manager = BackendManager()
         backend = manager.select()
         try:

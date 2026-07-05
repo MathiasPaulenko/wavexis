@@ -12,6 +12,7 @@ class TestPDFIntegration:
     """Integration tests for PDF generation against real Chrome."""
 
     async def test_pdf_letter(self):
+        """Test pdf letter."""
         manager = BackendManager()
         backend = manager.select()
         try:
@@ -29,6 +30,7 @@ class TestPDFIntegration:
             await backend.close()
 
     async def test_pdf_a4(self):
+        """Test pdf a4."""
         manager = BackendManager()
         backend = manager.select()
         try:
@@ -46,6 +48,7 @@ class TestPDFIntegration:
             await backend.close()
 
     async def test_pdf_landscape(self):
+        """Test pdf landscape."""
         manager = BackendManager()
         backend = manager.select()
         try:

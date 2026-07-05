@@ -10,17 +10,20 @@ pytestmark = [pytest.mark.integration, pytest.mark.chrome]
 
 @pytest.fixture
 def backend() -> CDPBackend:
+    """Backend."""
     return CDPBackend()
 
 
 @pytest.fixture
 def browser_opts() -> BrowserOptions:
+    """Browser opts."""
     return BrowserOptions(headless=True)
 
 
 async def test_raw_cdp_command(
     backend: CDPBackend, browser_opts: BrowserOptions
 ) -> None:
+    """Test raw cdp command."""
     await backend.launch(browser_opts)
     try:
         result = await backend.raw("SystemInfo.getInfo", {})
@@ -32,6 +35,7 @@ async def test_raw_cdp_command(
 async def test_raw_page_reload(
     backend: CDPBackend, browser_opts: BrowserOptions
 ) -> None:
+    """Test raw page reload."""
     await backend.launch(browser_opts)
     try:
         result = await backend.raw("Page.reload", {"ignoreCache": True})
@@ -43,6 +47,7 @@ async def test_raw_page_reload(
 async def test_raw_network_enable(
     backend: CDPBackend, browser_opts: BrowserOptions
 ) -> None:
+    """Test raw network enable."""
     await backend.launch(browser_opts)
     try:
         result = await backend.raw("Network.enable", {})
@@ -54,6 +59,7 @@ async def test_raw_network_enable(
 async def test_raw_get_cookies(
     backend: CDPBackend, browser_opts: BrowserOptions
 ) -> None:
+    """Test raw get cookies."""
     await backend.launch(browser_opts)
     try:
         await backend.navigate("https://example.com")

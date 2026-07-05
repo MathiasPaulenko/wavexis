@@ -28,7 +28,9 @@ runner = CliRunner()
 
 @pytest.mark.unit
 class TestExitCodes:
+    """Test suite for exitcodes."""
     def test_exit_code_constants(self) -> None:
+        """Test exit code constants."""
         assert EXIT_SUCCESS == 0
         assert EXIT_BROWSER_ERROR == 1
         assert EXIT_CONFIG_ERROR == 2
@@ -37,7 +39,9 @@ class TestExitCodes:
 
 @pytest.mark.unit
 class TestVersionFlag:
+    """Test suite for versionflag."""
     def test_version_flag(self) -> None:
+        """Test version flag."""
         result = runner.invoke(app, ["--version"])
         assert result.exit_code == EXIT_SUCCESS
         assert "browsix v" in result.stdout
@@ -45,7 +49,9 @@ class TestVersionFlag:
 
 @pytest.mark.unit
 class TestErrorHandling:
+    """Test suite for errorhandling."""
     def test_backend_not_available_error(self) -> None:
+        """Test backend not available error."""
         with patch(
             "browsix.cli.app._get_backend",
             side_effect=BackendNotAvailableError(),
@@ -54,6 +60,7 @@ class TestErrorHandling:
             assert result.exit_code == EXIT_BACKEND_ERROR
 
     def test_navigation_error(self) -> None:
+        """Test navigation error."""
         with patch(
             "browsix.cli.app._get_backend",
             side_effect=NavigationError("https://example.com", "timeout"),
@@ -62,6 +69,7 @@ class TestErrorHandling:
             assert result.exit_code == EXIT_BROWSER_ERROR
 
     def test_wait_timeout_error(self) -> None:
+        """Test wait timeout error."""
         with patch(
             "browsix.cli.app._get_backend",
             side_effect=WaitTimeoutError("load", 30000),
@@ -70,6 +78,7 @@ class TestErrorHandling:
             assert result.exit_code == EXIT_BROWSER_ERROR
 
     def test_element_not_found_error(self) -> None:
+        """Test element not found error."""
         with patch(
             "browsix.cli.app._get_backend",
             side_effect=ElementNotFoundError("#nonexistent"),
@@ -78,6 +87,7 @@ class TestErrorHandling:
             assert result.exit_code == EXIT_BROWSER_ERROR
 
     def test_multi_config_error(self) -> None:
+        """Test multi config error."""
         with patch(
             "browsix.cli.app._get_backend",
             side_effect=MultiConfigError("actions", "missing key"),
@@ -86,6 +96,7 @@ class TestErrorHandling:
             assert result.exit_code == EXIT_CONFIG_ERROR
 
     def test_generic_browsix_error(self) -> None:
+        """Test generic browsix error."""
         with patch(
             "browsix.cli.app._get_backend",
             side_effect=BrowsixError("something went wrong"),

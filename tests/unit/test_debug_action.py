@@ -10,7 +10,13 @@ from browsix.backend.base import AbstractBackend
 
 @pytest.mark.unit
 class TestDebugAction:
+    """Test suite for debugaction."""
     def _make_backend(self) -> MagicMock:
+        """Create a mock backend for testing.
+
+            Returns:
+                A MagicMock backend instance.
+            """
         backend = MagicMock(spec=AbstractBackend)
         backend.launch = AsyncMock()
         backend.close = AsyncMock()
@@ -29,6 +35,7 @@ class TestDebugAction:
         return backend
 
     async def test_breakpoint_action(self) -> None:
+        """Test breakpoint action."""
         backend = self._make_backend()
         params = DebugActionParams(
             url="https://example.com",
@@ -43,6 +50,7 @@ class TestDebugAction:
         assert result == "bp-1"
 
     async def test_breakpoint_with_condition(self) -> None:
+        """Test breakpoint with condition."""
         backend = self._make_backend()
         params = DebugActionParams(
             url="https://example.com",
@@ -58,6 +66,7 @@ class TestDebugAction:
         assert result == "bp-1"
 
     async def test_function_breakpoint_action(self) -> None:
+        """Test function breakpoint action."""
         backend = self._make_backend()
         params = DebugActionParams(
             url="https://example.com",
@@ -69,6 +78,7 @@ class TestDebugAction:
         assert result == "bp-func-1"
 
     async def test_remove_breakpoint_action(self) -> None:
+        """Test remove breakpoint action."""
         backend = self._make_backend()
         params = DebugActionParams(
             url="https://example.com",
@@ -80,36 +90,42 @@ class TestDebugAction:
         assert result is None
 
     async def test_step_over_action(self) -> None:
+        """Test step over action."""
         backend = self._make_backend()
         params = DebugActionParams(url="https://example.com", action="step_over")
         await DebugAction(params).execute(backend)
         backend.debug_step_over.assert_called_once()
 
     async def test_step_into_action(self) -> None:
+        """Test step into action."""
         backend = self._make_backend()
         params = DebugActionParams(url="https://example.com", action="step_into")
         await DebugAction(params).execute(backend)
         backend.debug_step_into.assert_called_once()
 
     async def test_step_out_action(self) -> None:
+        """Test step out action."""
         backend = self._make_backend()
         params = DebugActionParams(url="https://example.com", action="step_out")
         await DebugAction(params).execute(backend)
         backend.debug_step_out.assert_called_once()
 
     async def test_pause_action(self) -> None:
+        """Test pause action."""
         backend = self._make_backend()
         params = DebugActionParams(url="https://example.com", action="pause")
         await DebugAction(params).execute(backend)
         backend.debug_pause.assert_called_once()
 
     async def test_resume_action(self) -> None:
+        """Test resume action."""
         backend = self._make_backend()
         params = DebugActionParams(url="https://example.com", action="resume")
         await DebugAction(params).execute(backend)
         backend.debug_resume.assert_called_once()
 
     async def test_listeners_action(self) -> None:
+        """Test listeners action."""
         backend = self._make_backend()
         params = DebugActionParams(
             url="https://example.com", action="listeners", selector="#btn"
@@ -120,6 +136,7 @@ class TestDebugAction:
         assert result[0]["type"] == "click"
 
     async def test_breakpoint_missing_script_url_raises(self) -> None:
+        """Test that breakpoint missing script url raises raises an appropriate error."""
         backend = self._make_backend()
         params = DebugActionParams(
             url="https://example.com", action="breakpoint", line=42
@@ -128,6 +145,7 @@ class TestDebugAction:
             await DebugAction(params).execute(backend)
 
     async def test_breakpoint_missing_line_raises(self) -> None:
+        """Test that breakpoint missing line raises raises an appropriate error."""
         backend = self._make_backend()
         params = DebugActionParams(
             url="https://example.com", action="breakpoint",
@@ -137,12 +155,14 @@ class TestDebugAction:
             await DebugAction(params).execute(backend)
 
     async def test_unknown_action_raises(self) -> None:
+        """Test that unknown action raises raises an appropriate error."""
         backend = self._make_backend()
         params = DebugActionParams(url="https://example.com", action="unknown")
         with pytest.raises(ValueError, match="Unknown debug action"):
             await DebugAction(params).execute(backend)
 
     async def test_close_called_on_error(self) -> None:
+        """Test close called on error."""
         backend = self._make_backend()
         backend.debug_pause = AsyncMock(side_effect=RuntimeError("boom"))
         params = DebugActionParams(url="https://example.com", action="pause")
@@ -151,6 +171,7 @@ class TestDebugAction:
         backend.close.assert_called_once()
 
     def test_params_defaults(self) -> None:
+        """Test params defaults."""
         params = DebugActionParams()
         assert params.action == "breakpoint"
         assert params.url is None

@@ -12,6 +12,7 @@ class TestDOMIntegration:
     """Integration tests for DOM against real Chrome."""
 
     async def test_dom_get_outer(self):
+        """Test dom get outer."""
         manager = BackendManager()
         backend = manager.select()
         try:
@@ -26,6 +27,7 @@ class TestDOMIntegration:
             await backend.close()
 
     async def test_dom_get_inner(self):
+        """Test dom get inner."""
         manager = BackendManager()
         backend = manager.select()
         try:
@@ -40,6 +42,7 @@ class TestDOMIntegration:
             await backend.close()
 
     async def test_dom_query_single(self):
+        """Test dom query single."""
         manager = BackendManager()
         backend = manager.select()
         try:
@@ -54,6 +57,7 @@ class TestDOMIntegration:
             await backend.close()
 
     async def test_dom_query_all(self):
+        """Test dom query all."""
         manager = BackendManager()
         backend = manager.select()
         try:
@@ -68,6 +72,7 @@ class TestDOMIntegration:
             await backend.close()
 
     async def test_dom_get_attr(self):
+        """Test dom get attr."""
         manager = BackendManager()
         backend = manager.select()
         try:
@@ -81,6 +86,7 @@ class TestDOMIntegration:
             await backend.close()
 
     async def test_dom_set_attr(self):
+        """Test dom set attr."""
         manager = BackendManager()
         backend = manager.select()
         try:
@@ -95,6 +101,7 @@ class TestDOMIntegration:
             await backend.close()
 
     async def test_dom_scroll(self):
+        """Test dom scroll."""
         manager = BackendManager()
         backend = manager.select()
         try:
@@ -107,6 +114,7 @@ class TestDOMIntegration:
             await backend.close()
 
     async def test_dom_action_via_action_class(self):
+        """Test dom action via action class."""
         manager = BackendManager()
         backend = manager.select()
         try:

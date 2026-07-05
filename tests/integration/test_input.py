@@ -10,7 +10,9 @@ pytestmark = [pytest.mark.integration, pytest.mark.chrome]
 
 @pytest.mark.integration
 class TestInputIntegration:
+    """Test suite for inputintegration."""
     async def test_click_and_type(self) -> None:
+        """Test click and type."""
         backend = CDPBackend(BrowserOptions(headless=True))
         async with backend:
             await backend.navigate(
@@ -21,6 +23,7 @@ class TestInputIntegration:
             await backend.type_text("#q", "hello world")
 
     async def test_fill_and_select(self) -> None:
+        """Test fill and select."""
         html = (
             "data:text/html,"
             "<input id='i' type='text'>"
@@ -33,6 +36,7 @@ class TestInputIntegration:
             await backend.select_option("#s", "b")
 
     async def test_hover_and_key(self) -> None:
+        """Test hover and key."""
         html = (
             "data:text/html,"
             "<div id='d' onmouseover='this.textContent=\"hovered\"'>Hover me</div>"

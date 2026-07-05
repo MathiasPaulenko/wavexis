@@ -11,7 +11,13 @@ from browsix.config import StorageParams
 
 @pytest.mark.unit
 class TestStorageAction:
+    """Test suite for storageaction."""
     def _make_backend(self) -> MagicMock:
+        """Create a mock backend for testing.
+
+            Returns:
+                A MagicMock backend instance.
+            """
         backend = MagicMock(spec=AbstractBackend)
         backend.launch = AsyncMock()
         backend.close = AsyncMock()
@@ -29,6 +35,7 @@ class TestStorageAction:
         return backend
 
     async def test_get_action(self) -> None:
+        """Test get action."""
         backend = self._make_backend()
         params = StorageParams(url="https://example.com", action="get", key="test_key")
         result = await StorageAction(params).execute(backend)
@@ -36,6 +43,7 @@ class TestStorageAction:
         backend.storage_get.assert_called_once_with("test_key", "local")
 
     async def test_set_action(self) -> None:
+        """Test set action."""
         backend = self._make_backend()
         params = StorageParams(
             url="https://example.com", action="set", key="k", value="v"
@@ -45,6 +53,7 @@ class TestStorageAction:
         backend.storage_set.assert_called_once_with("k", "v", "local")
 
     async def test_clear_action(self) -> None:
+        """Test clear action."""
         backend = self._make_backend()
         params = StorageParams(url="https://example.com", action="clear")
         result = await StorageAction(params).execute(backend)
@@ -52,6 +61,7 @@ class TestStorageAction:
         backend.storage_clear.assert_called_once_with("local")
 
     async def test_list_action(self) -> None:
+        """Test list action."""
         backend = self._make_backend()
         params = StorageParams(url="https://example.com", action="list")
         result = await StorageAction(params).execute(backend)
@@ -59,6 +69,7 @@ class TestStorageAction:
         backend.storage_list.assert_called_once_with("local")
 
     async def test_cache_list_action(self) -> None:
+        """Test cache list action."""
         backend = self._make_backend()
         params = StorageParams(url="https://example.com", action="cache-list")
         result = await StorageAction(params).execute(backend)
@@ -66,6 +77,7 @@ class TestStorageAction:
         backend.cache_storage_list.assert_called_once()
 
     async def test_cache_entries_action(self) -> None:
+        """Test cache entries action."""
         backend = self._make_backend()
         params = StorageParams(
             url="https://example.com", action="cache-entries", cache_name="mycache"
@@ -75,6 +87,7 @@ class TestStorageAction:
         backend.cache_storage_entries.assert_called_once_with("mycache")
 
     async def test_cache_delete_action(self) -> None:
+        """Test cache delete action."""
         backend = self._make_backend()
         params = StorageParams(
             url="https://example.com", action="cache-delete", cache_name="mycache"
@@ -84,6 +97,7 @@ class TestStorageAction:
         backend.cache_storage_delete.assert_called_once_with("mycache")
 
     async def test_indexeddb_list_action(self) -> None:
+        """Test indexeddb list action."""
         backend = self._make_backend()
         params = StorageParams(url="https://example.com", action="indexeddb-list")
         result = await StorageAction(params).execute(backend)
@@ -91,6 +105,7 @@ class TestStorageAction:
         backend.indexeddb_list.assert_called_once()
 
     async def test_indexeddb_get_action(self) -> None:
+        """Test indexeddb get action."""
         backend = self._make_backend()
         params = StorageParams(
             url="https://example.com",
@@ -102,6 +117,7 @@ class TestStorageAction:
         backend.indexeddb_get_data.assert_called_once_with("mydb", "mystore")
 
     async def test_indexeddb_clear_action(self) -> None:
+        """Test indexeddb clear action."""
         backend = self._make_backend()
         params = StorageParams(
             url="https://example.com",
@@ -114,24 +130,28 @@ class TestStorageAction:
         backend.indexeddb_clear.assert_called_once_with("mydb", "mystore")
 
     async def test_get_missing_key_raises(self) -> None:
+        """Test that get missing key raises raises an appropriate error."""
         backend = self._make_backend()
         params = StorageParams(url="https://example.com", action="get")
         with pytest.raises(ValueError, match="key is required"):
             await StorageAction(params).execute(backend)
 
     async def test_set_missing_value_raises(self) -> None:
+        """Test that set missing value raises raises an appropriate error."""
         backend = self._make_backend()
         params = StorageParams(url="https://example.com", action="set", key="k")
         with pytest.raises(ValueError, match="key and value are required"):
             await StorageAction(params).execute(backend)
 
     async def test_unknown_action_raises(self) -> None:
+        """Test that unknown action raises raises an appropriate error."""
         backend = self._make_backend()
         params = StorageParams(url="https://example.com", action="unknown")
         with pytest.raises(ValueError, match="Unknown storage action"):
             await StorageAction(params).execute(backend)
 
     async def test_lifecycle(self) -> None:
+        """Test the action lifecycle (launch, execute, close)."""
         backend = self._make_backend()
         params = StorageParams(url="https://example.com", action="list")
         await StorageAction(params).execute(backend)
@@ -140,6 +160,7 @@ class TestStorageAction:
         backend.close.assert_called_once()
 
     async def test_no_url_skips_navigate(self) -> None:
+        """Test that navigation is skipped when no URL is provided."""
         backend = self._make_backend()
         params = StorageParams(action="list")
         await StorageAction(params).execute(backend)

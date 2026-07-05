@@ -10,7 +10,9 @@ pytestmark = [pytest.mark.integration, pytest.mark.chrome]
 
 @pytest.mark.integration
 class TestA11yIntegration:
+    """Test suite for a11yintegration."""
     async def test_a11y_tree(self) -> None:
+        """Test a11y tree."""
         backend = CDPBackend(BrowserOptions(headless=True))
         async with backend:
             await backend.navigate(
@@ -22,6 +24,7 @@ class TestA11yIntegration:
             assert len(tree["nodes"]) > 0
 
     async def test_a11y_node(self) -> None:
+        """Test a11y node."""
         backend = CDPBackend(BrowserOptions(headless=True))
         async with backend:
             await backend.navigate(

@@ -11,15 +11,18 @@ pytestmark = [pytest.mark.integration, pytest.mark.chrome]
 
 @pytest.fixture
 def backend() -> CDPBackend:
+    """Backend."""
     return CDPBackend()
 
 
 @pytest.fixture
 def browser_opts() -> BrowserOptions:
+    """Browser opts."""
     return BrowserOptions(headless=True)
 
 
 async def test_overlay_highlight(backend: CDPBackend, browser_opts: BrowserOptions) -> None:
+    """Test overlay highlight."""
     params = OverlayParams(
         url="https://example.com",
         action="highlight",
@@ -31,6 +34,7 @@ async def test_overlay_highlight(backend: CDPBackend, browser_opts: BrowserOptio
 
 
 async def test_overlay_clear(backend: CDPBackend, browser_opts: BrowserOptions) -> None:
+    """Test overlay clear."""
     params = OverlayParams(
         url="https://example.com",
         action="clear",

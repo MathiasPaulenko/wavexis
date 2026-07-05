@@ -11,17 +11,20 @@ pytestmark = [pytest.mark.integration, pytest.mark.chrome]
 
 @pytest.fixture
 def backend() -> CDPBackend:
+    """Backend."""
     return CDPBackend()
 
 
 @pytest.fixture
 def browser_opts() -> BrowserOptions:
+    """Browser opts."""
     return BrowserOptions(headless=True)
 
 
 async def test_webaudio_get_contexts(
     backend: CDPBackend, browser_opts: BrowserOptions
 ) -> None:
+    """Test webaudio get contexts."""
     params = WebAudioParams(
         url="https://example.com",
         action="list",

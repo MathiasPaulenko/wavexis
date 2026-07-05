@@ -12,6 +12,7 @@ class TestScrapeIntegration:
     """Integration tests for scrape against real Chrome."""
 
     async def test_scrape_single_url(self):
+        """Test scrape single url."""
         manager = BackendManager()
         backend = manager.select()
         try:
@@ -30,6 +31,7 @@ class TestScrapeIntegration:
             await backend.close()
 
     async def test_scrape_multiple_urls(self):
+        """Test scrape multiple urls."""
         manager = BackendManager()
         backend = manager.select()
         try:
@@ -48,6 +50,7 @@ class TestScrapeIntegration:
             await backend.close()
 
     async def test_scrape_with_file(self, tmp_path):
+        """Test scrape with file."""
         js_file = tmp_path / "scraper.js"
         js_file.write_text("document.title", encoding="utf-8")
         manager = BackendManager()

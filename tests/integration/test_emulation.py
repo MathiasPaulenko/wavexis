@@ -10,7 +10,9 @@ from browsix.config import BrowserOptions, ScreenshotParams, WaitStrategy
 
 @pytest.mark.integration
 class TestEmulationIntegration:
+    """Test suite for emulationintegration."""
     async def test_emulate_device(self) -> None:
+        """Test emulate device."""
         backend = CDPBackend()
         await backend.launch(BrowserOptions())
         try:
@@ -24,6 +26,7 @@ class TestEmulationIntegration:
             await backend.close()
 
     async def test_set_viewport(self) -> None:
+        """Test set viewport."""
         backend = CDPBackend()
         await backend.launch(BrowserOptions())
         try:
@@ -37,6 +40,7 @@ class TestEmulationIntegration:
             await backend.close()
 
     async def test_set_geolocation(self) -> None:
+        """Test set geolocation."""
         backend = CDPBackend()
         await backend.launch(BrowserOptions())
         try:
@@ -50,6 +54,7 @@ class TestEmulationIntegration:
             await backend.close()
 
     async def test_set_timezone(self) -> None:
+        """Test set timezone."""
         backend = CDPBackend()
         await backend.launch(BrowserOptions())
         try:
@@ -63,6 +68,7 @@ class TestEmulationIntegration:
             await backend.close()
 
     async def test_set_dark_mode(self) -> None:
+        """Test set dark mode."""
         backend = CDPBackend()
         await backend.launch(BrowserOptions())
         try:
@@ -76,6 +82,7 @@ class TestEmulationIntegration:
             await backend.close()
 
     async def test_emulate_device_invalid(self) -> None:
+        """Test that emulate device invalid raises an appropriate error."""
         backend = CDPBackend()
         await backend.launch(BrowserOptions())
         try:

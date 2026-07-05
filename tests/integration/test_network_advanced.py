@@ -10,7 +10,9 @@ pytestmark = [pytest.mark.integration, pytest.mark.chrome]
 
 @pytest.mark.integration
 class TestNetworkAdvancedIntegration:
+    """Test suite for networkadvancedintegration."""
     async def test_block_requests(self) -> None:
+        """Test block requests."""
         backend = CDPBackend(BrowserOptions(headless=True))
         async with backend:
             await backend.navigate(
@@ -20,6 +22,7 @@ class TestNetworkAdvancedIntegration:
             await backend.block_requests(["*.png", "*.jpg"])
 
     async def test_throttle_network(self) -> None:
+        """Test throttle network."""
         backend = CDPBackend(BrowserOptions(headless=True))
         async with backend:
             await backend.navigate(
@@ -31,6 +34,7 @@ class TestNetworkAdvancedIntegration:
             )
 
     async def test_set_cache_disabled(self) -> None:
+        """Test set cache disabled."""
         backend = CDPBackend(BrowserOptions(headless=True))
         async with backend:
             await backend.navigate(

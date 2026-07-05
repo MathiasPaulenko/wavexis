@@ -9,6 +9,7 @@ pytestmark = [pytest.mark.integration, pytest.mark.chrome]
 
 
 async def test_serve_health() -> None:
+    """Test serve health."""
     app = create_app()
     async with aiohttp.test_utils.TestServer(app) as server, aiohttp.ClientSession() as session:  # noqa: SIM117
         async with session.get(f"http://127.0.0.1:{server.port}/health") as resp:
@@ -18,6 +19,7 @@ async def test_serve_health() -> None:
 
 
 async def test_serve_version() -> None:
+    """Test serve version."""
     app = create_app()
     async with aiohttp.test_utils.TestServer(app) as server, aiohttp.ClientSession() as session:  # noqa: SIM117
         async with session.get(f"http://127.0.0.1:{server.port}/version") as resp:
@@ -27,6 +29,7 @@ async def test_serve_version() -> None:
 
 
 async def test_serve_backends() -> None:
+    """Test serve backends."""
     app = create_app()
     async with aiohttp.test_utils.TestServer(app) as server, aiohttp.ClientSession() as session:  # noqa: SIM117
         async with session.get(f"http://127.0.0.1:{server.port}/backends") as resp:
@@ -37,6 +40,7 @@ async def test_serve_backends() -> None:
 
 
 async def test_serve_screenshot() -> None:
+    """Test serve screenshot."""
     app = create_app()
     async with aiohttp.test_utils.TestServer(app) as server, aiohttp.ClientSession() as session:  # noqa: SIM117
         async with session.post(
@@ -51,6 +55,7 @@ async def test_serve_screenshot() -> None:
 
 
 async def test_serve_eval() -> None:
+    """Test serve eval."""
     app = create_app()
     async with aiohttp.test_utils.TestServer(app) as server, aiohttp.ClientSession() as session:  # noqa: SIM117
         async with session.post(
@@ -66,6 +71,7 @@ async def test_serve_eval() -> None:
 
 
 async def test_serve_perf_metrics() -> None:
+    """Test serve perf metrics."""
     app = create_app()
     async with aiohttp.test_utils.TestServer(app) as server, aiohttp.ClientSession() as session:  # noqa: SIM117
         async with session.post(

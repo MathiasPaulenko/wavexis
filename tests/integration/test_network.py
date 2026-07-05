@@ -11,6 +11,7 @@ class TestCookiesIntegration:
     """Integration tests for cookie management against real Chrome."""
 
     async def test_get_cookies(self):
+        """Test get cookies."""
         manager = BackendManager()
         backend = manager.select()
         try:
@@ -24,6 +25,7 @@ class TestCookiesIntegration:
             await backend.close()
 
     async def test_set_and_get_cookie(self):
+        """Test set and get cookie."""
         manager = BackendManager()
         backend = manager.select()
         try:
@@ -45,6 +47,7 @@ class TestCookiesIntegration:
             await backend.close()
 
     async def test_delete_cookie(self):
+        """Test delete cookie."""
         manager = BackendManager()
         backend = manager.select()
         try:
@@ -67,6 +70,7 @@ class TestCookiesIntegration:
             await backend.close()
 
     async def test_clear_cookies(self):
+        """Test clear cookies."""
         manager = BackendManager()
         backend = manager.select()
         try:
@@ -86,6 +90,7 @@ class TestHeadersIntegration:
     """Integration tests for HTTP headers against real Chrome."""
 
     async def test_set_headers(self):
+        """Test set headers."""
         manager = BackendManager()
         backend = manager.select()
         try:
@@ -103,6 +108,7 @@ class TestUserAgentIntegration:
     """Integration tests for user-agent override."""
 
     async def test_set_user_agent(self):
+        """Test set user agent."""
         manager = BackendManager()
         backend = manager.select()
         try:

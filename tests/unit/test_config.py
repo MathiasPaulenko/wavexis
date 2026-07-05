@@ -21,6 +21,7 @@ class TestBrowserOptions:
     """Tests for BrowserOptions dataclass."""
 
     def test_defaults(self):
+        """Test defaults."""
         opts = BrowserOptions()
         assert opts.headless is True
         assert opts.width == 1280
@@ -29,6 +30,7 @@ class TestBrowserOptions:
         assert opts.extra_headers == {}
 
     def test_custom(self):
+        """Test custom."""
         opts = BrowserOptions(headless=False, width=1920, height=1080)
         assert opts.headless is False
         assert opts.width == 1920
@@ -39,6 +41,7 @@ class TestWaitStrategy:
     """Tests for WaitStrategy dataclass."""
 
     def test_defaults(self):
+        """Test defaults."""
         ws = WaitStrategy()
         assert ws.strategy == "load"
         assert ws.selector is None
@@ -46,12 +49,14 @@ class TestWaitStrategy:
         assert ws.timeout == 30000
 
     def test_custom(self):
+        """Test custom."""
         ws = WaitStrategy(strategy="selector", selector="#app", timeout=5000)
         assert ws.strategy == "selector"
         assert ws.selector == "#app"
         assert ws.timeout == 5000
 
     def test_from_url(self):
+        """Test from url."""
         ws = WaitStrategy.from_url("https://example.com")
         assert ws.strategy == "load"
 
@@ -60,6 +65,7 @@ class TestScreenshotParams:
     """Tests for ScreenshotParams dataclass."""
 
     def test_defaults(self):
+        """Test defaults."""
         params = ScreenshotParams(url="https://example.com")
         assert params.url == "https://example.com"
         assert params.full_page is True
@@ -72,6 +78,7 @@ class TestScreenshotParams:
         assert isinstance(params.browser, BrowserOptions)
 
     def test_custom(self):
+        """Test custom."""
         params = ScreenshotParams(
             url="https://example.com",
             full_page=False,
@@ -91,6 +98,7 @@ class TestPDFParams:
     """Tests for PDFParams dataclass."""
 
     def test_defaults(self):
+        """Test defaults."""
         params = PDFParams(url="https://example.com")
         assert params.url == "https://example.com"
         assert params.paper == "letter"
@@ -103,6 +111,7 @@ class TestPDFParams:
         assert isinstance(params.browser, BrowserOptions)
 
     def test_custom(self):
+        """Test custom."""
         params = PDFParams(
             url="https://example.com",
             paper="a4",
@@ -122,6 +131,7 @@ class TestEvalParams:
     """Tests for EvalParams dataclass."""
 
     def test_defaults(self):
+        """Test defaults."""
         params = EvalParams(url="https://example.com")
         assert params.url == "https://example.com"
         assert params.expression == ""
@@ -131,6 +141,7 @@ class TestEvalParams:
         assert isinstance(params.browser, BrowserOptions)
 
     def test_custom(self):
+        """Test custom."""
         params = EvalParams(
             url="https://example.com",
             expression="document.title",
@@ -146,6 +157,7 @@ class TestScreencastParams:
     """Tests for ScreencastParams dataclass."""
 
     def test_defaults(self):
+        """Test defaults."""
         params = ScreencastParams(url="https://example.com")
         assert params.url == "https://example.com"
         assert params.format == "png"
@@ -158,6 +170,7 @@ class TestDevicePresets:
     """Tests for DEVICE_PRESETS dict."""
 
     def test_all_presets_present(self):
+        """Test all presets present."""
         expected = {
             "iphone-15", "iphone-se", "pixel-8", "ipad-pro",
             "galaxy-s23", "desktop-1080p", "desktop-1440p",
@@ -165,6 +178,7 @@ class TestDevicePresets:
         assert set(DEVICE_PRESETS.keys()) == expected
 
     def test_preset_has_required_keys(self):
+        """Test preset has required keys."""
         for name, preset in DEVICE_PRESETS.items():
             assert "width" in preset, f"{name} missing width"
             assert "height" in preset, f"{name} missing height"
@@ -174,6 +188,7 @@ class TestDevicePresets:
             assert "mobile" in preset, f"{name} missing mobile"
 
     def test_iphone_15_values(self):
+        """Test iphone 15 values."""
         p = DEVICE_PRESETS["iphone-15"]
         assert p["width"] == 393
         assert p["height"] == 852
@@ -186,19 +201,23 @@ class TestPaperSizes:
     """Tests for PAPER_SIZES dict."""
 
     def test_all_sizes_present(self):
+        """Test all sizes present."""
         expected = {"a4", "letter", "legal", "a3", "a5"}
         assert set(PAPER_SIZES.keys()) == expected
 
     def test_size_has_width_height(self):
+        """Test size has width height."""
         for name, dims in PAPER_SIZES.items():
             assert "width" in dims, f"{name} missing width"
             assert "height" in dims, f"{name} missing height"
 
     def test_letter_values(self):
+        """Test letter values."""
         assert PAPER_SIZES["letter"]["width"] == 8.5
         assert PAPER_SIZES["letter"]["height"] == 11.0
 
     def test_a4_values(self):
+        """Test a4 values."""
         assert PAPER_SIZES["a4"]["width"] == 8.27
         assert PAPER_SIZES["a4"]["height"] == 11.69
 
@@ -207,6 +226,7 @@ class TestDOMParams:
     """Tests for DOMParams dataclass."""
 
     def test_defaults(self):
+        """Test defaults."""
         params = DOMParams()
         assert params.action == "get"
         assert params.selector == ""
@@ -214,6 +234,7 @@ class TestDOMParams:
         assert params.all is False
 
     def test_with_values(self):
+        """Test with values."""
         params = DOMParams(
             url="https://example.com",
             action="query",
@@ -229,12 +250,14 @@ class TestScrapeParams:
     """Tests for ScrapeParams dataclass."""
 
     def test_defaults(self):
+        """Test defaults."""
         params = ScrapeParams()
         assert params.urls == []
         assert params.expression == ""
         assert params.output_format == "json"
 
     def test_with_urls(self):
+        """Test with urls."""
         params = ScrapeParams(
             urls=["https://a.com", "https://b.com"],
             expression="document.title",
@@ -247,12 +270,14 @@ class TestHarParams:
     """Tests for HarParams dataclass."""
 
     def test_defaults(self):
+        """Test defaults."""
         params = HarParams()
         assert params.wait == 3000
         assert params.filter is None
         assert params.timeout == 30000
 
     def test_with_filter(self):
+        """Test with filter."""
         params = HarParams(url="https://example.com", filter="api.example.com")
         assert params.filter == "api.example.com"
 
@@ -261,6 +286,7 @@ class TestCookieParams:
     """Tests for CookieParams dataclass."""
 
     def test_defaults(self):
+        """Test defaults."""
         params = CookieParams()
         assert params.name == ""
         assert params.path == "/"
@@ -269,6 +295,7 @@ class TestCookieParams:
         assert params.same_site == "Lax"
 
     def test_with_values(self):
+        """Test with values."""
         params = CookieParams(
             name="session", value="abc123", domain=".example.com"
         )
@@ -280,12 +307,14 @@ class TestNetworkParams:
     """Tests for NetworkParams dataclass."""
 
     def test_defaults(self):
+        """Test defaults."""
         params = NetworkParams()
         assert params.action == "cookies_get"
         assert params.headers is None
         assert params.user_agent is None
 
     def test_with_headers(self):
+        """Test with headers."""
         params = NetworkParams(
             action="headers", headers={"X-Test": "val"}
         )

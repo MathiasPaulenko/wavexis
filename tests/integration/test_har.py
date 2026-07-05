@@ -12,6 +12,7 @@ class TestHARIntegration:
     """Integration tests for HAR capture against real Chrome."""
 
     async def test_har_basic(self):
+        """Test har basic."""
         manager = BackendManager()
         backend = manager.select()
         try:
@@ -32,6 +33,7 @@ class TestHARIntegration:
             await backend.close()
 
     async def test_har_with_filter(self):
+        """Test har with filter."""
         manager = BackendManager()
         backend = manager.select()
         try:

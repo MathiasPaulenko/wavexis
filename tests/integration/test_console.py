@@ -12,6 +12,7 @@ class TestConsoleIntegration:
     """Integration tests for console capture against real Chrome."""
 
     async def test_capture_console(self):
+        """Test capture console."""
         manager = BackendManager()
         backend = manager.select()
         try:
@@ -29,6 +30,7 @@ class TestConsoleIntegration:
             await backend.close()
 
     async def test_capture_logs(self):
+        """Test capture logs."""
         manager = BackendManager()
         backend = manager.select()
         try:

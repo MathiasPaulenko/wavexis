@@ -8,6 +8,7 @@ from browsix.backend.base import AbstractBackend
 
 
 def _has_aiohttp() -> bool:
+    """ has aiohttp."""
     try:
         import aiohttp  # noqa: F401
         return True
@@ -20,7 +21,9 @@ pytestmark = pytest.mark.skipif(not _has_aiohttp(), reason="aiohttp not installe
 
 @pytest.mark.unit
 class TestServeImport:
+    """Test suite for serveimport."""
     def test_import_aiohttp_raises_without_install(self) -> None:
+        """Test that import aiohttp raises without install raises an appropriate error."""
         from browsix.serve import _import_aiohttp
 
         web = _import_aiohttp()
@@ -29,7 +32,9 @@ class TestServeImport:
 
 @pytest.mark.unit
 class TestServeCreateApp:
+    """Test suite for servecreateapp."""
     def test_create_app_returns_application(self) -> None:
+        """Test create app returns application."""
         from browsix.serve import create_app
 
         app = create_app()
@@ -37,6 +42,7 @@ class TestServeCreateApp:
         assert "backend_name" in app
 
     def test_create_app_has_routes(self) -> None:
+        """Test create app has routes."""
         from browsix.serve import create_app
 
         app = create_app()
@@ -69,7 +75,9 @@ class TestServeCreateApp:
 
 @pytest.mark.unit
 class TestServeHandlers:
+    """Test suite for servehandlers."""
     async def test_health_endpoint(self) -> None:
+        """Test health endpoint."""
         from aiohttp.test_utils import TestClient, TestServer
 
         from browsix.serve import create_app
@@ -85,6 +93,7 @@ class TestServeHandlers:
         await client.close()
 
     async def test_version_endpoint(self) -> None:
+        """Test version endpoint."""
         from aiohttp.test_utils import TestClient, TestServer
 
         from browsix.serve import __version__, create_app
@@ -100,6 +109,7 @@ class TestServeHandlers:
         await client.close()
 
     async def test_backends_endpoint(self) -> None:
+        """Test backends endpoint."""
         from aiohttp.test_utils import TestClient, TestServer
 
         from browsix.serve import create_app
@@ -121,6 +131,7 @@ class TestServeHandlerMocks:
     """Test handlers with mocked backend to avoid real browser."""
 
     def _make_mock_backend(self) -> MagicMock:
+        """ make mock backend."""
         backend = MagicMock(spec=AbstractBackend)
         backend.launch = AsyncMock()
         backend.close = AsyncMock()
@@ -139,6 +150,7 @@ class TestServeHandlerMocks:
         return backend
 
     async def test_screenshot_endpoint(self) -> None:
+        """Test screenshot endpoint."""
         from unittest.mock import patch
 
         from aiohttp.test_utils import TestClient, TestServer
@@ -162,6 +174,7 @@ class TestServeHandlerMocks:
         await client.close()
 
     async def test_pdf_endpoint(self) -> None:
+        """Test pdf endpoint."""
         from unittest.mock import patch
 
         from aiohttp.test_utils import TestClient, TestServer
@@ -185,6 +198,7 @@ class TestServeHandlerMocks:
         await client.close()
 
     async def test_eval_endpoint(self) -> None:
+        """Test eval endpoint."""
         from unittest.mock import patch
 
         from aiohttp.test_utils import TestClient, TestServer
@@ -207,6 +221,7 @@ class TestServeHandlerMocks:
         await client.close()
 
     async def test_perf_metrics_endpoint(self) -> None:
+        """Test perf metrics endpoint."""
         from unittest.mock import patch
 
         from aiohttp.test_utils import TestClient, TestServer
@@ -229,6 +244,7 @@ class TestServeHandlerMocks:
         await client.close()
 
     async def test_perf_trace_endpoint(self) -> None:
+        """Test perf trace endpoint."""
         from unittest.mock import patch
 
         from aiohttp.test_utils import TestClient, TestServer
@@ -251,6 +267,7 @@ class TestServeHandlerMocks:
         await client.close()
 
     async def test_navigate_endpoint(self) -> None:
+        """Test navigate endpoint."""
         from unittest.mock import patch
 
         from aiohttp.test_utils import TestClient, TestServer
@@ -273,6 +290,7 @@ class TestServeHandlerMocks:
         await client.close()
 
     async def test_cookies_get_endpoint(self) -> None:
+        """Test cookies get endpoint."""
         from unittest.mock import patch
 
         from aiohttp.test_utils import TestClient, TestServer
@@ -295,6 +313,7 @@ class TestServeHandlerMocks:
         await client.close()
 
     async def test_cookies_set_endpoint(self) -> None:
+        """Test cookies set endpoint."""
         from unittest.mock import patch
 
         from aiohttp.test_utils import TestClient, TestServer
@@ -321,6 +340,7 @@ class TestServeHandlerMocks:
         await client.close()
 
     async def test_websocket_screenshot_stream(self) -> None:
+        """Test websocket screenshot stream."""
         from unittest.mock import patch
 
         from aiohttp.test_utils import TestClient, TestServer
@@ -350,6 +370,7 @@ class TestServeHandlerMocks:
         await client.close()
 
     async def test_websocket_eval_command(self) -> None:
+        """Test websocket eval command."""
         from unittest.mock import patch
 
         from aiohttp.test_utils import TestClient, TestServer
