@@ -2,7 +2,6 @@
 
 from typing import Any
 
-
 class BiDiClient:
     """Type stub for BiDiClient."""
 
