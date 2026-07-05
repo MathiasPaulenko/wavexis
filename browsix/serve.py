@@ -6,6 +6,10 @@ All imports are lazy — ``BrowsixError`` is raised if aiohttp is not installed.
 
 from __future__ import annotations
 
+import asyncio
+import base64
+import json
+import time
 from typing import Any
 
 from browsix.backend.base import AbstractBackend
@@ -24,7 +28,7 @@ from browsix.config import (
 )
 from browsix.exceptions import BrowsixError
 
-__version__ = "1.4.0"
+__version__ = "1.9.0"
 
 
 def _import_aiohttp() -> Any:
@@ -389,6 +393,191 @@ async def handle_multi(request: Any) -> Any:
     })
 
 
+# ── WebSocket handler ──────────────────────────────────────
+
+
+async def _stream_screenshots(
+    ws: Any, backend: AbstractBackend, interval: float, fmt: str, quality: int,
+) -> None:
+    """Periodically capture and stream screenshots."""
+    while True:
+        try:
+            params = ScreenshotParams(format=fmt, quality=quality)
+            img = await backend.screenshot(params)
+            b64 = base64.b64encode(img).decode("ascii")
+            await ws.send_json({
+                "type": "screenshot",
+                "data": b64,
+                "timestamp": time.time(),
+            })
+        except Exception as exc:
+            await ws.send_json({
+                "type": "error",
+                "source": "screenshot",
+                "message": str(exc),
+            })
+        await asyncio.sleep(interval)
+
+
+async def _stream_console(
+    ws: Any, backend: AbstractBackend, interval: float,
+) -> None:
+    """Poll console messages and stream new ones."""
+    seen: set[int] = set()
+    while True:
+        try:
+            messages = await backend.capture_console()
+            for msg in messages:
+                key = hash(json.dumps(msg, sort_keys=True))
+                if key not in seen:
+                    seen.add(key)
+                    await ws.send_json({
+                        "type": "console",
+                        "data": msg,
+                        "timestamp": time.time(),
+                    })
+        except Exception as exc:
+            await ws.send_json({
+                "type": "error",
+                "source": "console",
+                "message": str(exc),
+            })
+        await asyncio.sleep(interval)
+
+
+async def _stream_navigation(
+    ws: Any, backend: AbstractBackend, interval: float,
+) -> None:
+    """Poll URL changes and stream navigation events."""
+    last_url: str = ""
+    while True:
+        try:
+            result = await backend.eval("window.location.href")
+            current_url = str(result) if result else ""
+            if current_url != last_url:
+                last_url = current_url
+                await ws.send_json({
+                    "type": "navigation",
+                    "url": current_url,
+                    "timestamp": time.time(),
+                })
+        except Exception as exc:
+            await ws.send_json({
+                "type": "error",
+                "source": "navigation",
+                "message": str(exc),
+            })
+        await asyncio.sleep(interval)
+
+
+async def handle_websocket(request: Any) -> Any:
+    """Handle GET /ws — WebSocket endpoint for real-time streaming.
+
+    Client sends a JSON subscribe message:
+        {
+            "url": "https://example.com",
+            "events": ["screenshot", "console", "navigation"],
+            "interval": 1.0,
+            "format": "png",
+            "quality": 80
+        }
+
+    Server streams events as JSON messages until the client disconnects.
+    """
+    web = _import_aiohttp()
+    ws = web.WebSocketResponse()
+    await ws.prepare(request)
+
+    try:
+        msg = await ws.receive()
+        if msg.type == web.WSMsgType.TEXT:
+            config = json.loads(msg.data)
+        else:
+            await ws.close()
+            return ws
+    except Exception:
+        await ws.close()
+        return ws
+
+    url = config.get("url", "about:blank")
+    events = config.get("events", ["screenshot"])
+    interval = float(config.get("interval", 1.0))
+    fmt = config.get("format", "png")
+    quality = int(config.get("quality", 80))
+
+    backend = await _get_backend(request)
+    await backend.launch(BrowserOptions())
+    await backend.navigate(url, WaitStrategy(strategy="load"))
+
+    await ws.send_json({
+        "type": "ready",
+        "url": url,
+        "events": events,
+        "timestamp": time.time(),
+    })
+
+    tasks: list[asyncio.Task[None]] = []
+    if "screenshot" in events:
+        tasks.append(asyncio.create_task(
+            _stream_screenshots(ws, backend, interval, fmt, quality),
+        ))
+    if "console" in events:
+        tasks.append(asyncio.create_task(
+            _stream_console(ws, backend, max(interval, 0.5)),
+        ))
+    if "navigation" in events:
+        tasks.append(asyncio.create_task(
+            _stream_navigation(ws, backend, max(interval, 0.5)),
+        ))
+
+    try:
+        async for msg in ws:
+            if msg.type == web.WSMsgType.TEXT:
+                try:
+                    cmd = json.loads(msg.data)
+                except json.JSONDecodeError:
+                    continue
+                action = cmd.get("action")
+                if action == "navigate":
+                    new_url = cmd.get("url", "")
+                    await backend.navigate(new_url, WaitStrategy(strategy="load"))
+                    await ws.send_json({
+                        "type": "navigated",
+                        "url": new_url,
+                        "timestamp": time.time(),
+                    })
+                elif action == "eval":
+                    expr = cmd.get("expression", "")
+                    result = await backend.eval(expr)
+                    await ws.send_json({
+                        "type": "eval_result",
+                        "result": result,
+                        "timestamp": time.time(),
+                    })
+                elif action == "screenshot":
+                    params = ScreenshotParams(format=fmt, quality=quality)
+                    img = await backend.screenshot(params)
+                    b64 = base64.b64encode(img).decode("ascii")
+                    await ws.send_json({
+                        "type": "screenshot",
+                        "data": b64,
+                        "timestamp": time.time(),
+                    })
+                elif action == "close":
+                    break
+            elif msg.type in (web.WSMsgType.CLOSE, web.WSMsgType.CLOSING,
+                               web.WSMsgType.CLOSED, web.WSMsgType.ERROR):
+                break
+    finally:
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        await backend.close()
+        await ws.close()
+
+    return ws
+
+
 # ── App factory ─────────────────────────────────────────────
 
 
@@ -434,6 +623,7 @@ def create_app(backend_name: str | None = None) -> Any:
     app.router.add_get("/health", handle_health)
     app.router.add_get("/backends", handle_backends)
     app.router.add_get("/version", handle_version)
+    app.router.add_get("/ws", handle_websocket)
     return app
 
 

@@ -63,6 +63,7 @@ class TestServeCreateApp:
         assert "/health" in routes
         assert "/backends" in routes
         assert "/version" in routes
+        assert "/ws" in routes
 
 
 @pytest.mark.unit
@@ -316,4 +317,63 @@ class TestServeHandlerMocks:
         assert resp.status == 200
         data = await resp.json()
         assert data == {"status": "ok"}
+        await client.close()
+
+    async def test_websocket_screenshot_stream(self) -> None:
+        from unittest.mock import patch
+
+        from aiohttp.test_utils import TestClient, TestServer
+
+        from browsix.serve import create_app
+
+        mock_backend = self._make_mock_backend()
+        mock_backend.capture_console = AsyncMock(return_value=[])
+        app = create_app()
+        server = TestServer(app)
+        client = TestClient(server)
+        await client.start_server()
+        with patch("browsix.serve.BackendManager.select", return_value=mock_backend):
+            ws = await client.ws_connect("/ws")
+            await ws.send_json({
+                "url": "https://example.com",
+                "events": ["screenshot"],
+                "interval": 0.1,
+            })
+            ready = await ws.receive_json(timeout=2)
+            assert ready["type"] == "ready"
+            screenshot = await ws.receive_json(timeout=2)
+            assert screenshot["type"] == "screenshot"
+            assert "data" in screenshot
+            await ws.send_json({"action": "close"})
+        await ws.close()
+        await client.close()
+
+    async def test_websocket_eval_command(self) -> None:
+        from unittest.mock import patch
+
+        from aiohttp.test_utils import TestClient, TestServer
+
+        from browsix.serve import create_app
+
+        mock_backend = self._make_mock_backend()
+        mock_backend.capture_console = AsyncMock(return_value=[])
+        app = create_app()
+        server = TestServer(app)
+        client = TestClient(server)
+        await client.start_server()
+        with patch("browsix.serve.BackendManager.select", return_value=mock_backend):
+            ws = await client.ws_connect("/ws")
+            await ws.send_json({
+                "url": "https://example.com",
+                "events": [],
+                "interval": 1.0,
+            })
+            ready = await ws.receive_json(timeout=2)
+            assert ready["type"] == "ready"
+            await ws.send_json({"action": "eval", "expression": "document.title"})
+            result = await ws.receive_json(timeout=2)
+            assert result["type"] == "eval_result"
+            assert result["result"] == 42
+            await ws.send_json({"action": "close"})
+        await ws.close()
         await client.close()

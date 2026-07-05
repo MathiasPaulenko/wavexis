@@ -74,7 +74,7 @@ browsix record list
 
 ## Serve mode
 
-HTTP API server powered by aiohttp:
+HTTP API server powered by aiohttp with WebSocket streaming:
 
 ```bash
 browsix serve --host 0.0.0.0 --port 8080
@@ -85,6 +85,23 @@ curl -X POST http://localhost:8080/screenshot \
   -H "Content-Type: application/json" \
   -d '{"url": "https://example.com"}' \
   -o screenshot.png
+```
+
+WebSocket endpoint at `/ws` for real-time streaming of screenshots, console events, and navigation:
+
+```python
+import aiohttp, json, asyncio
+
+async def stream():
+    async with aiohttp.ClientSession() as s:
+        async with s.ws_connect("ws://localhost:8080/ws") as ws:
+            await ws.send_json({"url": "https://example.com", "events": ["screenshot"], "interval": 2.0})
+            async for msg in ws:
+                data = json.loads(msg.data)
+                if data["type"] == "screenshot":
+                    print(f"Got frame ({len(data['data'])} bytes)")
+
+asyncio.run(stream())
 ```
 
 ## Multi-action
