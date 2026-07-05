@@ -142,14 +142,6 @@ class BiDiBackend(AbstractBackend):
         rect_str = result.value if hasattr(result, "value") else result
         if not rect_str:
             raise RuntimeError(f"Element not found: {selector}")
-        import json as _json
-        rect = _json.loads(rect_str) if isinstance(rect_str, str) else rect_str
-        clip = {
-            "x": int(rect.get("x", 0)),
-            "y": int(rect.get("y", 0)),
-            "width": int(rect.get("width", 0)),
-            "height": int(rect.get("height", 0)),
-        }
         screenshot_result = await self._client.browsing.screenshot(
             self._context, format=format, quality=quality
         )

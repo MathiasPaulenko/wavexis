@@ -98,7 +98,10 @@ class TestBiDiBackendPhase5:
         backend = self._make_bidi_backend()
         backend._client.cdp = MagicMock()
         backend._client.cdp.send_command = AsyncMock()
-        asyncio.run(backend.set_sensors(SensorParams(type="device-orientation", values={"alpha": 0, "beta": 0, "gamma": 0})))
+        asyncio.run(backend.set_sensors(SensorParams(
+            type="device-orientation",
+            values={"alpha": 0, "beta": 0, "gamma": 0},
+        )))
         backend._client.cdp.send_command.assert_called_once()
 
     def test_click_supported(self) -> None:
