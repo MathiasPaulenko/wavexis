@@ -1,59 +1,38 @@
 # Backends
 
-browsix supports two backends via separate packages:
+browsix supports two backends with **full feature parity** as of v1.7.0.
 
 ## CDP backend (cdpwave)
 
-The default and most feature-complete backend. Uses the Chrome DevTools Protocol.
+The default backend. Uses the Chrome DevTools Protocol directly.
 
 ```bash
 pip install browsix[cdp]
 ```
 
-**Supported features:**
-
-- Screenshots (full page, selector, device)
-- PDF generation
-- JavaScript evaluation
-- DOM operations
-- HAR capture
-- Cookies, headers, user-agent
-- Tab management
-- Console/log capture
-- Device emulation, viewport, geolocation, timezone, dark mode
-- Browser contexts
-- WebAuthn, WebAudio, Media, Cast, Bluetooth (experimental)
+All 100+ methods are supported natively.
 
 ## BiDi backend (bidiwave)
 
-WebDriver BiDi backend. Uses the WebDriver BiDi protocol.
+WebDriver BiDi backend. Uses a combination of:
+
+- **BiDi native commands** — `browsingContext.navigate`, `script.evaluate`, `storage.getCookies`, etc.
+- **JS workarounds** — `script.evaluate` with JavaScript for DOM, CSS, service workers, animations, cache storage
+- **CDP bridge** — `browser.cdp.sendCommand` for Debugger, WebAuthn, WebAudio, Media, Cast, Bluetooth, performance profiling, accessibility, IndexedDB, HAR
 
 ```bash
 pip install browsix[bidi]
 ```
 
-**Supported features:**
+All 100+ methods are supported. Zero `NotImplementedError`.
 
-- `launch`, `navigate`, `screenshot`, `eval`, `raw`, `close`
-- `go_back`, `go_forward`, `reload`, `stop_loading`, `wait_for`
-- `list_tabs`, `new_tab`, `close_tab`
-- DOM methods, storage methods
-- `new_context`, `list_contexts`, `close_context`
-- `get_window_bounds`, `set_window_bounds`
-- `dialog_accept`, `dialog_dismiss`
-- `grant_permission`, `reset_permissions`
-- `click`, `type_text`, `fill`, `select_option`, `hover`, `key_press`, `drag`, `tap`
-- `block_requests`, `intercept_requests`
+### BiDi implementation strategies
 
-**Not supported (raises `NotImplementedError`):**
-
-- All emulation methods
-- HAR capture
-- Cookies, headers
-- PDF generation
-- Performance profiling
-- Accessibility
-- Service workers, animations
+| Strategy | Used for |
+|----------|----------|
+| BiDi native | Navigation, screenshots, tabs, cookies, contexts, dialogs, permissions, input, storage |
+| JS workaround | DOM, CSS inspection, overlay, cache storage, service workers, animations |
+| CDP bridge | Performance profiling, accessibility, debug, HAR, IndexedDB, WebAuthn, WebAudio, Media, Cast, Bluetooth, security, downloads |
 
 ## Selecting a backend
 
@@ -74,7 +53,7 @@ Output:
 
 ```
   cdp: 2.0.1
-  bidi: not installed
+  bidi: 1.7.2
 ```
 
 ## Listing available backends
@@ -82,3 +61,8 @@ Output:
 ```bash
 browsix backends
 ```
+
+## When to use which
+
+- **CDP** — Chrome/Edge only. Most direct protocol access. Best for debugging and profiling.
+- **BiDi** — Works with any WebDriver BiDi-compatible browser (Chrome, Firefox, Safari). Best for cross-browser automation. Falls back to CDP bridge for Chrome-specific features.

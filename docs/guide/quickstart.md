@@ -64,6 +64,10 @@ browsix emulation device https://example.com --device iphone-15 -o mobile.png
 
 - [Commands](commands.md) — full command reference
 - [Multi Config](multi.md) — YAML multi-action configs
-- [Backends](backends.md) — CDP vs BiDi
+- [Backends](backends.md) — CDP vs BiDi with full parity
 - [Raw Protocol](raw.md) — escape hatch for direct protocol commands
+- [Cookbook: Auth](../cookbook/auth.md) — credential profiles
+- [Cookbook: Record & Replay](../cookbook/record-replay.md) — session recording
 - [Cookbook: Serve Mode](../cookbook/serve-mode.md) — HTTP API server
+- [Cookbook: CSS](../cookbook/css.md) — CSS inspection
+- [Cookbook: Debug](../cookbook/debug.md) — debugger commands

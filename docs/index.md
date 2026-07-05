@@ -8,8 +8,11 @@ No Node.js. No Chromium download. Uses your existing Chrome/Edge installation.
 
 - **CLI-first** — screenshot, PDF, eval, scrape from the command line
 - **Multi-backend** — CDP (cdpwave) or WebDriver BiDi (bidiwave), switch with `--backend`
+- **Full parity** — both backends implement all 100+ methods (BiDi uses native + JS + CDP bridge)
 - **Multi-action** — batch multiple actions from a single YAML config
 - **Serve mode** — HTTP API server powered by aiohttp
+- **Auth profiles** — save and reuse browser credentials
+- **Record & replay** — record browser sessions and replay them
 - **Raw protocol** — escape hatch for direct CDP/BiDi commands
 - **Experimental domains** — WebAuthn, WebAudio, Media, Cast, Bluetooth
 - **Fully typed** — `mypy --strict` across the entire codebase
@@ -45,6 +48,16 @@ browsix eval https://example.com -e "document.title"
 | `multi` | Execute multiple actions from YAML |
 | `raw` | Send raw CDP/BiDi protocol commands |
 | `serve` | HTTP API server mode |
+| `auth` | Save, use, list, delete credential profiles |
+| `record` | Record and replay browser sessions |
+| `css` | Inspect styles, computed values, rules |
+| `debug` | Breakpoints, stepping, pause, resume |
+| `perf` | Metrics, trace, profile, coverage |
+| `sw` | Service worker list, unregister, update |
+| `animation` | List, pause, play, seek animations |
+| `webauthn` | Virtual authenticator management |
+| `cast` | List sinks, start/stop tab mirroring |
+| `bluetooth` | Emulate and stop Bluetooth adapter |
 
 ## Next steps
 

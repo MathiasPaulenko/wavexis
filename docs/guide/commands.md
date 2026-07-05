@@ -229,3 +229,116 @@ browsix completions <shell>
 ```
 
 Shells: `bash`, `zsh`, `fish`, `powershell`
+
+## auth
+
+Manage browser credential profiles for authenticated scraping.
+
+```bash
+browsix auth save <name> --user <username> --pass <password>
+browsix auth use <name> --url <login-url>
+browsix auth list
+browsix auth delete <name>
+```
+
+## record
+
+Record and replay browser sessions.
+
+```bash
+browsix record start <url> [-o session.json]
+browsix record replay <session.json>
+browsix record list
+```
+
+## serve
+
+Start an HTTP API server.
+
+```bash
+browsix serve [--host 0.0.0.0] [--port 8080]
+```
+
+See [Serve Mode](../cookbook/serve-mode.md) for endpoint documentation.
+
+## css
+
+CSS inspection commands.
+
+```bash
+browsix css-styles <url> --selector "h1"
+browsix css-computed <url> --selector "h1"
+browsix css-rules <url> --sheet 0
+```
+
+## debug
+
+Debugger commands (CDP bridge).
+
+```bash
+browsix debug-break <url> --line 10 [--condition "x > 5"]
+browsix debug-step over|into|out
+browsix debug-pause
+browsix debug-resume
+```
+
+## perf
+
+Performance profiling commands.
+
+```bash
+browsix perf-metrics <url>
+browsix perf-trace <url> [-o trace.json]
+browsix perf-profile <url> [-o profile.json]
+browsix perf-coverage <url> [-o coverage.json]
+```
+
+## sw
+
+Service worker management.
+
+```bash
+browsix sw list <url>
+browsix sw unregister <url> --scope <scope>
+browsix sw update <url> --scope <scope>
+```
+
+## animation
+
+Animation control commands.
+
+```bash
+browsix animation list <url>
+browsix animation pause <url> --id 0
+browsix animation play <url> --id 0
+browsix animation seek <url> --id 0 --time 500
+```
+
+## webauthn
+
+WebAuthn virtual authenticator commands.
+
+```bash
+browsix webauthn add --protocol ctap2 --transport usb
+browsix webauthn credentials <authenticator-id>
+browsix webauthn remove <authenticator-id>
+```
+
+## cast
+
+Cast commands.
+
+```bash
+browsix cast list
+browsix cast start --sink <sink-name>
+browsix cast stop
+```
+
+## bluetooth
+
+Bluetooth emulation commands.
+
+```bash
+browsix bluetooth emulate --name "Test Adapter"
+browsix bluetooth stop
+```
