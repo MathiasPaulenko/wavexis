@@ -402,7 +402,7 @@ async def _stream_screenshots(
     """Periodically capture and stream screenshots."""
     while True:
         try:
-            params = ScreenshotParams(format=fmt, quality=quality)
+            params = ScreenshotParams(url="", format=fmt, quality=quality)
             img = await backend.screenshot(params)
             b64 = base64.b64encode(img).decode("ascii")
             await ws.send_json({
@@ -555,7 +555,7 @@ async def handle_websocket(request: Any) -> Any:
                         "timestamp": time.time(),
                     })
                 elif action == "screenshot":
-                    params = ScreenshotParams(format=fmt, quality=quality)
+                    params = ScreenshotParams(url="", format=fmt, quality=quality)
                     img = await backend.screenshot(params)
                     b64 = base64.b64encode(img).decode("ascii")
                     await ws.send_json({
