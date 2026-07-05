@@ -1,8 +1,19 @@
 """Unit tests for plugin system."""
 
+from unittest.mock import MagicMock
+
 import pytest
 
-from browsix.plugins import Plugin, PluginContext, load_plugins
+from browsix.plugins import (
+    ActionPlugin,
+    MiddlewarePlugin,
+    Plugin,
+    PluginContext,
+    PluginRegistry,
+    get_registry,
+    load_plugins,
+    reset_registry,
+)
 
 
 @pytest.mark.unit
@@ -72,3 +83,82 @@ class TestCustomPlugin:
         assert plugin.name == "my-plugin"
         assert plugin.version == "1.0.0"
         assert isinstance(plugin, Plugin)
+
+
+@pytest.mark.unit
+class TestPluginRegistry:
+    def test_empty_registry(self) -> None:
+        registry = PluginRegistry()
+        assert registry.list_actions() == []
+        assert registry.list_backends() == []
+        assert registry.list_middleware() == []
+
+    def test_register_action(self) -> None:
+        registry = PluginRegistry()
+        factory = MagicMock()
+        plugin = ActionPlugin(name="my-action", factory=factory, description="test")
+        registry.register_action(plugin)
+        assert "my-action" in registry.list_actions()
+        assert registry.get_action("my-action") is plugin
+        assert registry.get_action("unknown") is None
+
+    def test_register_middleware(self) -> None:
+        registry = PluginRegistry()
+        factory = MagicMock()
+        plugin = MiddlewarePlugin(name="my-mw", factory=factory, description="test")
+        registry.register_middleware(plugin)
+        assert "my-mw" in registry.list_middleware()
+
+    def test_register_backend(self) -> None:
+        from browsix.backend.base import AbstractBackend
+
+        registry = PluginRegistry()
+        mock_cls = MagicMock(spec=type[AbstractBackend])
+        registry.register_backend("custom", mock_cls)
+        assert "custom" in registry.list_backends()
+
+    def test_register_hooks(self) -> None:
+        registry = PluginRegistry()
+
+        class MyPlugin(Plugin):
+            name = "test"
+
+        plugin = MyPlugin()
+        registry.register_hooks(plugin)
+        assert len(registry.hooks) == 1
+        assert registry.hooks[0].name == "test"
+
+
+@pytest.mark.unit
+class TestPluginRegistryGlobal:
+    def teardown_method(self) -> None:
+        reset_registry()
+
+    def test_get_registry_returns_singleton(self) -> None:
+        r1 = get_registry()
+        r2 = get_registry()
+        assert r1 is r2
+
+    def test_reset_registry_creates_new(self) -> None:
+        r1 = get_registry()
+        reset_registry()
+        r2 = get_registry()
+        assert r1 is not r2
+
+
+@pytest.mark.unit
+class TestActionPlugin:
+    def test_action_plugin_factory_called(self) -> None:
+        from browsix.actions.base import BaseAction
+
+        class DummyAction(BaseAction[dict, str]):
+            async def execute(self, backend: object) -> str:
+                return "ok"
+
+        def factory(params: dict) -> BaseAction[dict, str]:
+            return DummyAction(params)
+
+        plugin = ActionPlugin(name="dummy", factory=factory, description="test")
+        action = plugin.factory({"url": "https://example.com"})
+        assert isinstance(action, DummyAction)
+        assert action.params == {"url": "https://example.com"}

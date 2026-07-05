@@ -64,6 +64,7 @@ class TestServeCreateApp:
         assert "/backends" in routes
         assert "/version" in routes
         assert "/ws" in routes
+        assert "/plugins" in routes
 
 
 @pytest.mark.unit

@@ -175,6 +175,13 @@ async def _dispatch(
         )
         return await InputAction(ip).execute(backend)
 
+    from browsix.plugins import get_registry
+
+    plugin = get_registry().get_action(action_type)
+    if plugin is not None:
+        action = plugin.factory(params)
+        return await action.execute(backend)
+
     raise MultiConfigError(
         "action_type",
         f"Unknown action type: {action_type}",

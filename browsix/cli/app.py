@@ -1680,6 +1680,42 @@ def serve(
 
 
 @app.command()
+def plugins() -> None:
+    """List discovered plugins (actions, backends, middleware)."""
+    from browsix.plugins import get_registry
+
+    registry = get_registry()
+    actions = registry.list_actions()
+    backends = registry.list_backends()
+    middleware = registry.list_middleware()
+
+    if not actions and not backends and not middleware:
+        typer.echo("No plugins discovered.")
+        typer.echo(
+            "\nInstall a plugin package with entry point group "
+            "'browsix.plugins' to extend browsix."
+        )
+        return
+
+    if actions:
+        typer.echo("Actions:")
+        for name in actions:
+            plugin = registry.get_action(name)
+            desc = plugin.description if plugin else ""
+            typer.echo(f"  {name}: {desc}" if desc else f"  {name}")
+
+    if backends:
+        typer.echo("Backends:")
+        for name in backends:
+            typer.echo(f"  {name}")
+
+    if middleware:
+        typer.echo("Middleware:")
+        for name in middleware:
+            typer.echo(f"  {name}")
+
+
+@app.command()
 def completions(
     shell: str = typer.Argument(..., help="Shell: bash, zsh, fish, powershell"),
 ) -> None:

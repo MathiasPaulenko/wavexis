@@ -33,6 +33,11 @@ class BackendManager:
         except ImportError:
             pass
 
+        from browsix.plugins import get_registry
+
+        for name, backend_cls in get_registry().backends.items():
+            self._registry[name] = backend_cls
+
     def list_available(self) -> list[str]:
         """Return a list of available backend names.
 

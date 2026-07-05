@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "browsix"
-version = "1.10.0"
+version = "1.11.0"
 description = "Browser automation CLI — wraps cdpwave and bidiwave, no Node.js, no Chromium download"
 readme = "README.md"
 license = { text = "MIT" }
@@ -49,6 +49,12 @@ docs = [
 
 [project.scripts]
 browsix = "browsix.cli:main"
+
+[project.entry-points."browsix.plugins"]
+# Third-party plugins register here, e.g.:
+# my-action = "my_plugin:action_plugin"
+# my-backend = "my_plugin:MyBackend"
+# my-middleware = "my_plugin:make_middleware"
 
 [project.urls]
 Homepage = "https://github.com/MathiasPaulenko/browsix"

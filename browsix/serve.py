@@ -28,7 +28,7 @@ from browsix.config import (
 )
 from browsix.exceptions import BrowsixError
 
-__version__ = "1.10.0"
+__version__ = "1.11.0"
 
 
 def _import_aiohttp() -> Any:
@@ -578,6 +578,18 @@ async def handle_websocket(request: Any) -> Any:
     return ws
 
 
+async def handle_plugins(request: Any) -> Any:
+    """Handle GET /plugins — list discovered plugins."""
+    from browsix.plugins import get_registry
+
+    registry = get_registry()
+    return request.app["web"].json_response({
+        "actions": registry.list_actions(),
+        "backends": registry.list_backends(),
+        "middleware": registry.list_middleware(),
+    })
+
+
 # ── App factory ─────────────────────────────────────────────
 
 
@@ -596,7 +608,11 @@ def create_app(backend_name: str | None = None) -> Any:
         BackendNotAvailableError: If no backend is available.
     """
     web = _import_aiohttp()
-    app = web.Application()
+    from browsix.plugins import get_registry
+
+    registry = get_registry()
+    middlewares = [m.factory(web) for m in registry.middleware]
+    app = web.Application(middlewares=middlewares)
     manager = BackendManager()
     app["backend_name"] = backend_name
     app["backends"] = manager.list_available()
@@ -624,6 +640,7 @@ def create_app(backend_name: str | None = None) -> Any:
     app.router.add_get("/backends", handle_backends)
     app.router.add_get("/version", handle_version)
     app.router.add_get("/ws", handle_websocket)
+    app.router.add_get("/plugins", handle_plugins)
     return app
 
 
