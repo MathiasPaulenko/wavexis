@@ -15,7 +15,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install ruff>=0.4
+      - run: pip install "ruff>=0.4"
       - run: ruff check .
 
   typecheck:
@@ -26,7 +26,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install -e ".[dev,cdp]"
+      - run: pip install -e ".[dev,cdp,bidi]"
       - run: mypy browsix/ --ignore-missing-imports
 
   unit-tests:
@@ -37,7 +37,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install -e ".[dev,cdp]"
+      - run: pip install -e ".[dev,cdp,bidi]"
       - run: pytest tests/unit/ -m unit -v
 
   integration-tests:
