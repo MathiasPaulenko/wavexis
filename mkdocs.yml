@@ -1,15 +1,21 @@
 site_name: browsix
+site_description: Browser automation CLI — wraps cdpwave and bidiwave
 site_url: https://mathiaspaulenko.github.io/browsix/
 repo_url: https://github.com/MathiasPaulenko/browsix
 repo_name: MathiasPaulenko/browsix
+edit_uri: edit/main/docs/
 
 theme:
   name: material
   features:
     - navigation.sections
-    - toc.integrate
+    - navigation.expand
+    - navigation.indexes
+    - navigation.top
     - search.suggest
+    - search.highlight
     - content.code.copy
+    - content.code.annotate
   palette:
     - scheme: default
       primary: indigo
@@ -23,13 +29,56 @@ theme:
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+
+nav:
+  - Home: index.md
+  - Guide:
+      - Installation: guide/installation.md
+      - Quickstart: guide/quickstart.md
+      - Commands: guide/commands.md
+      - Multi Config: guide/multi.md
+      - Backends: guide/backends.md
+      - Raw Protocol: guide/raw.md
+      - Troubleshooting: guide/troubleshooting.md
+  - Cookbook:
+      - Serve Mode: cookbook/serve-mode.md
+      - CI/CD: cookbook/ci-cd.md
+      - Screenshots: cookbook/screenshots.md
+      - Scraping: cookbook/scraping.md
+  - API Reference:
+      - CLI: api/cli.md
+      - Backends: api/backends.md
+      - Actions: api/actions.md
+      - Serve: api/serve.md
+      - Exceptions: api/exceptions.md
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: true
+            show_signature_annotations: true
+            separate_signature: true
+            show_root_heading: true
+            show_root_full_path: false
+            members_order: source
+            docstring_style: google
 
 markdown_extensions:
   - admonition
-  - codehilite
-  - footnotes
+  - pymdownx.details
   - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
   - pymdownx.tabbed:
       alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - tables
   - toc:
       permalink: true

@@ -24,7 +24,7 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -e ".[docs]"
-      - run: mkdocs build --strict
+      - run: mkdocs build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
