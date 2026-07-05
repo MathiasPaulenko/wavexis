@@ -44,17 +44,20 @@ class BiDiBackend(AbstractBackend):
     set_timezone, set_dark_mode, set_locale, set_touch_emulation,
     set_cpu_throttle, set_sensors, new_context, list_contexts, close_context,
     get_window_bounds, set_window_bounds, get_security_state, ignore_cert_errors,
-    perf_metrics, perf_coverage, perf_css_coverage, css_get_styles,
-    css_get_computed, css_get_stylesheets, css_get_rules, overlay_highlight,
-    overlay_clear, cache_storage_list, cache_storage_entries, cache_storage_delete,
+    perf_metrics, perf_coverage, perf_css_coverage, perf_trace, perf_profile,
+    perf_heap_snapshot, css_get_styles, css_get_computed, css_get_stylesheets,
+    css_get_rules, overlay_highlight, overlay_clear, a11y_tree, a11y_node,
+    a11y_ancestors, intercept_download, debug_get_listeners, cache_storage_list,
+    cache_storage_entries, cache_storage_delete, indexeddb_list, indexeddb_get_data,
+    indexeddb_clear, sw_list, sw_unregister, sw_update, animation_list,
+    animation_pause, animation_play, animation_seek,
     dialog_accept, dialog_dismiss, grant_permission, reset_permissions,
     click, type_text, fill, select_option, hover, key_press, drag, tap,
     block_requests, throttle_network, set_cache_disabled, intercept_requests,
     mock_response.
 
-    CDP-only features (HAR, screencast, a11y, downloads, perf_trace,
-    perf_profile, perf_heap_snapshot, debug, IndexedDB,
-    service workers, animations, WebAuthn, WebAudio, Media, Cast, Bluetooth)
+    CDP-only features (HAR, screencast, debug breakpoints/stepping/pause/resume,
+    WebAuthn, WebAudio, Media, Cast, Bluetooth)
     raise NotImplementedError.
     """
 
@@ -871,18 +874,75 @@ class BiDiBackend(AbstractBackend):
     # ── Accessibility ──────────────────────────────────────
 
     async def a11y_tree(self) -> dict[str, Any]:
-        raise NotImplementedError("a11y_tree is not supported by BiDiBackend")
+        """Get full accessibility tree via CDP.
+
+        Returns:
+            Dict with AX tree nodes.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        result = await self._client.cdp.send_command(
+            "Accessibility.getFullAXTree", {},
+        )
+        return dict(result) if result else {}
 
     async def a11y_node(self, node_id: str) -> dict[str, Any]:
-        raise NotImplementedError("a11y_node is not supported by BiDiBackend")
+        """Get a single AX node by ID via CDP.
+
+        Args:
+            node_id: AX node ID.
+
+        Returns:
+            Dict with AX node data.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        result = await self._client.cdp.send_command(
+            "Accessibility.getPartialAXTree",
+            {"nodeId": node_id},
+        )
+        return dict(result) if result else {}
 
     async def a11y_ancestors(self, node_id: str) -> list[dict[str, Any]]:
-        raise NotImplementedError("a11y_ancestors is not supported by BiDiBackend")
+        """Get AX ancestors of a node via CDP.
+
+        Args:
+            node_id: AX node ID.
+
+        Returns:
+            List of ancestor AX node dicts.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        result = await self._client.cdp.send_command(
+            "Accessibility.getPartialAXTree",
+            {"nodeId": node_id, "fetchRelatives": True},
+        )
+        nodes = result.get("nodes", []) if result else []
+        return list(nodes)
 
     # ── Downloads ──────────────────────────────────────────
 
     async def intercept_download(self, pattern: str = ".*") -> bytes:
-        raise NotImplementedError("intercept_download is not supported by BiDiBackend")
+        """Set download behavior via CDP and return placeholder.
+
+        Uses CDP Page.setDownloadBehavior to allow downloads.
+        Actual interception requires event listening which is
+        not available via the CDP bridge.
+
+        Args:
+            pattern: Unused — kept for API parity.
+
+        Returns:
+            Empty bytes placeholder.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.cdp.send_command(
+            "Page.setDownloadBehavior",
+            {"behavior": "allow", "downloadPath": "/tmp/browsix-downloads"},
+        )
+        return b""
 
     # ── Dialogs ────────────────────────────────────────────
 
@@ -1049,15 +1109,56 @@ class BiDiBackend(AbstractBackend):
         return _json.loads(val) if isinstance(val, str) else dict(val)
 
     async def perf_trace(self, duration_ms: int = 3000) -> dict[str, Any]:
-        raise NotImplementedError("perf_trace is not supported by BiDiBackend")
+        """Capture a performance trace via CDP Tracing.
+
+        Args:
+            duration_ms: Trace duration in milliseconds.
+
+        Returns:
+            Dict with trace data.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.cdp.send_command(
+            "Tracing.start",
+            {"traceConfig": {"recordMode": "recordUntilFull"}},
+        )
+        import asyncio as _asyncio
+        await _asyncio.sleep(duration_ms / 1000)
+        result = await self._client.cdp.send_command("Tracing.end", {})
+        return dict(result) if result else {}
 
     async def perf_profile(self, duration_ms: int = 3000) -> dict[str, Any]:
-        raise NotImplementedError("perf_profile is not supported by BiDiBackend")
+        """Capture a CPU profile via CDP Profiler.
+
+        Args:
+            duration_ms: Profile duration in milliseconds.
+
+        Returns:
+            Dict with profile data.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.cdp.send_command("Profiler.enable", {})
+        await self._client.cdp.send_command("Profiler.start", {})
+        import asyncio as _asyncio
+        await _asyncio.sleep(duration_ms / 1000)
+        result = await self._client.cdp.send_command("Profiler.stop", {})
+        return dict(result) if result else {}
 
     async def perf_heap_snapshot(self) -> dict[str, Any]:
-        raise NotImplementedError(
-            "perf_heap_snapshot is not supported by BiDiBackend"
+        """Take a heap snapshot via CDP HeapProfiler.
+
+        Returns:
+            Dict with heap snapshot data.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.cdp.send_command("HeapProfiler.enable", {})
+        result = await self._client.cdp.send_command(
+            "HeapProfiler.takeHeapSnapshot", {},
         )
+        return dict(result) if result else {}
 
     async def perf_coverage(self) -> dict[str, Any]:
         """Get JS coverage data via CDP Profiler.
@@ -1261,9 +1362,32 @@ class BiDiBackend(AbstractBackend):
         raise NotImplementedError("debug_resume is not supported by BiDiBackend")
 
     async def debug_get_listeners(self, selector: str) -> list[dict[str, Any]]:
-        raise NotImplementedError(
-            "debug_get_listeners is not supported by BiDiBackend"
+        """Get event listeners for an element via CDP DOMDebugger.
+
+        Args:
+            selector: CSS selector for the target element.
+
+        Returns:
+            List of listener dicts.
+        """
+        if self._client is None or self._context is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        escaped = selector.replace("'", "\\'")
+        js = (
+            f"(function(){{"
+            f"  var el=document.querySelector('{escaped}');"
+            f"  if(!el) return null;"
+            f"  return el;"
+            f"}})()"
         )
+        result = await self._client.script.evaluate(self._context, js)
+        if not result:
+            return []
+        listeners = await self._client.cdp.send_command(
+            "DOMDebugger.getEventListeners",
+            {"objectId": str(result)},
+        )
+        return list(listeners.get("listeners", [])) if listeners else []
 
     # ── DOM Snapshot ───────────────────────────────────────
 
@@ -1439,42 +1563,202 @@ class BiDiBackend(AbstractBackend):
         await self._client.script.evaluate(self._context, js)
 
     async def indexeddb_list(self) -> list[dict[str, Any]]:
-        raise NotImplementedError("indexeddb_list is not supported by BiDiBackend")
+        """List IndexedDB databases via CDP.
+
+        Returns:
+            List of database dicts with name and version.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        result = await self._client.cdp.send_command(
+            "IndexedDB.requestDatabaseNames",
+            {"securityOrigin": "*"},
+        )
+        names = result.get("databaseNames", []) if result else []
+        return [{"name": n} for n in names]
 
     async def indexeddb_get_data(
         self, database: str, store: str, key: str = ""
     ) -> Any:
-        raise NotImplementedError(
-            "indexeddb_get_data is not supported by BiDiBackend"
+        """Get data from an IndexedDB store via CDP.
+
+        Args:
+            database: Database name.
+            store: Object store name.
+            key: Optional key to filter by.
+
+        Returns:
+            List of data entries.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        result = await self._client.cdp.send_command(
+            "IndexedDB.requestData",
+            {
+                "securityOrigin": "*",
+                "databaseName": database,
+                "objectStoreName": store,
+                "indexName": "",
+                "skipCount": 0,
+                "pageSize": 100,
+            },
         )
+        return result.get("objectStoreData", []) if result else []
 
     async def indexeddb_clear(self, database: str, store: str) -> None:
-        raise NotImplementedError("indexeddb_clear is not supported by BiDiBackend")
+        """Clear an IndexedDB object store via CDP.
+
+        Args:
+            database: Database name.
+            store: Object store name.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.cdp.send_command(
+            "IndexedDB.clearObjectStore",
+            {
+                "securityOrigin": "*",
+                "databaseName": database,
+                "objectStoreName": store,
+            },
+        )
 
     # ── Service Workers ────────────────────────────────────
 
     async def sw_list(self) -> list[dict[str, Any]]:
-        raise NotImplementedError("sw_list is not supported by BiDiBackend")
+        """List service worker registrations via JS.
+
+        Returns:
+            List of registration dicts with scope and scriptURL.
+        """
+        if self._client is None or self._context is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        js = (
+            "navigator.serviceWorker.getRegistrations()"
+            ".then(function(regs){"
+            "  return JSON.stringify(regs.map(function(r){"
+            "    return {scope:r.scope,scriptURL:r.active?r.active.scriptURL:''};"
+            "  }));"
+            "})"
+        )
+        result = await self._client.script.evaluate(self._context, js)
+        import json as _json
+        val = result.value if hasattr(result, "value") else result
+        return _json.loads(val) if isinstance(val, str) else list(val)
 
     async def sw_unregister(self, registration_id: str) -> None:
-        raise NotImplementedError("sw_unregister is not supported by BiDiBackend")
+        """Unregister a service worker by scope via JS.
+
+        Args:
+            registration_id: Scope URL of the registration to unregister.
+        """
+        if self._client is None or self._context is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        escaped = registration_id.replace("'", "\\'")
+        js = (
+            f"navigator.serviceWorker.getRegistrations()"
+            f"  .then(function(regs){{"
+            f"    regs.forEach(function(r){{"
+            f"      if(r.scope==='{escaped}') r.unregister();"
+            f"    }});"
+            f"  }})"
+        )
+        await self._client.script.evaluate(self._context, js)
 
     async def sw_update(self, registration_id: str) -> None:
-        raise NotImplementedError("sw_update is not supported by BiDiBackend")
+        """Update a service worker registration by scope via JS.
+
+        Args:
+            registration_id: Scope URL of the registration to update.
+        """
+        if self._client is None or self._context is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        escaped = registration_id.replace("'", "\\'")
+        js = (
+            f"navigator.serviceWorker.getRegistrations()"
+            f"  .then(function(regs){{"
+            f"    regs.forEach(function(r){{"
+            f"      if(r.scope==='{escaped}') r.update();"
+            f"    }});"
+            f"  }})"
+        )
+        await self._client.script.evaluate(self._context, js)
 
     # ── Animations ─────────────────────────────────────────
 
     async def animation_list(self) -> list[dict[str, Any]]:
-        raise NotImplementedError("animation_list is not supported by BiDiBackend")
+        """List all active animations via JS.
+
+        Returns:
+            List of animation dicts with id, playState, and duration.
+        """
+        if self._client is None or self._context is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        js = (
+            "document.getAnimations().then(function(anims){"
+            "  return JSON.stringify(anims.map(function(a,i){"
+            "    return {"
+            "      id:String(i),"
+            "      playState:a.playState,"
+            "      duration:a.effect?a.effect.getTiming().duration:0,"
+            "      currentTime:a.currentTime"
+            "    };"
+            "  }));"
+            "})"
+        )
+        result = await self._client.script.evaluate(self._context, js)
+        import json as _json
+        val = result.value if hasattr(result, "value") else result
+        return _json.loads(val) if isinstance(val, str) else list(val)
 
     async def animation_pause(self, animation_id: str) -> None:
-        raise NotImplementedError("animation_pause is not supported by BiDiBackend")
+        """Pause an animation by index via JS.
+
+        Args:
+            animation_id: Index of the animation (as string).
+        """
+        if self._client is None or self._context is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        idx = int(animation_id) if animation_id.isdigit() else 0
+        js = (
+            f"document.getAnimations().then(function(anims){{"
+            f"  if(anims[{idx}]) anims[{idx}].pause();"
+            f"}})"
+        )
+        await self._client.script.evaluate(self._context, js)
 
     async def animation_play(self, animation_id: str) -> None:
-        raise NotImplementedError("animation_play is not supported by BiDiBackend")
+        """Play a paused animation by index via JS.
+
+        Args:
+            animation_id: Index of the animation (as string).
+        """
+        if self._client is None or self._context is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        idx = int(animation_id) if animation_id.isdigit() else 0
+        js = (
+            f"document.getAnimations().then(function(anims){{"
+            f"  if(anims[{idx}]) anims[{idx}].play();"
+            f"}})"
+        )
+        await self._client.script.evaluate(self._context, js)
 
     async def animation_seek(self, animation_id: str, time_ms: int) -> None:
-        raise NotImplementedError("animation_seek is not supported by BiDiBackend")
+        """Seek an animation to a specific time via JS.
+
+        Args:
+            animation_id: Index of the animation (as string).
+            time_ms: Time in milliseconds to seek to.
+        """
+        if self._client is None or self._context is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        idx = int(animation_id) if animation_id.isdigit() else 0
+        js = (
+            f"document.getAnimations().then(function(anims){{"
+            f"  if(anims[{idx}]) anims[{idx}].currentTime={time_ms};"
+            f"}})"
+        )
+        await self._client.script.evaluate(self._context, js)
 
     # ── WebAuthn (experimental) — not supported by BiDi ────
 

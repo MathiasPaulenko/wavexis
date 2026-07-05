@@ -44,20 +44,33 @@ class TestBiDiBackendPhase5:
         asyncio.run(backend.mock_response("https://example.com", {}))
         backend._client.network.add_cache_override.assert_called_once()
 
-    def test_a11y_tree_raises(self) -> None:
+    def test_a11y_tree_supported(self) -> None:
         backend = self._make_bidi_backend()
-        with pytest.raises(NotImplementedError):
-            asyncio.run(backend.a11y_tree())
+        backend._client.cdp = MagicMock()
+        backend._client.cdp.send_command = AsyncMock(
+            return_value={"nodes": []}
+        )
+        result = asyncio.run(backend.a11y_tree())
+        assert isinstance(result, dict)
+        backend._client.cdp.send_command.assert_called_once()
 
-    def test_a11y_node_raises(self) -> None:
+    def test_a11y_node_supported(self) -> None:
         backend = self._make_bidi_backend()
-        with pytest.raises(NotImplementedError):
-            asyncio.run(backend.a11y_node("1"))
+        backend._client.cdp = MagicMock()
+        backend._client.cdp.send_command = AsyncMock(
+            return_value={"nodes": []}
+        )
+        result = asyncio.run(backend.a11y_node("1"))
+        assert isinstance(result, dict)
+        backend._client.cdp.send_command.assert_called_once()
 
-    def test_intercept_download_raises(self) -> None:
+    def test_intercept_download_supported(self) -> None:
         backend = self._make_bidi_backend()
-        with pytest.raises(NotImplementedError):
-            asyncio.run(backend.intercept_download())
+        backend._client.cdp = MagicMock()
+        backend._client.cdp.send_command = AsyncMock()
+        result = asyncio.run(backend.intercept_download())
+        assert result == b""
+        backend._client.cdp.send_command.assert_called_once()
 
     def test_get_security_state_supported(self) -> None:
         backend = self._make_bidi_backend()

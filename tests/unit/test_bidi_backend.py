@@ -121,6 +121,42 @@ class TestBiDiBackend:
                 await backend.cache_storage_entries("my-cache")
             with pytest.raises(RuntimeError, match="not launched"):
                 await backend.cache_storage_delete("my-cache")
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.a11y_tree()
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.a11y_node("1")
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.a11y_ancestors("1")
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.intercept_download()
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.perf_trace()
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.perf_profile()
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.perf_heap_snapshot()
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.debug_get_listeners("h1")
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.indexeddb_list()
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.indexeddb_get_data("db", "store")
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.indexeddb_clear("db", "store")
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.sw_list()
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.sw_unregister("scope")
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.sw_update("scope")
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.animation_list()
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.animation_pause("0")
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.animation_play("0")
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.animation_seek("0", 500)
 
     async def test_bidi_paridad_methods_raise_runtime_without_launch(self) -> None:
         with patch("browsix.backend.bidi.BiDiClient", MagicMock()):
