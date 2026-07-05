@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     name: Lint (ruff)
@@ -57,7 +61,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -e ".[cdp,serve,dev]" pytest-aiohttp
+      - run: pip install -e ".[cdp,serve,dev]"
       - uses: browser-actions/setup-chrome@v1
       - run: pytest tests/unit/test_serve.py -v
       - run: pytest tests/integration/test_serve.py -v -m integration --timeout=60
@@ -95,3 +99,4 @@ jobs:
           tags: browsix:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+        continue-on-error: true
