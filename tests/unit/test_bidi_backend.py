@@ -18,26 +18,6 @@ class TestBiDiBackend:
             with pytest.raises(ImportError, match="bidiwave"):
                 BiDiBackend()
 
-    async def test_unsupported_methods_raise_not_implemented(self) -> None:
-        with patch("browsix.backend.bidi.BiDiClient", MagicMock()):
-            from browsix.backend.bidi import BiDiBackend
-
-            backend = BiDiBackend()
-            with pytest.raises(NotImplementedError):
-                await backend.screencast(MagicMock())
-            with pytest.raises(NotImplementedError):
-                await backend.capture_har(MagicMock())
-            with pytest.raises(NotImplementedError):
-                await backend.webauthn_add_virtual_authenticator("ctap2", "usb")
-            with pytest.raises(NotImplementedError):
-                await backend.webaudio_get_contexts()
-            with pytest.raises(NotImplementedError):
-                await backend.media_get_players()
-            with pytest.raises(NotImplementedError):
-                await backend.cast_list()
-            with pytest.raises(NotImplementedError):
-                await backend.bluetooth_emulate("test")
-
     async def test_implemented_methods_raise_runtime_without_launch(self) -> None:
         with patch("browsix.backend.bidi.BiDiClient", MagicMock()):
             from browsix.backend.bidi import BiDiBackend
@@ -157,6 +137,52 @@ class TestBiDiBackend:
                 await backend.animation_play("0")
             with pytest.raises(RuntimeError, match="not launched"):
                 await backend.animation_seek("0", 500)
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.screencast(MagicMock())
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.capture_har(MagicMock())
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.debug_set_breakpoint("https://example.com", 10)
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.debug_set_breakpoint_function("foo")
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.debug_remove_breakpoint("bp1")
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.debug_step_over()
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.debug_step_into()
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.debug_step_out()
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.debug_pause()
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.debug_resume()
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.webauthn_add_virtual_authenticator("ctap2", "usb")
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.webauthn_remove_authenticator("auth1")
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.webauthn_add_credential("auth1", {})
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.webauthn_get_credentials("auth1")
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.webaudio_get_contexts()
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.webaudio_get_context("ctx1")
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.media_get_players()
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.media_get_messages("player1")
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.cast_list()
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.cast_start_tab("sink1")
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.cast_stop()
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.bluetooth_emulate("adapter1")
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.bluetooth_stop()
 
     async def test_bidi_paridad_methods_raise_runtime_without_launch(self) -> None:
         with patch("browsix.backend.bidi.BiDiClient", MagicMock()):

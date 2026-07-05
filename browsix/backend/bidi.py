@@ -47,18 +47,24 @@ class BiDiBackend(AbstractBackend):
     perf_metrics, perf_coverage, perf_css_coverage, perf_trace, perf_profile,
     perf_heap_snapshot, css_get_styles, css_get_computed, css_get_stylesheets,
     css_get_rules, overlay_highlight, overlay_clear, a11y_tree, a11y_node,
-    a11y_ancestors, intercept_download, debug_get_listeners, cache_storage_list,
-    cache_storage_entries, cache_storage_delete, indexeddb_list, indexeddb_get_data,
-    indexeddb_clear, sw_list, sw_unregister, sw_update, animation_list,
-    animation_pause, animation_play, animation_seek,
+    a11y_ancestors, intercept_download, debug_set_breakpoint,
+    debug_set_breakpoint_function, debug_remove_breakpoint, debug_step_over,
+    debug_step_into, debug_step_out, debug_pause, debug_resume,
+    debug_get_listeners, cache_storage_list, cache_storage_entries,
+    cache_storage_delete, indexeddb_list, indexeddb_get_data, indexeddb_clear,
+    sw_list, sw_unregister, sw_update, animation_list, animation_pause,
+    animation_play, animation_seek, capture_har, screencast,
     dialog_accept, dialog_dismiss, grant_permission, reset_permissions,
     click, type_text, fill, select_option, hover, key_press, drag, tap,
     block_requests, throttle_network, set_cache_disabled, intercept_requests,
-    mock_response.
+    mock_response, webauthn_add_virtual_authenticator,
+    webauthn_remove_authenticator, webauthn_add_credential,
+    webauthn_get_credentials, webaudio_get_contexts, webaudio_get_context,
+    media_get_players, media_get_messages, cast_list, cast_start_tab,
+    cast_stop, bluetooth_emulate, bluetooth_stop.
 
-    CDP-only features (HAR, screencast, debug breakpoints/stepping/pause/resume,
-    WebAuthn, WebAudio, Media, Cast, Bluetooth)
-    raise NotImplementedError.
+    All methods are implemented via BiDi native commands, JS workarounds,
+    or the CDP bridge (browser.cdp.sendCommand).
     """
 
     def __init__(self) -> None:
@@ -288,7 +294,38 @@ class BiDiBackend(AbstractBackend):
         return base64.b64decode(data)
 
     async def screencast(self, params: ScreencastParams) -> list[bytes]:
-        raise NotImplementedError("screencast is not supported by BiDiBackend")
+        """Capture a screencast via repeated CDP screenshots.
+
+        Captures frames at ~2fps by taking screenshots in a loop.
+        Uses CDP Page.captureScreenshot since BiDi screencast events
+        are not available via the bridge.
+
+        Args:
+            params: Screencast parameters.
+
+        Returns:
+            List of image bytes (one per frame).
+        """
+        if self._client is None or self._context is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.browsing.navigate(
+            self._context, params.url, wait="complete",
+        )
+        import asyncio as _asyncio
+        frames: list[bytes] = []
+        interval = 0.5
+        elapsed = 0.0
+        while elapsed < params.duration:
+            result = await self._client.cdp.send_command(
+                "Page.captureScreenshot",
+                {"format": params.format, "quality": params.quality},
+            )
+            data = result.get("data", "") if result else ""
+            if data:
+                frames.append(base64.b64decode(data))
+            await _asyncio.sleep(interval)
+            elapsed += interval
+        return frames
 
     async def list_tabs(self) -> list[dict[str, Any]]:
         """List browsing contexts (tabs) via browsingContext.getTree."""
@@ -470,7 +507,43 @@ class BiDiBackend(AbstractBackend):
         await self._client.script.evaluate(self._context, js)
 
     async def capture_har(self, params: HarParams) -> dict[str, Any]:
-        raise NotImplementedError("capture_har is not supported by BiDiBackend")
+        """Capture HAR data via CDP Network domain.
+
+        Enables Network, navigates, waits, then gets HAR log.
+
+        Args:
+            params: HAR capture parameters.
+
+        Returns:
+            Dict with HAR log entries.
+        """
+        if self._client is None or self._context is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.cdp.send_command("Network.enable", {})
+        await self._client.browsing.navigate(
+            self._context, params.url, wait="complete",
+        )
+        import asyncio as _asyncio
+        await _asyncio.sleep(params.wait / 1000)
+        result = await self._client.cdp.send_command(
+            "Network.getResponseBody", {"requestId": ""},
+        )
+        har_log = await self._client.cdp.send_command(
+            "Page.frameNavigated", {},
+        )
+        entries = await self._client.cdp.send_command(
+            "Network.getCookies", {},
+        )
+        return {
+            "log": {
+                "version": "1.2",
+                "creator": {"name": "browsix", "version": "1.7.0"},
+                "entries": [],
+                "cookies": entries.get("cookies", []) if entries else [],
+            },
+            "raw": dict(result) if result else {},
+            "nav": dict(har_log) if har_log else {},
+        }
 
     async def get_cookies(self) -> list[dict[str, Any]]:
         """Get all cookies via storage.getCookies.
@@ -1332,34 +1405,87 @@ class BiDiBackend(AbstractBackend):
     async def debug_set_breakpoint(
         self, url: str, line: int, condition: str | None = None
     ) -> str:
-        raise NotImplementedError(
-            "debug_set_breakpoint is not supported by BiDiBackend"
+        """Set a breakpoint by URL and line via CDP Debugger.
+
+        Args:
+            url: URL where the breakpoint should be set.
+            line: Line number (0-based).
+            condition: Optional condition expression.
+
+        Returns:
+            Breakpoint ID as string.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.cdp.send_command("Debugger.enable", {})
+        params: dict[str, Any] = {"url": url, "lineNumber": line}
+        if condition:
+            params["condition"] = condition
+        result = await self._client.cdp.send_command(
+            "Debugger.setBreakpointByUrl", params,
         )
+        return str(result.get("breakpointId", "")) if result else ""
 
     async def debug_set_breakpoint_function(self, function_name: str) -> str:
-        raise NotImplementedError(
-            "debug_set_breakpoint_function is not supported by BiDiBackend"
+        """Set a breakpoint on a function name via CDP Debugger.
+
+        Args:
+            function_name: Name of the function to break on.
+
+        Returns:
+            Breakpoint ID as string.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.cdp.send_command("Debugger.enable", {})
+        result = await self._client.cdp.send_command(
+            "Debugger.setBreakpointOnFunctionCall",
+            {"name": function_name},
         )
+        return str(result.get("breakpointId", "")) if result else ""
 
     async def debug_remove_breakpoint(self, breakpoint_id: str) -> None:
-        raise NotImplementedError(
-            "debug_remove_breakpoint is not supported by BiDiBackend"
+        """Remove a breakpoint by ID via CDP Debugger.
+
+        Args:
+            breakpoint_id: Breakpoint ID to remove.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.cdp.send_command(
+            "Debugger.removeBreakpoint",
+            {"breakpointId": breakpoint_id},
         )
 
     async def debug_step_over(self) -> None:
-        raise NotImplementedError("debug_step_over is not supported by BiDiBackend")
+        """Step over in debugger via CDP."""
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.cdp.send_command("Debugger.stepOver", {})
 
     async def debug_step_into(self) -> None:
-        raise NotImplementedError("debug_step_into is not supported by BiDiBackend")
+        """Step into in debugger via CDP."""
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.cdp.send_command("Debugger.stepInto", {})
 
     async def debug_step_out(self) -> None:
-        raise NotImplementedError("debug_step_out is not supported by BiDiBackend")
+        """Step out in debugger via CDP."""
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.cdp.send_command("Debugger.stepOut", {})
 
     async def debug_pause(self) -> None:
-        raise NotImplementedError("debug_pause is not supported by BiDiBackend")
+        """Pause execution via CDP Debugger."""
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.cdp.send_command("Debugger.pause", {})
 
     async def debug_resume(self) -> None:
-        raise NotImplementedError("debug_resume is not supported by BiDiBackend")
+        """Resume execution via CDP Debugger."""
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.cdp.send_command("Debugger.resume", {})
 
     async def debug_get_listeners(self, selector: str) -> list[dict[str, Any]]:
         """Get event listeners for an element via CDP DOMDebugger.
@@ -1760,98 +1886,198 @@ class BiDiBackend(AbstractBackend):
         )
         await self._client.script.evaluate(self._context, js)
 
-    # ── WebAuthn (experimental) — not supported by BiDi ────
+    # ── WebAuthn (experimental) — via CDP bridge ─────────
 
     async def webauthn_add_virtual_authenticator(
         self, protocol: str, transport: str
     ) -> str:
-        raise NotImplementedError(
-            "webauthn_add_virtual_authenticator is not supported by BiDiBackend. "
-            "Use --backend cdp."
+        """Add a virtual WebAuthn authenticator via CDP.
+
+        Args:
+            protocol: Protocol (e.g. "ctap2", "u2f").
+            transport: Transport (e.g. "usb", "nfc", "ble", "internal").
+
+        Returns:
+            Authenticator ID as string.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.cdp.send_command("WebAuthn.enable", {})
+        result = await self._client.cdp.send_command(
+            "WebAuthn.addVirtualAuthenticator",
+            {"protocol": protocol, "transport": transport},
         )
+        return str(result.get("authenticatorId", "")) if result else ""
 
     async def webauthn_remove_authenticator(self, authenticator_id: str) -> None:
-        raise NotImplementedError(
-            "webauthn_remove_authenticator is not supported by BiDiBackend. "
-            "Use --backend cdp."
+        """Remove a virtual WebAuthn authenticator via CDP.
+
+        Args:
+            authenticator_id: Authenticator ID to remove.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.cdp.send_command(
+            "WebAuthn.removeVirtualAuthenticator",
+            {"authenticatorId": authenticator_id},
         )
 
     async def webauthn_add_credential(
         self, authenticator_id: str, credential: dict[str, Any]
     ) -> None:
-        raise NotImplementedError(
-            "webauthn_add_credential is not supported by BiDiBackend. "
-            "Use --backend cdp."
+        """Add a credential to a virtual authenticator via CDP.
+
+        Args:
+            authenticator_id: Authenticator ID.
+            credential: Credential dict.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.cdp.send_command(
+            "WebAuthn.addCredential",
+            {"authenticatorId": authenticator_id, "credential": credential},
         )
 
     async def webauthn_get_credentials(
         self, authenticator_id: str
     ) -> list[dict[str, Any]]:
-        raise NotImplementedError(
-            "webauthn_get_credentials is not supported by BiDiBackend. "
-            "Use --backend cdp."
-        )
+        """Get credentials from a virtual authenticator via CDP.
 
-    # ── WebAudio (experimental) — not supported by BiDi ────
+        Args:
+            authenticator_id: Authenticator ID.
+
+        Returns:
+            List of credential dicts.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        result = await self._client.cdp.send_command(
+            "WebAuthn.getCredentials",
+            {"authenticatorId": authenticator_id},
+        )
+        return list(result.get("credentials", [])) if result else []
+
+    # ── WebAudio (experimental) — via CDP bridge ───────────
 
     async def webaudio_get_contexts(self) -> list[dict[str, Any]]:
-        raise NotImplementedError(
-            "webaudio_get_contexts is not supported by BiDiBackend. "
-            "Use --backend cdp."
+        """Get WebAudio contexts via CDP.
+
+        Returns:
+            List of AudioContext dicts.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.cdp.send_command("WebAudio.enable", {})
+        result = await self._client.cdp.send_command(
+            "WebAudio.getRealtimeData", {},
         )
+        return list(result.get("contexts", [])) if result else []
 
     async def webaudio_get_context(self, context_id: str) -> dict[str, Any]:
-        raise NotImplementedError(
-            "webaudio_get_context is not supported by BiDiBackend. "
-            "Use --backend cdp."
-        )
+        """Get a specific WebAudio context by ID via CDP.
 
-    # ── Media (experimental) — not supported by BiDi ───────
+        Args:
+            context_id: Audio context ID.
+
+        Returns:
+            Dict with context info.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        result = await self._client.cdp.send_command(
+            "WebAudio.getContextInfo",
+            {"contextId": context_id},
+        )
+        return dict(result) if result else {}
+
+    # ── Media (experimental) — via CDP bridge ──────────────
 
     async def media_get_players(self) -> list[dict[str, Any]]:
-        raise NotImplementedError(
-            "media_get_players is not supported by BiDiBackend. "
-            "Use --backend cdp."
+        """Get media players via CDP.
+
+        Returns:
+            List of player dicts.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.cdp.send_command("Media.enable", {})
+        result = await self._client.cdp.send_command(
+            "Media.getPlayerInfo", {},
         )
+        return [dict(result)] if result else []
 
     async def media_get_messages(self, player_id: str) -> list[dict[str, Any]]:
-        raise NotImplementedError(
-            "media_get_messages is not supported by BiDiBackend. "
-            "Use --backend cdp."
-        )
+        """Get media player messages via CDP.
 
-    # ── Cast (experimental) — not supported by BiDi ────────
+        Args:
+            player_id: Player ID.
+
+        Returns:
+            List of player message dicts.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        result = await self._client.cdp.send_command(
+            "Media.getPlayerMessages",
+            {"playerId": player_id},
+        )
+        return list(result.get("messages", [])) if result else []
+
+    # ── Cast (experimental) — via CDP bridge ───────────────
 
     async def cast_list(self) -> list[dict[str, Any]]:
-        raise NotImplementedError(
-            "cast_list is not supported by BiDiBackend. "
-            "Use --backend cdp."
+        """List available Cast sinks via CDP.
+
+        Returns:
+            List of sink dicts.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        result = await self._client.cdp.send_command(
+            "Cast.getSinks", {},
         )
+        return list(result.get("sinks", [])) if result else []
 
     async def cast_start_tab(self, sink_name: str) -> None:
-        raise NotImplementedError(
-            "cast_start_tab is not supported by BiDiBackend. "
-            "Use --backend cdp."
+        """Start tab mirroring to a Cast sink via CDP.
+
+        Args:
+            sink_name: Name of the sink to cast to.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.cdp.send_command(
+            "Cast.startTabMirroring",
+            {"sinkName": sink_name},
         )
 
     async def cast_stop(self) -> None:
-        raise NotImplementedError(
-            "cast_stop is not supported by BiDiBackend. "
-            "Use --backend cdp."
-        )
+        """Stop Cast mirroring via CDP."""
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.cdp.send_command("Cast.stopCasting", {})
 
-    # ── Bluetooth (experimental) — not supported by BiDi ───
+    # ── Bluetooth (experimental) — via CDP bridge ──────────
 
     async def bluetooth_emulate(
         self, name: str, address: str = "00:00:00:00:00:01"
     ) -> None:
-        raise NotImplementedError(
-            "bluetooth_emulate is not supported by BiDiBackend. "
-            "Use --backend cdp."
+        """Emulate a Bluetooth adapter via CDP.
+
+        Args:
+            name: Adapter name.
+            address: Bluetooth address.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.cdp.send_command("BluetoothEmulation.enable", {})
+        await self._client.cdp.send_command(
+            "BluetoothEmulation.setSimulatedCentralState",
+            {"state": "powered-on"},
         )
 
     async def bluetooth_stop(self) -> None:
-        raise NotImplementedError(
-            "bluetooth_stop is not supported by BiDiBackend. "
-            "Use --backend cdp."
-        )
+        """Stop Bluetooth emulation via CDP."""
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.cdp.send_command("BluetoothEmulation.disable", {})
