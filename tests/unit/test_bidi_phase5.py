@@ -23,20 +23,26 @@ class TestBiDiBackendPhase5:
         backend._client._connection.send_command = AsyncMock()
         return backend
 
-    def test_throttle_network_raises(self) -> None:
+    def test_throttle_network_supported(self) -> None:
         backend = self._make_bidi_backend()
-        with pytest.raises(NotImplementedError):
-            asyncio.run(backend.throttle_network(ThrottleParams()))
+        backend._client.emulation = MagicMock()
+        backend._client.emulation.set_network_conditions = AsyncMock()
+        asyncio.run(backend.throttle_network(ThrottleParams()))
+        backend._client.emulation.set_network_conditions.assert_called_once()
 
-    def test_set_cache_disabled_raises(self) -> None:
+    def test_set_cache_disabled_supported(self) -> None:
         backend = self._make_bidi_backend()
-        with pytest.raises(NotImplementedError):
-            asyncio.run(backend.set_cache_disabled(True))
+        backend._client.cdp = MagicMock()
+        backend._client.cdp.send_command = AsyncMock()
+        asyncio.run(backend.set_cache_disabled(True))
+        backend._client.cdp.send_command.assert_called_once()
 
-    def test_mock_response_raises(self) -> None:
+    def test_mock_response_supported(self) -> None:
         backend = self._make_bidi_backend()
-        with pytest.raises(NotImplementedError):
-            asyncio.run(backend.mock_response("https://example.com", {}))
+        backend._client.network = MagicMock()
+        backend._client.network.add_cache_override = AsyncMock()
+        asyncio.run(backend.mock_response("https://example.com", {}))
+        backend._client.network.add_cache_override.assert_called_once()
 
     def test_a11y_tree_raises(self) -> None:
         backend = self._make_bidi_backend()
@@ -63,20 +69,24 @@ class TestBiDiBackendPhase5:
         with pytest.raises(NotImplementedError):
             asyncio.run(backend.ignore_cert_errors(True))
 
-    def test_set_locale_raises(self) -> None:
+    def test_set_locale_supported(self) -> None:
         backend = self._make_bidi_backend()
-        with pytest.raises(NotImplementedError):
-            asyncio.run(backend.set_locale("en-US"))
+        backend._client.cdp = MagicMock()
+        backend._client.cdp.send_command = AsyncMock()
+        asyncio.run(backend.set_locale("en-US"))
+        backend._client.cdp.send_command.assert_called_once()
 
     def test_set_cpu_throttle_raises(self) -> None:
         backend = self._make_bidi_backend()
         with pytest.raises(NotImplementedError):
             asyncio.run(backend.set_cpu_throttle(4.0))
 
-    def test_set_touch_emulation_raises(self) -> None:
+    def test_set_touch_emulation_supported(self) -> None:
         backend = self._make_bidi_backend()
-        with pytest.raises(NotImplementedError):
-            asyncio.run(backend.set_touch_emulation(True))
+        backend._client.cdp = MagicMock()
+        backend._client.cdp.send_command = AsyncMock()
+        asyncio.run(backend.set_touch_emulation(True))
+        backend._client.cdp.send_command.assert_called_once()
 
     def test_set_sensors_raises(self) -> None:
         backend = self._make_bidi_backend()

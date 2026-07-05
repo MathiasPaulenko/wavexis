@@ -28,39 +28,9 @@ class TestBiDiBackend:
             with pytest.raises(NotImplementedError):
                 await backend.screencast(MagicMock())
             with pytest.raises(NotImplementedError):
-                await backend.activate_tab("x")
-            with pytest.raises(NotImplementedError):
-                await backend.capture_console()
-            with pytest.raises(NotImplementedError):
-                await backend.capture_logs()
-            with pytest.raises(NotImplementedError):
                 await backend.capture_har(MagicMock())
             with pytest.raises(NotImplementedError):
-                await backend.get_cookies()
-            with pytest.raises(NotImplementedError):
-                await backend.set_cookie(MagicMock())
-            with pytest.raises(NotImplementedError):
-                await backend.delete_cookie("x", "y")
-            with pytest.raises(NotImplementedError):
-                await backend.clear_cookies()
-            with pytest.raises(NotImplementedError):
-                await backend.set_headers({})
-            with pytest.raises(NotImplementedError):
-                await backend.set_user_agent("x")
-            with pytest.raises(NotImplementedError):
-                await backend.browser_version()
-            with pytest.raises(NotImplementedError):
                 await backend.emulate_device("iphone-15")
-            with pytest.raises(NotImplementedError):
-                await backend.set_viewport(100, 100)
-            with pytest.raises(NotImplementedError):
-                await backend.set_geolocation(0.0, 0.0)
-            with pytest.raises(NotImplementedError):
-                await backend.set_timezone("UTC")
-            with pytest.raises(NotImplementedError):
-                await backend.set_dark_mode(True)
-            with pytest.raises(NotImplementedError):
-                await backend.screenshot_selector("h1")
             with pytest.raises(NotImplementedError):
                 await backend.webauthn_add_virtual_authenticator("ctap2", "usb")
             with pytest.raises(NotImplementedError):
@@ -71,6 +41,52 @@ class TestBiDiBackend:
                 await backend.cast_list()
             with pytest.raises(NotImplementedError):
                 await backend.bluetooth_emulate("test")
+
+    async def test_implemented_methods_raise_runtime_without_launch(self) -> None:
+        with patch("browsix.backend.bidi.BiDiClient", MagicMock()):
+            from browsix.backend.bidi import BiDiBackend
+
+            backend = BiDiBackend()
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.activate_tab("x")
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.capture_console()
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.capture_logs()
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.get_cookies()
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.set_cookie(MagicMock())
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.delete_cookie("x", "y")
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.clear_cookies()
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.set_headers({})
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.set_user_agent("x")
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.browser_version()
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.set_viewport(100, 100)
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.set_geolocation(0.0, 0.0)
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.set_timezone("UTC")
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.set_dark_mode(True)
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.screenshot_selector("h1")
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.set_locale("en-US")
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.set_touch_emulation(True)
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.throttle_network(MagicMock())
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.set_cache_disabled(True)
+            with pytest.raises(RuntimeError, match="not launched"):
+                await backend.mock_response("https://example.com", {})
 
     async def test_bidi_paridad_methods_raise_runtime_without_launch(self) -> None:
         with patch("browsix.backend.bidi.BiDiClient", MagicMock()):

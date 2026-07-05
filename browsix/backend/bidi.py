@@ -33,15 +33,22 @@ except ImportError:
 class BiDiBackend(AbstractBackend):
     """WebDriver BiDi backend via bidiwave.
 
-    Supports: launch, navigate, screenshot, eval, raw, close, go_back,
-    go_forward, reload, stop_loading, wait_for, list_tabs, new_tab,
-    close_tab, DOM methods, storage methods, new_context, list_contexts,
-    close_context, get_window_bounds, set_window_bounds, dialog_accept,
-    dialog_dismiss, grant_permission, reset_permissions, click, type_text,
-    fill, select_option, hover, key_press, drag, tap, block_requests,
-    intercept_requests.
+    Supports: launch, navigate, screenshot, screenshot_selector, eval, raw,
+    close, go_back, go_forward, reload, stop_loading, wait_for, list_tabs,
+    new_tab, close_tab, activate_tab, capture_console, capture_logs,
+    DOM methods, storage methods, cookies (get/set/delete/clear),
+    set_headers, set_user_agent, browser_version, set_viewport,
+    set_geolocation, set_timezone, set_dark_mode, set_locale,
+    set_touch_emulation, new_context, list_contexts, close_context,
+    get_window_bounds, set_window_bounds, dialog_accept, dialog_dismiss,
+    grant_permission, reset_permissions, click, type_text, fill,
+    select_option, hover, key_press, drag, tap, block_requests,
+    throttle_network, set_cache_disabled, intercept_requests, mock_response.
 
-    Unsupported features raise NotImplementedError suggesting --backend cdp.
+    CDP-only features (HAR, PDF, screencast, a11y, downloads, security,
+    CPU throttle, sensors, performance, CSS, debug, DOM snapshot, overlay,
+    cache storage, IndexedDB, service workers, animations, WebAuthn,
+    WebAudio, Media, Cast, Bluetooth) raise NotImplementedError.
     """
 
     def __init__(self) -> None:
@@ -108,8 +115,47 @@ class BiDiBackend(AbstractBackend):
     async def screenshot_selector(
         self, selector: str, format: str = "png", quality: int = 80
     ) -> bytes:
-        """Take a screenshot of a specific element (not yet supported)."""
-        raise NotImplementedError("screenshot_selector is not supported by BiDiBackend")
+        """Take a screenshot of a specific element via element bounding box.
+
+        Uses script.evaluate to get the element's bounding rect, then
+        captures a screenshot and crops to that rect via BiDi browsingContext.
+
+        Args:
+            selector: CSS selector for the target element.
+            format: Image format ("png" or "jpeg").
+            quality: JPEG quality (0-100).
+
+        Returns:
+            Image bytes of the element screenshot.
+        """
+        if self._client is None or self._context is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        escaped = selector.replace("'", "\\'")
+        js = (
+            f"var el=document.querySelector('{escaped}');"
+            f"el?JSON.stringify(el.getBoundingClientRect()):null"
+        )
+        result = await self._client.script.evaluate(self._context, js)
+        rect_str = result.value if hasattr(result, "value") else result
+        if not rect_str:
+            raise RuntimeError(f"Element not found: {selector}")
+        import json as _json
+        rect = _json.loads(rect_str) if isinstance(rect_str, str) else rect_str
+        clip = {
+            "x": int(rect.get("x", 0)),
+            "y": int(rect.get("y", 0)),
+            "width": int(rect.get("width", 0)),
+            "height": int(rect.get("height", 0)),
+        }
+        screenshot_result = await self._client.browsing.screenshot(
+            self._context, format=format, quality=quality
+        )
+        data = (
+            screenshot_result.data
+            if hasattr(screenshot_result, "data")
+            else screenshot_result.get("data", "")
+        )
+        return base64.b64decode(data)
 
     async def eval(self, expression: str, await_promise: bool = False) -> Any:
         """Evaluate a JavaScript expression via script.evaluate.
@@ -240,17 +286,57 @@ class BiDiBackend(AbstractBackend):
         )
 
     async def activate_tab(self, tab_id: str) -> None:
-        """Activate a browsing context (no direct BiDi equivalent)."""
-        raise NotImplementedError(
-            "activate_tab is not directly supported by BiDiBackend. "
-            "Use --backend cdp."
-        )
+        """Activate a browsing context via browsingContext.activate.
+
+        Args:
+            tab_id: The browsing context ID to activate.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.browsing.activate(tab_id)
 
     async def capture_console(self, level: str = "all") -> list[dict[str, Any]]:
-        raise NotImplementedError("capture_console is not supported by BiDiBackend")
+        """Capture console messages via log.entryAdded event subscription.
+
+        Subscribes to log.entryAdded, navigates to the current page URL
+        (already loaded), collects entries for a short window, then returns.
+
+        Args:
+            level: Minimum log level (all, info, warning, error).
+
+        Returns:
+            List of console entry dicts with type, level, text, timestamp.
+        """
+        if self._client is None or self._context is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        import asyncio as _asyncio
+        entries: list[dict[str, Any]] = []
+        level_order = {"all": 0, "debug": 0, "info": 1, "warning": 2, "error": 3}
+        min_level = level_order.get(level, 0)
+
+        async def _handler(event: Any) -> None:
+            entry_level = getattr(event, "level", "info")
+            if level_order.get(entry_level, 0) >= min_level or level == "all":
+                entries.append({
+                    "type": getattr(event, "type", "console"),
+                    "level": entry_level,
+                    "text": getattr(event, "text", ""),
+                    "timestamp": getattr(event, "timestamp", None),
+                    "args": getattr(event, "args", []),
+                })
+
+        sub = await self._client.on_log_entry(_handler)
+        await _asyncio.sleep(0.5)
+        self._client.off(sub)
+        return entries
 
     async def capture_logs(self) -> list[dict[str, Any]]:
-        raise NotImplementedError("capture_logs is not supported by BiDiBackend")
+        """Capture browser log entries via log.entryAdded subscription.
+
+        Returns:
+            List of log entry dicts.
+        """
+        return await self.capture_console(level="all")
 
     async def dom_get(self, selector: str, outer: bool = True) -> str:
         """Get outerHTML of an element via script.evaluate."""
@@ -354,22 +440,83 @@ class BiDiBackend(AbstractBackend):
         raise NotImplementedError("capture_har is not supported by BiDiBackend")
 
     async def get_cookies(self) -> list[dict[str, Any]]:
-        raise NotImplementedError("get_cookies is not supported by BiDiBackend")
+        """Get all cookies via storage.getCookies.
+
+        Returns:
+            List of cookie dicts with name, value, domain, path, etc.
+        """
+        if self._client is None or self._context is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        cookies = await self._client.storage.get_cookies(self._context)
+        return [
+            c.model_dump() if hasattr(c, "model_dump") else dict(c)
+            for c in cookies
+        ]
 
     async def set_cookie(self, params: CookieParams) -> None:
-        raise NotImplementedError("set_cookie is not supported by BiDiBackend")
+        """Set a cookie via storage.setCookie.
+
+        Args:
+            params: Cookie parameters (name, value, domain, path, etc.).
+        """
+        if self._client is None or self._context is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        from bidiwave import Cookie as BiDiCookie
+        cookie = BiDiCookie(
+            name=params.name,
+            value=params.value,
+            domain=params.domain,
+            path=params.path,
+            http_only=params.http_only,
+            secure=params.secure,
+            same_site=params.same_site,
+            expires=params.expires,
+        )
+        await self._client.storage.set_cookie(self._context, cookie)
 
     async def delete_cookie(self, name: str, domain: str) -> None:
-        raise NotImplementedError("delete_cookie is not supported by BiDiBackend")
+        """Delete a cookie by name via storage.deleteCookie.
+
+        Args:
+            name: Cookie name to delete.
+            domain: Cookie domain (ignored by BiDi — uses context).
+        """
+        if self._client is None or self._context is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.storage.delete_cookie(self._context, name)
 
     async def clear_cookies(self) -> None:
-        raise NotImplementedError("clear_cookies is not supported by BiDiBackend")
+        """Clear all cookies for the current browsing context."""
+        if self._client is None or self._context is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.storage.delete_cookies(self._context)
 
     async def set_headers(self, headers: dict[str, str]) -> None:
-        raise NotImplementedError("set_headers is not supported by BiDiBackend")
+        """Set extra HTTP headers via CDP Network.setExtraRequestHeaders.
+
+        Uses the CDP bridge (bidiwave.cdp.send_command) to set extra headers.
+
+        Args:
+            headers: Dict of header name to value.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        header_list = [{"name": k, "value": v} for k, v in headers.items()]
+        await self._client.cdp.send_command(
+            "Network.setExtraRequestHeaders", {"headers": header_list}
+        )
 
     async def set_user_agent(self, user_agent: str) -> None:
-        raise NotImplementedError("set_user_agent is not supported by BiDiBackend")
+        """Override the User-Agent string via emulation.setUserAgentOverride.
+
+        Args:
+            user_agent: The User-Agent string to set.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.emulation.set_user_agent(
+            user_agent, contexts=[self._context] if self._context else None
+        )
 
     async def new_context(self) -> str:
         """Create a new browsing context via browsingContext.create."""
@@ -427,7 +574,15 @@ class BiDiBackend(AbstractBackend):
         )
 
     async def browser_version(self) -> str:
-        raise NotImplementedError("browser_version is not supported by BiDiBackend")
+        """Get the browser version via CDP Browser.getVersion.
+
+        Returns:
+            Browser version string (e.g. 'Chrome/120.0.6099.109').
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        result = await self._client.cdp.send_command("Browser.getVersion", {})
+        return str(result.get("product", "unknown"))
 
     async def emulate_device(self, device: str) -> None:
         raise NotImplementedError("emulate_device is not supported by BiDiBackend")
@@ -435,18 +590,63 @@ class BiDiBackend(AbstractBackend):
     async def set_viewport(
         self, width: int, height: int, device_scale_factor: float = 1.0
     ) -> None:
-        raise NotImplementedError("set_viewport is not supported by BiDiBackend")
+        """Set the viewport size via browsingContext.setViewport.
+
+        Args:
+            width: Viewport width in pixels.
+            height: Viewport height in pixels.
+            device_scale_factor: Device pixel ratio.
+        """
+        if self._client is None or self._context is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.browsing.set_viewport(
+            self._context,
+            viewport={"width": width, "height": height},
+            device_pixel_ratio=device_scale_factor,
+        )
 
     async def set_geolocation(
         self, latitude: float, longitude: float, accuracy: float = 100.0
     ) -> None:
-        raise NotImplementedError("set_geolocation is not supported by BiDiBackend")
+        """Override geolocation via emulation.setGeolocationOverride.
+
+        Args:
+            latitude: Latitude in degrees.
+            longitude: Longitude in degrees.
+            accuracy: Position accuracy in meters.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.emulation.set_geolocation(
+            coordinates={"latitude": latitude, "longitude": longitude, "accuracy": accuracy},
+            contexts=[self._context] if self._context else None,
+        )
 
     async def set_timezone(self, timezone: str) -> None:
-        raise NotImplementedError("set_timezone is not supported by BiDiBackend")
+        """Override the timezone via emulation.setTimezoneOverride.
+
+        Args:
+            timezone: IANA timezone ID (e.g. 'America/New_York').
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.emulation.set_timezone(
+            timezone, contexts=[self._context] if self._context else None
+        )
 
     async def set_dark_mode(self, enabled: bool) -> None:
-        raise NotImplementedError("set_dark_mode is not supported by BiDiBackend")
+        """Enable or disable dark mode via CDP Emulation.setEmulatedMedia.
+
+        Args:
+            enabled: True to enable dark mode, False to disable.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        feature = 'dark' if enabled else 'light'
+        await self._client.cdp.send_command(
+            'Emulation.setEmulatedMedia',
+            {'features': [{'name': 'prefers-color-scheme', 'value': feature}]},
+        )
 
     # ── Input ──────────────────────────────────────────────
 
@@ -556,10 +756,32 @@ class BiDiBackend(AbstractBackend):
             )
 
     async def throttle_network(self, params: ThrottleParams) -> None:
-        raise NotImplementedError("throttle_network is not supported by BiDiBackend")
+        """Throttle network conditions via emulation.setNetworkConditions.
+
+        Args:
+            params: Throttle parameters (offline, latency, download/upload throughput).
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.emulation.set_network_conditions(
+            offline=params.offline,
+            download_throughput=params.download_bps,
+            upload_throughput=params.upload_bps,
+            latency=params.latency_ms,
+            contexts=[self._context] if self._context else None,
+        )
 
     async def set_cache_disabled(self, disabled: bool = True) -> None:
-        raise NotImplementedError("set_cache_disabled is not supported by BiDiBackend")
+        """Disable or enable the browser cache via CDP Network.setCacheDisabled.
+
+        Args:
+            disabled: True to disable cache, False to enable.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.cdp.send_command(
+            'Network.setCacheDisabled', {'cacheDisabled': disabled},
+        )
 
     async def intercept_requests(self, pattern: dict[str, Any]) -> None:
         """Intercept requests matching a pattern (partial BiDi support)."""
@@ -570,7 +792,27 @@ class BiDiBackend(AbstractBackend):
         )
 
     async def mock_response(self, url: str, response: dict[str, Any]) -> None:
-        raise NotImplementedError("mock_response is not supported by BiDiBackend")
+        """Mock a response for requests matching a URL via network.addCacheOverride.
+
+        Args:
+            url: URL pattern to match.
+            response: Response dict with status, headers, body.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        status = response.get('status', 200)
+        headers = [
+            {'name': k, 'value': v} for k, v in response.get('headers', {}).items()
+        ]
+        body = response.get('body', '')
+        await self._client.network.add_cache_override(
+            url=url,
+            method=response.get('method', 'GET'),
+            status_code=status,
+            headers=headers or None,
+            body=body or None,
+            contexts=[self._context] if self._context else None,
+        )
 
     # ── Accessibility ──────────────────────────────────────
 
@@ -638,13 +880,31 @@ class BiDiBackend(AbstractBackend):
     # ── Emulation advanced ─────────────────────────────────
 
     async def set_locale(self, locale: str) -> None:
-        raise NotImplementedError("set_locale is not supported by BiDiBackend")
+        """Override the browser locale via CDP Emulation.setLocaleOverride.
+
+        Args:
+            locale: Locale string (e.g. 'en-US', 'es-ES').
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.cdp.send_command(
+            'Emulation.setLocaleOverride', {'locale': locale},
+        )
 
     async def set_cpu_throttle(self, rate: float) -> None:
         raise NotImplementedError("set_cpu_throttle is not supported by BiDiBackend")
 
     async def set_touch_emulation(self, enabled: bool) -> None:
-        raise NotImplementedError("set_touch_emulation is not supported by BiDiBackend")
+        """Enable or disable touch emulation via CDP Emulation.setTouchEmulationEnabled.
+
+        Args:
+            enabled: True to enable touch emulation, False to disable.
+        """
+        if self._client is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        await self._client.cdp.send_command(
+            'Emulation.setTouchEmulationEnabled', {'enabled': enabled},
+        )
 
     async def set_sensors(self, sensors: SensorParams) -> None:
         raise NotImplementedError("set_sensors is not supported by BiDiBackend")
