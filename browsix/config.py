@@ -587,3 +587,47 @@ class DebugParams:
     selector: str | None = None
     wait: WaitStrategy = field(default_factory=WaitStrategy)
     browser: BrowserOptions = field(default_factory=BrowserOptions)
+
+
+@dataclass
+class CookieActionParams:
+    """Parameters for cookie operations.
+
+    Attributes:
+        url: URL to navigate to before cookie operations.
+        action: Cookie action — "get", "set", "delete", "clear".
+        cookie: Cookie parameters for set action.
+        name: Cookie name for delete action.
+        domain: Cookie domain for delete action.
+        wait: Wait strategy after navigation.
+        browser: Browser launch options.
+    """
+
+    url: str = ""
+    action: str = "get"
+    cookie: CookieParams = field(default_factory=CookieParams)
+    name: str = ""
+    domain: str = ""
+    wait: WaitStrategy = field(default_factory=WaitStrategy)
+    browser: BrowserOptions = field(default_factory=BrowserOptions)
+
+
+@dataclass
+class HeaderParams:
+    """Parameters for header and user-agent operations.
+
+    Attributes:
+        url: URL to navigate to before setting headers.
+        action: Header action — "set-headers", "set-user-agent".
+        headers: Extra HTTP headers for set-headers action.
+        user_agent: User-Agent string for set-user-agent action.
+        wait: Wait strategy after navigation.
+        browser: Browser launch options.
+    """
+
+    url: str = ""
+    action: str = "set-headers"
+    headers: dict[str, str] = field(default_factory=dict)
+    user_agent: str = ""
+    wait: WaitStrategy = field(default_factory=WaitStrategy)
+    browser: BrowserOptions = field(default_factory=BrowserOptions)

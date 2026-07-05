@@ -842,15 +842,33 @@ async def _browser(action: str) -> Any:
 @app.command()
 def multi(
     config: str = typer.Argument(..., help="Path to YAML config file"),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Validate config and show planned actions without launching browser",
+    ),
 ) -> None:
     """Execute multiple actions from a YAML config file."""
     from pathlib import Path
 
     config_path = Path(config)
+
+    if dry_run:
+        try:
+            actions = _parse_and_describe(config_path)
+        except BrowsixError as e:
+            _handle_error(e)
+            return
+        typer.echo(f"Plan: {len(actions)} action(s)")
+        for i, desc in enumerate(actions):
+            typer.echo(f"  {i + 1}. {desc}")
+        return
+
     try:
         results = asyncio.run(_multi(config_path))
     except BrowsixError as e:
         _handle_error(e)
+        return
 
     typer.echo(f"Completed {len(results)} actions")
     for i, result in enumerate(results):
@@ -871,6 +889,189 @@ async def _multi(config_path: Any) -> list[Any]:
         await backend.launch(BrowserOptions())
         action = MultiAction(config_path)
         return await action.execute(backend)
+    finally:
+        await backend.close()
+
+
+def _parse_and_describe(config_path: Any) -> list[str]:
+    """Parse YAML config and return human-readable action descriptions.
+
+    Args:
+        config_path: Path to the YAML config file.
+
+    Returns:
+        List of description strings, one per action.
+    """
+    from browsix.multi import parse_yaml
+
+    actions = parse_yaml(config_path)
+    descriptions: list[str] = []
+    for item in actions:
+        action_type = next(iter(item))
+        params = item[action_type]
+        url = params.get("url", "")
+        if url:
+            descriptions.append(f"{action_type}({url})")
+        else:
+            descriptions.append(f"{action_type}()")
+    return descriptions
+
+
+@app.command()
+def batch(
+    urls_file: str = typer.Argument(..., help="Path to file with one URL per line"),
+    action: str = typer.Argument(..., help="Action to run: screenshot, pdf, scrape, eval"),
+    output_dir: str = typer.Option(
+        "output", "--output-dir", "-o", help="Directory for output files"
+    ),
+    expression: str = typer.Option(
+        "document.title",
+        "--expression",
+        "-e",
+        help="JS expression for scrape/eval",
+    ),
+    parallel: int = typer.Option(
+        4, "--parallel", "-p", help="Number of parallel browser instances"
+    ),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show plan without launching browser"),
+) -> None:
+    """Run a single action against multiple URLs in parallel."""
+    from pathlib import Path
+
+    urls_path = Path(urls_file)
+    if not urls_path.exists():
+        typer.echo(f"Error: URLs file not found: {urls_path}")
+        raise typer.Exit(1)
+
+    urls = [line.strip() for line in urls_path.read_text().splitlines() if line.strip()]
+    if not urls:
+        typer.echo("Error: No URLs found in file")
+        raise typer.Exit(1)
+
+    if dry_run:
+        typer.echo(f"Plan: {len(urls)} URL(s) x {action}")
+        for u in urls:
+            typer.echo(f"  {action}({u})")
+        return
+
+    out_dir = Path(output_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        results = asyncio.run(_batch(urls, action, out_dir, expression, parallel))
+    except BrowsixError as e:
+        _handle_error(e)
+        return
+
+    typer.echo(f"Completed {len(results)} / {len(urls)} actions")
+    for i, (url, result) in enumerate(zip(urls, results, strict=False)):
+        if isinstance(result, Exception):
+            typer.echo(f"  {i + 1}. {url}: ERROR — {result}")
+        elif isinstance(result, bytes):
+            typer.echo(f"  {i + 1}. {url}: {len(result)} bytes")
+        elif isinstance(result, str):
+            typer.echo(f"  {i + 1}. {url}: {result[:100]}")
+        else:
+            typer.echo(f"  {i + 1}. {url}: {type(result).__name__}")
+
+
+async def _batch(
+    urls: list[str],
+    action: str,
+    out_dir: Any,
+    expression: str,
+    parallel: int,
+) -> list[Any]:
+    """Run an action against multiple URLs with limited concurrency.
+
+    Args:
+        urls: List of URLs to process.
+        action: Action type — screenshot, pdf, scrape, or eval.
+        out_dir: Output directory for saved files.
+        expression: JS expression for scrape/eval.
+        parallel: Maximum number of concurrent browser instances.
+
+    Returns:
+        List of results (or exceptions) in the same order as urls.
+    """
+    import asyncio as _asyncio
+
+    semaphore = _asyncio.Semaphore(parallel)
+
+    async def _run_one(url: str) -> Any:
+        async with semaphore:
+            try:
+                return await _batch_single(url, action, out_dir, expression)
+            except Exception as exc:
+                return exc
+
+    tasks = [_run_one(u) for u in urls]
+    return await _asyncio.gather(*tasks)
+
+
+async def _batch_single(
+    url: str,
+    action: str,
+    out_dir: Any,
+    expression: str,
+) -> Any:
+    """Execute a single action for one URL in batch mode.
+
+    Args:
+        url: URL to process.
+        action: Action type — screenshot, pdf, scrape, or eval.
+        out_dir: Output directory for saved files.
+        expression: JS expression for scrape/eval.
+
+    Returns:
+        Result of the action.
+
+    Raises:
+        ValueError: If the action type is unknown.
+    """
+    from browsix.actions.eval import EvalAction
+    from browsix.actions.pdf import PDFAction
+    from browsix.actions.scrape import ScrapeAction
+    from browsix.actions.screenshot import ScreenshotAction
+    from browsix.config import (
+        EvalParams,
+        PDFParams,
+        ScrapeParams,
+        ScreenshotParams,
+        WaitStrategy,
+    )
+
+    backend = _get_backend()
+    try:
+        await backend.launch(BrowserOptions(headless=True))
+
+        if action == "screenshot":
+            sp = ScreenshotParams(url=url, full_page=True, wait=WaitStrategy(strategy="load"))
+            result = await ScreenshotAction(sp).execute(backend)
+            safe_url = url.replace("://", "_").replace("/", "_")[:80]
+            (out_dir / f"{safe_url}.png").write_bytes(result)
+            return result
+
+        if action == "pdf":
+            pp = PDFParams(url=url, wait=WaitStrategy(strategy="load"))
+            result = await PDFAction(pp).execute(backend)
+            safe_url = url.replace("://", "_").replace("/", "_")[:80]
+            (out_dir / f"{safe_url}.pdf").write_bytes(result)
+            return result
+
+        if action == "scrape":
+            scp = ScrapeParams(
+                urls=[url],
+                expression=expression,
+                wait=WaitStrategy(strategy="load"),
+            )
+            return await ScrapeAction(scp).execute(backend)
+
+        if action == "eval":
+            ep = EvalParams(url=url, expression=expression, wait=WaitStrategy(strategy="load"))
+            return await EvalAction(ep).execute(backend)
+
+        raise ValueError(f"Unknown batch action: {action}")
     finally:
         await backend.close()
 
