@@ -27,7 +27,8 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -e ".[dev,cdp,bidi]"
-      - run: mypy browsix/ --ignore-missing-imports
+      - run: pip install types-PyYAML
+      - run: mypy browsix/
 
   unit-tests:
     name: Unit tests (Python ${{ matrix.python-version }})
@@ -59,8 +60,9 @@ jobs:
       - run: pip install -e ".[cdp,serve,dev]" pytest-aiohttp
       - uses: browser-actions/setup-chrome@v1
       - run: pytest tests/unit/test_serve.py -v
-      - run: pytest tests/integration/test_serve.py -v -m integration
-        continue-on-error: true
+      - run: pytest tests/integration/test_serve.py -v -m integration --timeout=60
+        env:
+          CHROME_PATH: /opt/chrome/chrome
 
   integration-tests:
     name: Integration tests
@@ -74,8 +76,9 @@ jobs:
         with:
           chrome-version: stable
       - run: pip install -e ".[dev,cdp]"
-      - run: pytest tests/integration/ -m integration -v
-        continue-on-error: true
+      - run: pytest tests/integration/ -m integration -v --timeout=60
+        env:
+          CHROME_PATH: /opt/chrome/chrome
 
   docker-build:
     name: Docker build

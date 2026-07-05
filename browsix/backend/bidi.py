@@ -27,9 +27,9 @@ from browsix.config import (
 )
 
 try:
-    from bidiwave import BiDiClient  # type: ignore[import-not-found,unused-ignore]
+    from bidiwave import BiDiClient
 except ImportError:
-    BiDiClient = None
+    BiDiClient = None  # type: ignore[assignment,misc]
 
 
 class BiDiBackend(AbstractBackend):

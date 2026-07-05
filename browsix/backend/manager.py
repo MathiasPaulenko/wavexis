@@ -106,13 +106,13 @@ class BackendManager:
         """
         result: dict[str, str] = {}
         try:
-            import cdpwave  # type: ignore[import-not-found,unused-ignore]
+            import cdpwave
 
             result["cdp"] = getattr(cdpwave, "__version__", "installed")
         except ImportError:
             result["cdp"] = "not installed"
         try:
-            import bidiwave  # type: ignore[import-not-found,unused-ignore]
+            import bidiwave
 
             result["bidi"] = getattr(bidiwave, "__version__", "installed")
         except ImportError:

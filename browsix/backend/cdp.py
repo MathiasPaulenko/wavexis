@@ -24,10 +24,10 @@ from browsix.config import (
 from browsix.exceptions import ElementNotFoundError, NavigationError, WaitTimeoutError
 
 try:
-    from cdpwave import CDPClient, CDPSession  # type: ignore[import-not-found,unused-ignore]
+    from cdpwave import CDPClient, CDPSession
 except ImportError:
-    CDPClient = None
-    CDPSession = None
+    CDPClient = None  # type: ignore[assignment,misc]
+    CDPSession = None  # type: ignore[assignment,misc]
 
 
 class CDPBackend(AbstractBackend):
