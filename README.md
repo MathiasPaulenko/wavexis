@@ -3,6 +3,7 @@
 [![CI](https://github.com/MathiasPaulenko/browsix/actions/workflows/ci.yml/badge.svg)](https://github.com/MathiasPaulenko/browsix/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/browsix.svg)](https://pypi.org/project/browsix/)
 [![Python](https://img.shields.io/pypi/pyversions/browsix.svg)](https://pypi.org/project/browsix/)
+[![Docker](https://img.shields.io/badge/Docker-ghcr.io-blue.svg)](https://github.com/MathiasPaulenko/browsix/pkgs/container/browsix)
 [![License](https://img.shields.io/github/license/MathiasPaulenko/browsix.svg)](https://github.com/MathiasPaulenko/browsix/blob/main/LICENSE)
 [![Docs](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://mathiaspaulenko.github.io/browsix/)
 
@@ -12,6 +13,28 @@
 
 ```bash
 pip install browsix[cdp]
+```
+
+## Docker
+
+Serve mode in a container with Chromium pre-installed:
+
+```bash
+docker run -p 8080:8080 ghcr.io/mathiaspaulenko/browsix:latest
+```
+
+```bash
+curl -X POST http://localhost:8080/screenshot \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com"}' \
+  -o screenshot.png
+```
+
+Build locally:
+
+```bash
+docker build -t browsix .
+docker run -p 8080:8080 browsix
 ```
 
 ## Quick start
