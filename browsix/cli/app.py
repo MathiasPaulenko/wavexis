@@ -511,21 +511,28 @@ def console(
     output: str | None = typer.Option(
         None, "--output", "-o", help="Output file path (JSON)"
     ),
+    format: str = typer.Option(
+        "json", "--format", "-f", help="Output format: json, csv, yaml"
+    ),
+    capture: str = typer.Option(
+        "console",
+        "--capture",
+        help="What to capture: console, logs, or both",
+    ),
 ) -> None:
-    """Capture console messages from a web page."""
+    """Capture console messages and/or browser logs from a web page."""
     try:
-        result = asyncio.run(_console(url, level))
+        result = asyncio.run(_console(url, level, capture))
     except BrowsixError as e:
         _handle_error(e)
+        return
 
+    Output.write_formatted(result, format, output)
     if output:
-        Output.write_json(result, output)
         typer.echo(f"Console output saved to {output}")
-    else:
-        typer.echo(json.dumps(result, indent=2, default=str))
 
 
-async def _console(url: str, level: str) -> Any:
+async def _console(url: str, level: str, capture: str = "console") -> Any:
     """Async helper for console capture."""
     backend = _get_backend()
     try:
@@ -534,7 +541,7 @@ async def _console(url: str, level: str) -> Any:
             url=url,
             level=level,
             wait=WaitStrategy(strategy="load"),
-            capture="console",
+            capture=capture,
         )
         return await ConsoleAction(params).execute(backend)
     finally:
@@ -3135,6 +3142,125 @@ def init(
     out_path.write_text(yaml_content, encoding="utf-8")
     typer.echo(f"Config saved to {output}")
     typer.echo(f"Run with: browsix multi {output}")
+
+
+@app.command()
+def perf(
+    url: str = typer.Argument(..., help="URL to navigate to"),
+    output: str | None = typer.Option(
+        None, "--output", "-o", help="Output file path"
+    ),
+    format: str = typer.Option(
+        "json", "--format", "-f", help="Output format: json, yaml"
+    ),
+    metric: str = typer.Option(
+        "metrics",
+        "--metric",
+        "-m",
+        help=(
+            "Metric to capture: metrics, trace, profile, "
+            "heap-snapshot, coverage, css-coverage"
+        ),
+    ),
+    duration: int = typer.Option(
+        3000, "--duration", "-d", help="Duration in ms (for trace/profile)"
+    ),
+) -> None:
+    """Capture performance metrics from a web page.
+
+    Supports: metrics (LCP/FCP/CLS/TTFB), trace, profile,
+    heap-snapshot, coverage, css-coverage.
+    """
+    valid_metrics = {
+        "metrics", "trace", "profile",
+        "heap-snapshot", "coverage", "css-coverage",
+    }
+    if metric not in valid_metrics:
+        typer.echo(
+            f"Error: invalid metric '{metric}'. "
+            f"Valid: {', '.join(sorted(valid_metrics))}",
+            err=True,
+        )
+        raise typer.Exit(1)
+
+    try:
+        result = asyncio.run(_perf(url, metric, duration))
+    except BrowsixError as e:
+        _handle_error(e)
+        return
+
+    if metric == "metrics":
+        _print_perf_summary(result)
+
+    Output.write_formatted(result, format, output)
+    if output:
+        typer.echo(f"Performance data saved to {output}")
+
+
+def _print_perf_summary(metrics: Any) -> None:
+    """Print a human-readable summary of key performance metrics.
+
+    Args:
+        metrics: Dict of performance metrics from backend.perf_metrics().
+    """
+    if not isinstance(metrics, dict):
+        return
+
+    key_metrics = [
+        ("LargestContentfulPaint", "LCP"),
+        ("FirstContentfulPaint", "FCP"),
+        ("CumulativeLayoutShift", "CLS"),
+        ("TimeToFirstByte", "TTFB"),
+        ("DOMContentLoadEventEnd", "DCL"),
+        ("LoadEventEnd", "Load"),
+    ]
+
+    typer.echo("\nPerformance Summary:")
+    typer.echo("-" * 40)
+    for raw_key, label in key_metrics:
+        value = metrics.get(raw_key)
+        if value is not None:
+            if isinstance(value, (int, float)):
+                if label in ("CLS",):
+                    typer.echo(f"  {label:8s} {value:.3f}")
+                else:
+                    typer.echo(f"  {label:8s} {value:.0f} ms")
+            else:
+                typer.echo(f"  {label:8s} {value}")
+    typer.echo("-" * 40)
+
+
+async def _perf(url: str, metric: str, duration: int) -> Any:
+    """Async helper for performance metrics capture.
+
+    Args:
+        url: URL to navigate to.
+        metric: Metric type to capture.
+        duration: Duration in ms for trace/profile.
+
+    Returns:
+        Performance data from the backend.
+    """
+    backend = _get_backend()
+    try:
+        await backend.launch(BrowserOptions())
+        await backend.navigate(url, WaitStrategy(strategy="load"))
+
+        if metric == "metrics":
+            return await backend.perf_metrics()
+        if metric == "trace":
+            return await backend.perf_trace(duration_ms=duration)
+        if metric == "profile":
+            return await backend.perf_profile(duration_ms=duration)
+        if metric == "heap-snapshot":
+            return await backend.perf_heap_snapshot()
+        if metric == "coverage":
+            return await backend.perf_coverage()
+        if metric == "css-coverage":
+            return await backend.perf_css_coverage()
+        return {}
+    finally:
+        await backend.close()
 
 
 if __name__ == "__main__":
