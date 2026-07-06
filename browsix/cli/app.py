@@ -77,6 +77,35 @@ app = typer.Typer(
 _preferred_backend: str | None = None
 _verbose: bool = False
 _quiet: bool = False
+_headless: bool = True
+_timeout: int = 30000
+_proxy: str | None = None
+
+
+def _load_global_config() -> None:
+    """Load defaults from ~/.browsix/config.yml if it exists."""
+    global _preferred_backend, _headless, _timeout, _proxy
+    from pathlib import Path
+
+    config_path = Path.home() / ".browsix" / "config.yml"
+    if not config_path.exists():
+        return
+    try:
+        import yaml
+
+        raw = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+        if not isinstance(raw, dict):
+            return
+        if "backend" in raw and _preferred_backend is None:
+            _preferred_backend = str(raw["backend"])
+        if "headless" in raw:
+            _headless = bool(raw["headless"])
+        if "timeout" in raw:
+            _timeout = int(raw["timeout"])
+        if "proxy" in raw:
+            _proxy = str(raw["proxy"])
+    except Exception:
+        pass
 
 
 @app.callback()
@@ -90,15 +119,31 @@ def main_callback(
     quiet: bool = typer.Option(
         False, "--quiet", "-q", help="Suppress all output except errors"
     ),
+    headed: bool = typer.Option(
+        False, "--headed", help="Run browser in headed mode (visible window)"
+    ),
+    timeout: int = typer.Option(
+        0, "--timeout", help="Navigation timeout in milliseconds (default: 30000)"
+    ),
+    proxy: str | None = typer.Option(
+        None, "--proxy", help="Proxy server URL (e.g. http://proxy:8080)"
+    ),
     version: bool = typer.Option(
         False, "--version", help="Print browsix version and exit"
     ),
 ) -> None:
     """Browsix — browser automation CLI."""
-    global _preferred_backend, _verbose, _quiet
+    global _preferred_backend, _verbose, _quiet, _headless, _timeout, _proxy
+    _load_global_config()
     _preferred_backend = backend
     _verbose = verbose
     _quiet = quiet
+    if headed:
+        _headless = False
+    if timeout > 0:
+        _timeout = timeout
+    if proxy:
+        _proxy = proxy
     if version:
         from browsix import __version__
 
@@ -147,6 +192,18 @@ def _get_backend() -> Any:
     return manager.select(_preferred_backend)
 
 
+def _browser_options() -> BrowserOptions:
+    """Build BrowserOptions from global CLI state.
+
+    Applies --headed, --timeout, and --proxy global flags.
+    """
+    return BrowserOptions(
+        headless=_headless,
+        timeout=_timeout,
+        proxy=_proxy,
+    )
+
+
 @app.command()
 def screenshot(
     url: str = typer.Argument(..., help="URL to navigate to"),
@@ -193,7 +250,7 @@ async def _take_screenshot(
     """Async helper to take a screenshot via backend."""
     backend = _get_backend()
     try:
-        await backend.launch(BrowserOptions())
+        await backend.launch(_browser_options())
         params = ScreenshotParams(
             url=url,
             full_page=full_page,
@@ -250,7 +307,7 @@ async def _generate_pdf(
     """Async helper to generate a PDF via backend."""
     backend = _get_backend()
     try:
-        await backend.launch(BrowserOptions())
+        await backend.launch(_browser_options())
         params = PDFParams(
             url=url,
             paper=paper,
@@ -374,7 +431,7 @@ async def _eval(url: str, expression: str, await_promise: bool, file: str | None
     """Async helper to evaluate JS via backend."""
     backend = _get_backend()
     try:
-        await backend.launch(BrowserOptions())
+        await backend.launch(_browser_options())
         params = EvalParams(
             url=url,
             expression=expression,
@@ -410,7 +467,7 @@ async def _navigate(url: str, wait: WaitStrategy) -> None:
     """Async helper for navigation."""
     backend = _get_backend()
     try:
-        await backend.launch(BrowserOptions())
+        await backend.launch(_browser_options())
         action = NavigateAction(NavigateParams(url=url, wait=wait))
         await action.execute(backend)
     finally:
@@ -463,7 +520,7 @@ async def _nav_simple(action_fn: Any) -> None:
     """Async helper for simple navigation actions (back, forward, reload, stop)."""
     backend = _get_backend()
     try:
-        await backend.launch(BrowserOptions())
+        await backend.launch(_browser_options())
         await action_fn(backend)
     finally:
         await backend.close()
@@ -495,7 +552,7 @@ async def _tabs(action: str, url: str, tab_id: str) -> Any:
     """Async helper for tab operations."""
     backend = _get_backend()
     try:
-        await backend.launch(BrowserOptions())
+        await backend.launch(_browser_options())
         params = TabsParams(action=action, url=url, tab_id=tab_id)
         return await TabsAction(params).execute(backend)
     finally:
@@ -536,7 +593,7 @@ async def _console(url: str, level: str, capture: str = "console") -> Any:
     """Async helper for console capture."""
     backend = _get_backend()
     try:
-        await backend.launch(BrowserOptions())
+        await backend.launch(_browser_options())
         params = ConsoleParams(
             url=url,
             level=level,
@@ -572,7 +629,7 @@ async def _logs(url: str) -> Any:
     """Async helper for log capture."""
     backend = _get_backend()
     try:
-        await backend.launch(BrowserOptions())
+        await backend.launch(_browser_options())
         params = ConsoleParams(
             url=url,
             wait=WaitStrategy(strategy="load"),
@@ -655,7 +712,7 @@ async def _dom(
     """Async helper for DOM operations."""
     backend = _get_backend()
     try:
-        await backend.launch(BrowserOptions())
+        await backend.launch(_browser_options())
         params = DOMParams(
             url=url,
             action=action,
@@ -715,7 +772,7 @@ async def _scrape(
     """Async helper for scraping."""
     backend = _get_backend()
     try:
-        await backend.launch(BrowserOptions())
+        await backend.launch(_browser_options())
         params = ScrapeParams(
             urls=urls,
             expression=expression,
@@ -759,7 +816,7 @@ async def _har(url: str, wait: int, filter: str | None) -> Any:
     """Async helper for HAR capture."""
     backend = _get_backend()
     try:
-        await backend.launch(BrowserOptions())
+        await backend.launch(_browser_options())
         params = HarParams(url=url, wait=wait, filter=filter)
         return await HARAction(params).execute(backend)
     finally:
@@ -809,7 +866,7 @@ async def _cookies(
     """Async helper for cookie operations."""
     backend = _get_backend()
     try:
-        await backend.launch(BrowserOptions())
+        await backend.launch(_browser_options())
         if url:
             await backend.navigate(url, WaitStrategy(strategy="load"))
 
@@ -853,7 +910,7 @@ async def _headers(headers: dict[str, str]) -> None:
     """Async helper for setting headers."""
     backend = _get_backend()
     try:
-        await backend.launch(BrowserOptions())
+        await backend.launch(_browser_options())
         await backend.set_headers(headers)
     finally:
         await backend.close()
@@ -875,7 +932,7 @@ async def _user_agent(ua: str) -> None:
     """Async helper for setting user agent."""
     backend = _get_backend()
     try:
-        await backend.launch(BrowserOptions())
+        await backend.launch(_browser_options())
         await backend.set_user_agent(ua)
     finally:
         await backend.close()
@@ -905,7 +962,7 @@ async def _browser(action: str) -> Any:
     """Async helper for browser management."""
     backend = _get_backend()
     try:
-        await backend.launch(BrowserOptions())
+        await backend.launch(_browser_options())
         return await BrowserAction(action).execute(backend)
     finally:
         await backend.close()
@@ -1022,7 +1079,7 @@ async def _multi(config_path: Any, parallel: bool = False) -> list[Any]:
 
     backend = _get_backend()
     try:
-        await backend.launch(BrowserOptions())
+        await backend.launch(_browser_options())
         action = MultiAction(config_path, parallel=parallel)
         return await action.execute(backend)
     finally:
@@ -1179,7 +1236,7 @@ async def _batch_single(
 
     backend = _get_backend()
     try:
-        await backend.launch(BrowserOptions(headless=True))
+        await backend.launch(_browser_options())
 
         if action == "screenshot":
             sp = ScreenshotParams(url=url, full_page=True, wait=WaitStrategy(strategy="load"))
@@ -1259,7 +1316,7 @@ async def _emulation_device(url: str, device: str) -> bytes:
     """Async helper for device emulation + screenshot."""
     backend = _get_backend()
     try:
-        await backend.launch(BrowserOptions())
+        await backend.launch(_browser_options())
         await backend.navigate(url, WaitStrategy(strategy="load"))
         await backend.emulate_device(device)
         from browsix.config import ScreenshotParams
@@ -1291,7 +1348,7 @@ async def _emulation_viewport(url: str, width: int, height: int) -> bytes:
     """Async helper for viewport emulation + screenshot."""
     backend = _get_backend()
     try:
-        await backend.launch(BrowserOptions())
+        await backend.launch(_browser_options())
         await backend.set_viewport(width, height)
         await backend.navigate(url, WaitStrategy(strategy="load"))
         from browsix.config import ScreenshotParams
@@ -1323,7 +1380,7 @@ async def _emulation_geolocation(url: str, lat: float, lon: float) -> bytes:
     """Async helper for geolocation override + screenshot."""
     backend = _get_backend()
     try:
-        await backend.launch(BrowserOptions())
+        await backend.launch(_browser_options())
         await backend.navigate(url, WaitStrategy(strategy="load"))
         await backend.set_geolocation(lat, lon)
         from browsix.config import ScreenshotParams
@@ -1354,7 +1411,7 @@ async def _emulation_timezone(url: str, tz: str) -> bytes:
     """Async helper for timezone override + screenshot."""
     backend = _get_backend()
     try:
-        await backend.launch(BrowserOptions())
+        await backend.launch(_browser_options())
         await backend.navigate(url, WaitStrategy(strategy="load"))
         await backend.set_timezone(tz)
         from browsix.config import ScreenshotParams
@@ -1384,7 +1441,7 @@ async def _emulation_dark_mode(url: str) -> bytes:
     """Async helper for dark mode + screenshot."""
     backend = _get_backend()
     try:
-        await backend.launch(BrowserOptions())
+        await backend.launch(_browser_options())
         await backend.navigate(url, WaitStrategy(strategy="load"))
         await backend.set_dark_mode(True)
         from browsix.config import ScreenshotParams
@@ -1574,7 +1631,7 @@ async def _network_block(patterns: list[str]) -> None:
     """
     backend = _get_backend()
     try:
-        await backend.launch(BrowserOptions())
+        await backend.launch(_browser_options())
         await backend.block_requests(patterns)
     finally:
         await backend.close()
@@ -1606,7 +1663,7 @@ async def _network_throttle(params: ThrottleParams) -> None:
     """
     backend = _get_backend()
     try:
-        await backend.launch(BrowserOptions())
+        await backend.launch(_browser_options())
         await backend.throttle_network(params)
     finally:
         await backend.close()
@@ -1632,7 +1689,7 @@ async def _network_cache(disabled: bool) -> None:
     """
     backend = _get_backend()
     try:
-        await backend.launch(BrowserOptions())
+        await backend.launch(_browser_options())
         await backend.set_cache_disabled(disabled)
     finally:
         await backend.close()
@@ -1662,7 +1719,7 @@ async def _network_intercept(pattern: dict[str, Any]) -> None:
     """
     backend = _get_backend()
     try:
-        await backend.launch(BrowserOptions())
+        await backend.launch(_browser_options())
         await backend.intercept_requests(pattern)
     finally:
         await backend.close()
@@ -1695,7 +1752,7 @@ async def _network_mock(url: str, response: dict[str, Any]) -> None:
     """
     backend = _get_backend()
     try:
-        await backend.launch(BrowserOptions())
+        await backend.launch(_browser_options())
         await backend.mock_response(url, response)
     finally:
         await backend.close()
@@ -2735,7 +2792,7 @@ def replay(
     config_path = Path(config)
     backend = _get_backend()
     try:
-        asyncio.run(backend.launch(BrowserOptions(headless=True)))
+        asyncio.run(backend.launch(_browser_options()))
         results = asyncio.run(replay_from_yaml(config_path, backend))
     except BrowsixError as e:
         _handle_error(e)
@@ -2955,7 +3012,7 @@ def raw(
             manager = BackendManager()
             backend = manager.select(preferred=backend_name)
         try:
-            await backend.launch(BrowserOptions(headless=True))
+            await backend.launch(_browser_options())
             result: dict[str, Any] = await backend.raw(method, raw_params)
             return result
         finally:
@@ -3010,7 +3067,7 @@ def auth(
             Result of the authenticated action.
         """
         backend = _get_backend()
-        await backend.launch(BrowserOptions(headless=True))
+        await backend.launch(_browser_options())
         try:
             if ctx.headers:
                 await backend.set_headers(ctx.headers)
@@ -3086,6 +3143,106 @@ def repl(
         asyncio.run(repl_loop(backend, url or None))
     except BrowsixError as e:
         _handle_error(e)
+
+
+@app.command()
+def config(
+    action: str = typer.Argument(
+        "show", help="Config action: show, set, init, path"
+    ),
+    key: str = typer.Option(
+        "", "--key", help="Config key to set (backend, headless, timeout, proxy)"
+    ),
+    value: str = typer.Option(
+        "", "--value", help="Value to set for the given key"
+    ),
+) -> None:
+    """Manage global browsix configuration at ~/.browsix/config.yml.
+
+    \b
+    Show current config:
+        browsix config show
+
+    \b
+    Set a default:
+        browsix config set --key backend --value cdp
+        browsix config set --key headless --value false
+        browsix config set --key timeout --value 60000
+        browsix config set --key proxy --value http://proxy:8080
+
+    \b
+    Create initial config file:
+        browsix config init
+
+    \b
+    Show config file path:
+        browsix config path
+    """
+    from pathlib import Path
+
+    import yaml
+
+    config_dir = Path.home() / ".browsix"
+    config_path = config_dir / "config.yml"
+
+    if action == "path":
+        typer.echo(str(config_path))
+        return
+
+    if action == "init":
+        config_dir.mkdir(parents=True, exist_ok=True)
+        if config_path.exists():
+            typer.echo(f"Config already exists at {config_path}")
+            return
+        defaults: dict[str, Any] = {
+            "backend": "cdp",
+            "headless": True,
+            "timeout": 30000,
+        }
+        config_path.write_text(
+            yaml.dump(defaults, default_flow_style=False, sort_keys=True),
+            encoding="utf-8",
+        )
+        typer.echo(f"Created config at {config_path}")
+        return
+
+    if action == "show":
+        if not config_path.exists():
+            typer.echo("No config file found. Run: browsix config init")
+            return
+        typer.echo(config_path.read_text(encoding="utf-8"))
+        return
+
+    if action == "set":
+        if not key:
+            typer.echo("Error: --key is required for 'set'")
+            raise typer.Exit(EXIT_CONFIG_ERROR)
+        if not value:
+            typer.echo("Error: --value is required for 'set'")
+            raise typer.Exit(EXIT_CONFIG_ERROR)
+
+        config_dir.mkdir(parents=True, exist_ok=True)
+        current: dict[str, Any] = {}
+        if config_path.exists():
+            loaded = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                current = loaded
+
+        if key in ("headless",):
+            current[key] = value.lower() in ("true", "1", "yes")
+        elif key in ("timeout",):
+            current[key] = int(value)
+        else:
+            current[key] = value
+
+        config_path.write_text(
+            yaml.dump(current, default_flow_style=False, sort_keys=True),
+            encoding="utf-8",
+        )
+        typer.echo(f"Set {key} = {current[key]} in {config_path}")
+        return
+
+    typer.echo(f"Unknown action: {action}. Use: show, set, init, path")
 
 
 @app.command()
@@ -3256,7 +3413,7 @@ async def _perf(url: str, metric: str, duration: int) -> Any:
     """
     backend = _get_backend()
     try:
-        await backend.launch(BrowserOptions())
+        await backend.launch(_browser_options())
         await backend.navigate(url, WaitStrategy(strategy="load"))
 
         if metric == "metrics":

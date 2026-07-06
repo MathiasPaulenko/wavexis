@@ -53,11 +53,13 @@ class CDPBackend(AbstractBackend):
         """Launch Chrome and create a new page session.
 
         Args:
-            options: Browser launch options (headless, width, height, etc.).
+            options: Browser launch options (headless, width, height, proxy, etc.).
         """
         extra_args: list[str] = []
         if options.width and options.height:
             extra_args.append(f"--window-size={options.width},{options.height}")
+        if options.proxy:
+            extra_args.append(f"--proxy-server={options.proxy}")
 
         self._client = await CDPClient.launch(
             headless=options.headless,

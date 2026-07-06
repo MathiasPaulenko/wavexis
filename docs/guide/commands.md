@@ -2,12 +2,28 @@
 
 ## Global flags
 
+These flags go before the subcommand (e.g. `browsix --headed screenshot <url>`).
+
 | Flag | Description |
 |------|-------------|
 | `--backend cdp\|bidi` | Preferred backend |
 | `--verbose, -v` | Show backend logs and timing info |
 | `--quiet, -q` | Suppress all output except errors |
+| `--headed` | Run browser in headed mode (visible window) |
+| `--timeout <ms>` | Navigation timeout in milliseconds (default: 30000) |
+| `--proxy <url>` | Proxy server URL (e.g. `http://proxy:8080`, `socks5://proxy:1080`) |
 | `--version` | Print browsix version and exit |
+
+Global flags can also be set persistently via `browsix config`:
+
+```bash
+browsix config set --key backend --value cdp
+browsix config set --key headless --value false
+browsix config set --key timeout --value 60000
+browsix config set --key proxy --value http://proxy:8080
+```
+
+CLI flags override config file values.
 
 ## screenshot
 
@@ -423,3 +439,40 @@ browsix init --list
 | `--list` | List available templates and exit |
 
 Templates: `screenshot`, `pdf`, `scrape`, `eval`, `multi-step`, `cookies`, `har`.
+
+## config
+
+Manage global browsix configuration at `~/.browsix/config.yml`.
+
+```bash
+browsix config <action> [options]
+```
+
+| Action | Description |
+|--------|-------------|
+| `show` | Print current config file contents |
+| `set` | Set a key-value pair in the config |
+| `init` | Create a default config file |
+| `path` | Print the config file path |
+
+| Option | Description |
+|--------|-------------|
+| `--key` | Config key (`backend`, `headless`, `timeout`, `proxy`) |
+| `--value` | Value to set |
+
+```bash
+# Show current config
+browsix config show
+
+# Set defaults
+browsix config set --key backend --value cdp
+browsix config set --key headless --value false
+browsix config set --key timeout --value 60000
+browsix config set --key proxy --value http://proxy:8080
+
+# Create initial config
+browsix config init
+
+# Show config file path
+browsix config path
+```

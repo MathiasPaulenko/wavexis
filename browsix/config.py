@@ -136,13 +136,25 @@ DEVICE_PRESETS: dict[str, dict[str, Any]] = {
 
 @dataclass
 class BrowserOptions:
-    """Options for launching a browser instance."""
+    """Options for launching a browser instance.
+
+    Attributes:
+        headless: Run browser in headless mode.
+        width: Browser window width in pixels.
+        height: Browser window height in pixels.
+        user_agent: Custom User-Agent string.
+        extra_headers: Extra HTTP headers to send with every request.
+        proxy: Proxy server URL (e.g. http://proxy:8080 or socks5://proxy:1080).
+        timeout: Default navigation timeout in milliseconds.
+    """
 
     headless: bool = True
     width: int = 1280
     height: int = 800
     user_agent: str | None = None
     extra_headers: dict[str, str] = field(default_factory=dict)
+    proxy: str | None = None
+    timeout: int = 30000
 
 
 @dataclass
