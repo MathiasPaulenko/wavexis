@@ -2,6 +2,19 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.0.2 — 2026-07-06
+
+### Changed
+
+- Removed redundant `import json as _json` in `webauthn` and `raw` commands — uses top-level `json` import
+- Consolidated `_write_perf_output` into `_write_json_output` — eliminates duplicate function
+- Replaced inline JSON output in `raw` command with `_write_json_output` call
+
+### Refactored
+
+- Extracted `apply_auth_context` to `wavexis/auth.py` — eliminates duplication between `serve.py` `handle_auth` and `cli/app.py` `auth` command
+- Removed unused `_basic_auth` helper from `cli/app.py`
+
 ## v2.0.1 — 2026-07-06
 
 ### Fixed

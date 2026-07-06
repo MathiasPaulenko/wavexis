@@ -284,8 +284,7 @@ async def handle_version(request: Any) -> Any:
 async def handle_auth(request: Any) -> Any:
     """Handle POST /auth — apply auth context and navigate."""
     web = _import_aiohttp()
-    from wavexis.auth import load_auth_context
-    from wavexis.config import CookieParams
+    from wavexis.auth import apply_auth_context, load_auth_context
 
     data = await request.json()
     context_path = data.get("context", "")
@@ -294,25 +293,7 @@ async def handle_auth(request: Any) -> Any:
     backend = await _get_backend(request)
     await backend.launch(BrowserOptions())
     try:
-        if ctx.headers:
-            await backend.set_headers(ctx.headers)
-        if ctx.username and ctx.password:
-            import base64
-
-            cred = base64.b64encode(
-                f"{ctx.username}:{ctx.password}".encode()
-            ).decode()
-            await backend.set_headers({"Authorization": f"Basic {cred}"})
-        await backend.navigate(url, WaitStrategy(strategy="load"))
-        for cookie in ctx.cookies:
-            cp = CookieParams(
-                name=cookie.get("name", ""),
-                value=cookie.get("value", ""),
-                domain=cookie.get("domain", ""),
-                path=cookie.get("path", "/"),
-            )
-            await backend.set_cookie(cp)
-        await backend.navigate(url, WaitStrategy(strategy="load"))
+        await apply_auth_context(backend, ctx, url)
     finally:
         await backend.close()
     return web.json_response({"status": "ok", "url": url})

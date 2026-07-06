@@ -2196,7 +2196,7 @@ def perf_metrics(
     except WavexisError as e:
         _handle_error(e)
         return
-    _write_perf_output(result, output, "metrics")
+    _write_json_output(result, output, "metrics")
 
 
 @perf_app.command("trace")
@@ -2211,7 +2211,7 @@ def perf_trace(
     except WavexisError as e:
         _handle_error(e)
         return
-    _write_perf_output(result, output, "trace")
+    _write_json_output(result, output, "trace")
 
 
 @perf_app.command("profile")
@@ -2226,7 +2226,7 @@ def perf_profile(
     except WavexisError as e:
         _handle_error(e)
         return
-    _write_perf_output(result, output, "profile")
+    _write_json_output(result, output, "profile")
 
 
 @perf_app.command("heap")
@@ -2240,7 +2240,7 @@ def perf_heap(
     except WavexisError as e:
         _handle_error(e)
         return
-    _write_perf_output(result, output, "heap snapshot")
+    _write_json_output(result, output, "heap snapshot")
 
 
 @perf_app.command("coverage")
@@ -2254,7 +2254,7 @@ def perf_coverage(
     except WavexisError as e:
         _handle_error(e)
         return
-    _write_perf_output(result, output, "JS coverage")
+    _write_json_output(result, output, "JS coverage")
 
 
 @perf_app.command("css-coverage")
@@ -2268,7 +2268,7 @@ def perf_css_coverage(
     except WavexisError as e:
         _handle_error(e)
         return
-    _write_perf_output(result, output, "CSS coverage")
+    _write_json_output(result, output, "CSS coverage")
 
 
 async def _perf_action(
@@ -2294,16 +2294,6 @@ async def _perf_action(
     backend = _get_backend()
     act = PerformanceAction(params)
     return await act.execute(backend)
-
-
-def _write_perf_output(result: dict[str, Any], output: str, label: str) -> None:
-    """Write performance result to file or stdout as JSON."""
-    if output == "-":
-        typer.echo(json.dumps(result, indent=2, default=str))
-    else:
-        with open(output, "w") as f:  # noqa: ASYNC230
-            json.dump(result, f, indent=2, default=str)
-        _echo(f"Saved {label} to {output}")
 
 
 # ── Phase 6: Serve mode ──────────────────────────────────────────
@@ -3010,13 +3000,12 @@ def webauthn(
     output: str = typer.Option("-", "-o", "--output", help="Output file (- for stdout)"),
 ) -> None:
     """WebAuthn virtual authenticator operations (experimental)."""
-    import json as _json
 
     cred_dict: dict[str, Any] | None = None
     if credential:
         try:
-            cred_dict = _json.loads(credential)
-        except _json.JSONDecodeError as e:
+            cred_dict = json.loads(credential)
+        except json.JSONDecodeError as e:
             typer.echo(f"Invalid credential JSON: {e}", err=True)
             raise typer.Exit(2) from e
 
@@ -3175,11 +3164,10 @@ def raw(
     ),
 ) -> None:
     """Send raw protocol command to backend (escape hatch)."""
-    import json as _json
 
     try:
-        raw_params = _json.loads(params)
-    except _json.JSONDecodeError as e:
+        raw_params = json.loads(params)
+    except json.JSONDecodeError as e:
         typer.echo(f"Invalid params JSON: {e}", err=True)
         raise typer.Exit(2) from e
 
@@ -3205,13 +3193,7 @@ def raw(
         _handle_error(e)
         return
 
-    out = output or "-"
-    if out == "-":
-        typer.echo(_json.dumps(result, indent=2, default=str))
-    else:
-        with open(out, "w") as f:  # noqa: ASYNC230
-            _json.dump(result, f, indent=2, default=str)
-        _echo(f"Saved raw result to {out}")
+    _write_json_output(result, output or "-", "raw result")
 
 
 def _write_json_output(
@@ -3236,8 +3218,7 @@ def auth(
     ),
 ) -> None:
     """Apply auth context (cookies, headers, basic auth) and navigate to a URL."""
-    from wavexis.auth import load_auth_context
-    from wavexis.config import CookieParams
+    from wavexis.auth import apply_auth_context, load_auth_context
 
     ctx = load_auth_context(context)
 
@@ -3250,23 +3231,7 @@ def auth(
         backend = _get_backend()
         await backend.launch(_browser_options())
         try:
-            if ctx.headers:
-                await backend.set_headers(ctx.headers)
-            if ctx.username and ctx.password:
-                auth_header = {
-                    "Authorization": f"Basic {_basic_auth(ctx.username, ctx.password)}"
-                }
-                await backend.set_headers(auth_header)
-            await backend.navigate(url, WaitStrategy(strategy="load"))
-            for cookie in ctx.cookies:
-                cp = CookieParams(
-                    name=cookie.get("name", ""),
-                    value=cookie.get("value", ""),
-                    domain=cookie.get("domain", ""),
-                    path=cookie.get("path", "/"),
-                )
-                await backend.set_cookie(cp)
-            await backend.navigate(url, WaitStrategy(strategy="load"))
+            await apply_auth_context(backend, ctx, url)
             if screenshot:
                 return await backend.screenshot(
                     ScreenshotParams(
@@ -3298,12 +3263,6 @@ def auth(
         typer.echo(result)
     else:
         _write_json_output(result, output, "auth result")
-
-
-def _basic_auth(username: str, password: str) -> str:
-    """Encode basic auth credentials as base64."""
-    import base64
-    return base64.b64encode(f"{username}:{password}".encode()).decode()
 
 
 @app.command()

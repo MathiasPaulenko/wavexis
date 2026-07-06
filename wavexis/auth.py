@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
+import base64
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from wavexis.backend.base import AbstractBackend
+    from wavexis.config import WaitStrategy
 
 
 @dataclass
@@ -84,3 +90,43 @@ def load_headers(path: str | Path) -> dict[str, str]:
             return data["headers"]
         return data
     return {}
+
+
+async def apply_auth_context(
+    backend: AbstractBackend,
+    ctx: AuthContext,
+    url: str,
+    wait: WaitStrategy | None = None,
+) -> None:
+    """Apply auth context to a backend and navigate to a URL.
+
+    Sets headers, basic auth, navigates, sets cookies, and re-navigates.
+
+    Args:
+        backend: The browser backend to apply auth to.
+        ctx: The auth context with cookies, headers, and credentials.
+        url: The URL to navigate to.
+        wait: Wait strategy for navigation. Defaults to "load".
+    """
+    from wavexis.config import CookieParams, WaitStrategy
+
+    if wait is None:
+        wait = WaitStrategy(strategy="load")
+
+    if ctx.headers:
+        await backend.set_headers(ctx.headers)
+    if ctx.username and ctx.password:
+        cred = base64.b64encode(
+            f"{ctx.username}:{ctx.password}".encode()
+        ).decode()
+        await backend.set_headers({"Authorization": f"Basic {cred}"})
+    await backend.navigate(url, wait)
+    for cookie in ctx.cookies:
+        cp = CookieParams(
+            name=cookie.get("name", ""),
+            value=cookie.get("value", ""),
+            domain=cookie.get("domain", ""),
+            path=cookie.get("path", "/"),
+        )
+        await backend.set_cookie(cp)
+    await backend.navigate(url, wait)
