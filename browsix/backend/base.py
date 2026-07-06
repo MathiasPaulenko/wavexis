@@ -269,6 +269,15 @@ class AbstractBackend(ABC):
     async def tap(self, selector: str) -> None:
         """Tap an element (touch emulation click)."""
 
+    @abstractmethod
+    async def set_files(self, selector: str, files: list[str]) -> None:
+        """Set files on a file input element.
+
+        Args:
+            selector: CSS selector for the <input type="file"> element.
+            files: List of absolute file paths to upload.
+        """
+
     # ── Network advanced ───────────────────────────────────
 
     @abstractmethod

@@ -9,6 +9,7 @@ NotImplementedError — use --backend cdp for those features.
 from __future__ import annotations
 
 import base64
+import json
 from typing import Any
 
 from browsix.backend.base import AbstractBackend
@@ -883,6 +884,27 @@ class BiDiBackend(AbstractBackend):
     async def tap(self, selector: str) -> None:
         """Tap an element via BiDi (simulated as click)."""
         await self.click(selector)
+
+    async def set_files(self, selector: str, files: list[str]) -> None:
+        """Set files on a file input element via BiDi script.evaluate.
+
+        Args:
+            selector: CSS selector for the <input type="file"> element.
+            files: List of absolute file paths to upload.
+        """
+        if self._client is None or self._context is None:
+            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        escaped = selector.replace("'", "\\'")
+        files_json = json.dumps(files)
+        js = (
+            f"const input = document.querySelector('{escaped}');"
+            f"const dt = new DataTransfer();"
+            f"const files = {files_json};"
+            f"for (const f of files) {{ dt.items.add(new File([''], f)); }}"
+            f"input.files = dt.files;"
+            f"input.dispatchEvent(new Event('change', {{bubbles: true}}));"
+        )
+        await self._client.script.evaluate(self._context, js)
 
     # ── Network advanced ───────────────────────────────────
 

@@ -414,7 +414,7 @@ class InputParams:
         url: URL to navigate to before the input action.
         selector: CSS selector for the target element.
         action: Input action — "click", "type", "fill", "select", "hover",
-            "key", "drag", "tap".
+            "key", "drag", "tap", "scroll", "upload".
         text: Text to type (for "type" action).
         value: Value to fill or select (for "fill" and "select" actions).
         key: Key to press (for "key" action, e.g. "Enter", "Tab").
@@ -423,6 +423,9 @@ class InputParams:
         delay: Delay between keystrokes in milliseconds (for "type" action).
         source: Source CSS selector for "drag" action.
         target: Target CSS selector for "drag" action.
+        scroll_x: Horizontal scroll offset (for "scroll" action).
+        scroll_y: Vertical scroll offset (for "scroll" action).
+        files: List of file paths to upload (for "upload" action).
         wait: Wait strategy after navigation.
         browser: Browser launch options.
     """
@@ -438,6 +441,9 @@ class InputParams:
     delay: int = 0
     source: str | None = None
     target: str | None = None
+    scroll_x: int = 0
+    scroll_y: int = 0
+    files: list[str] | None = None
     wait: WaitStrategy = field(default_factory=WaitStrategy)
     browser: BrowserOptions = field(default_factory=BrowserOptions)
 

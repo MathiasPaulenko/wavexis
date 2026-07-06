@@ -238,6 +238,10 @@ class DummyBackend(AbstractBackend):
         """Tap."""
         pass
 
+    async def set_files(self, selector: str, files: list[str]) -> None:
+        """Set files."""
+        pass
+
     async def throttle_network(self, params: object) -> None:
         """Throttle network."""
         pass

@@ -155,6 +155,29 @@ Scrape multiple URLs by evaluating a JS expression on each.
 browsix scrape <urls...> [options]
 ```
 
+## crawl
+
+Crawl a website starting from a URL, collecting titles and links.
+
+```bash
+browsix crawl <url> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `-d, --depth` | Maximum crawl depth (0 = start page only, default: 2) |
+| `--max-pages` | Maximum number of pages to visit (default: 50) |
+| `--same-origin/--cross-origin` | Only crawl same-origin links (default: same) |
+| `--pattern` | Regex pattern to filter URLs (empty = all) |
+| `-o, --output` | Output file path (.json) |
+| `-f, --format` | Output format (json) |
+
+```bash
+browsix crawl https://example.com
+browsix crawl https://example.com --depth 3 --max-pages 100
+browsix crawl https://example.com --pattern '.*blog.*' -o results.json
+```
+
 ## har
 
 Capture network traffic as HAR 1.2.
@@ -172,6 +195,35 @@ browsix cookies <action> [options]
 ```
 
 Actions: `get`, `set`, `delete`, `clear`
+
+## input
+
+Input interaction subcommands (click, type, fill, select, hover, key, drag, tap, scroll, upload).
+
+```bash
+browsix input <action> <args> [options]
+```
+
+| Subcommand | Description |
+|------------|-------------|
+| `click` | Click an element |
+| `type` | Type text into an element |
+| `fill` | Fill an input with a value |
+| `select` | Select an option in a `<select>` |
+| `hover` | Hover over an element |
+| `key` | Press a keyboard key |
+| `drag` | Drag an element to a target |
+| `tap` | Tap an element (touch emulation) |
+| `scroll` | Scroll to element or by offset |
+| `upload` | Upload files to a file input |
+
+```bash
+browsix input click https://example.com "#button"
+browsix input type https://example.com "#input" "hello"
+browsix input scroll https://example.com --selector "#footer"
+browsix input scroll https://example.com --x 0 --y 500
+browsix input upload https://example.com "#file-input" /path/to/file.pdf
+```
 
 ## headers
 

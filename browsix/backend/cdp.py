@@ -1181,6 +1181,21 @@ class CDPBackend(AbstractBackend):
             type_="touchEnd", touch_points=[]
         )
 
+    async def set_files(self, selector: str, files: list[str]) -> None:
+        """Set files on a file input element.
+
+        Args:
+            selector: CSS selector for the <input type="file"> element.
+            files: List of absolute file paths to upload.
+        """
+        if self._session is None:
+            raise NavigationError("", "Session not initialized.")
+        node_id = await self._find_node(selector)
+        await self._session.send(
+            "DOM.setFileInputFiles",
+            {"files": files, "nodeId": node_id},
+        )
+
     # ── Network advanced ───────────────────────────────────
 
     async def block_requests(self, patterns: list[str]) -> None:

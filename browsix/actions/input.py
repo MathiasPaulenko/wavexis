@@ -55,6 +55,16 @@ class InputAction(BaseAction[InputParams, Any]):
                 )
             elif action == "tap":
                 await backend.tap(self.params.selector)
+            elif action == "scroll":
+                await backend.dom_scroll(
+                    selector=self.params.selector or None,
+                    x=self.params.scroll_x,
+                    y=self.params.scroll_y,
+                )
+            elif action == "upload":
+                await backend.set_files(
+                    self.params.selector, self.params.files or []
+                )
             else:
                 raise ValueError(f"Unknown input action: {action}")
         finally:

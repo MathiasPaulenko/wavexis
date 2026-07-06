@@ -787,6 +787,84 @@ async def _scrape(
 
 
 @app.command()
+def crawl(
+    url: str = typer.Argument(..., help="Starting URL to crawl"),
+    max_depth: int = typer.Option(
+        2, "--depth", "-d", help="Maximum crawl depth (1 = start page only)"
+    ),
+    max_pages: int = typer.Option(
+        50, "--max-pages", help="Maximum number of pages to visit"
+    ),
+    same_origin: bool = typer.Option(
+        True, "--same-origin/--cross-origin", help="Only crawl same-origin links"
+    ),
+    url_pattern: str = typer.Option(
+        "", "--pattern", help="Regex pattern to filter URLs (empty = all)"
+    ),
+    output: str | None = typer.Option(
+        None, "--output", "-o", help="Output file path (.json)"
+    ),
+    format: str = typer.Option("json", "--format", "-f", help="Output format (json)"),
+) -> None:
+    """Crawl a website starting from a URL, collecting titles and links.
+
+    \b
+    Examples:
+        browsix crawl https://example.com
+        browsix crawl https://example.com --depth 3 --max-pages 100
+        browsix crawl https://example.com --pattern '.*blog.*' -o results.json
+    """
+    try:
+        results = asyncio.run(_crawl(url, max_depth, max_pages, same_origin, url_pattern))
+    except BrowsixError as e:
+        _handle_error(e)
+        return
+
+    Output.write_formatted(results, format, output)
+    if output:
+        typer.echo(f"Crawled {len(results)} pages, saved to {output}")
+    else:
+        typer.echo(f"Crawled {len(results)} pages")
+
+
+async def _crawl(
+    url: str,
+    max_depth: int,
+    max_pages: int,
+    same_origin: bool,
+    url_pattern: str,
+) -> list[dict[str, Any]]:
+    """Async helper for crawling a website.
+
+    Args:
+        url: Starting URL.
+        max_depth: Maximum crawl depth.
+        max_pages: Maximum pages to visit.
+        same_origin: If True, only crawl same-origin links.
+        url_pattern: Regex pattern to filter URLs.
+
+    Returns:
+        List of page dicts with url, title, depth, and links_found.
+    """
+    from browsix.actions.crawl import CrawlAction, CrawlParams
+
+    backend = _get_backend()
+    try:
+        await backend.launch(_browser_options())
+        params = CrawlParams(
+            start_url=url,
+            max_depth=max_depth,
+            max_pages=max_pages,
+            same_origin=same_origin,
+            url_pattern=url_pattern,
+            wait=WaitStrategy(strategy="load"),
+        )
+        return await CrawlAction(params).execute(backend)
+    finally:
+        await backend.close()
+
+
+@app.command()
 def har(
     url: str = typer.Argument(..., help="URL to capture HAR for"),
     output: str | None = typer.Option(
@@ -1571,6 +1649,40 @@ def input_tap(
     typer.echo(f"Tapped '{selector}' on {url}")
 
 
+@input_app.command("scroll")
+def input_scroll(
+    url: str = typer.Argument(..., help="URL to navigate to"),
+    selector: str = typer.Option(
+        "", "--selector", help="CSS selector to scroll to (if empty, scroll by offset)"
+    ),
+    x: int = typer.Option(0, "--x", help="Horizontal scroll offset"),
+    y: int = typer.Option(0, "--y", help="Vertical scroll offset"),
+) -> None:
+    """Scroll to an element or by offset on a web page."""
+    try:
+        asyncio.run(_input_action(url, "scroll", selector=selector, scroll_x=x, scroll_y=y))
+    except BrowsixError as e:
+        _handle_error(e)
+    if selector:
+        typer.echo(f"Scrolled to '{selector}' on {url}")
+    else:
+        typer.echo(f"Scrolled by ({x}, {y}) on {url}")
+
+
+@input_app.command("upload")
+def input_upload(
+    url: str = typer.Argument(..., help="URL to navigate to"),
+    selector: str = typer.Argument(..., help="CSS selector for file input element"),
+    files: list[str] = typer.Argument(..., help="Absolute file paths to upload"),  # noqa: B008
+) -> None:
+    """Upload files to a file input element on a web page."""
+    try:
+        asyncio.run(_input_action(url, "upload", selector=selector, files=files))
+    except BrowsixError as e:
+        _handle_error(e)
+    typer.echo(f"Uploaded {len(files)} file(s) to '{selector}' on {url}")
+
+
 async def _input_action(
     url: str,
     action: str,
@@ -1583,6 +1695,9 @@ async def _input_action(
     delay: int = 0,
     source: str | None = None,
     target: str | None = None,
+    scroll_x: int = 0,
+    scroll_y: int = 0,
+    files: list[str] | None = None,
 ) -> None:
     """Async helper for input actions."""
     from browsix.actions.input import InputAction
@@ -1600,6 +1715,9 @@ async def _input_action(
         delay=delay,
         source=source,
         target=target,
+        scroll_x=scroll_x,
+        scroll_y=scroll_y,
+        files=files,
         wait=WaitStrategy(strategy="load"),
     )
     await InputAction(params).execute(backend)
