@@ -2951,5 +2951,74 @@ def repl(
         _handle_error(e)
 
 
+@app.command()
+def init(
+    template: str = typer.Option(
+        "",
+        "--template",
+        "-t",
+        help="Template name (screenshot, pdf, scrape, eval, multi-step, cookies, har)",
+    ),
+    url: str = typer.Option(
+        "", "--url", "-u", help="URL to use in the generated config"
+    ),
+    expression: str = typer.Option(
+        "", "--expression", "-e", help="JS expression for scrape/eval templates"
+    ),
+    selector: str = typer.Option(
+        "", "--selector", "-s", help="CSS selector for multi-step template"
+    ),
+    text: str = typer.Option(
+        "", "--text", help="Text for type action in multi-step template"
+    ),
+    output: str = typer.Option(
+        "browsix.yaml", "--output", "-o", help="Output YAML file path"
+    ),
+    list_templates: bool = typer.Option(
+        False, "--list", help="List available templates and exit"
+    ),
+) -> None:
+    """Generate a browsix.yaml config from a template.
+
+    Run without --template for an interactive wizard.
+    Use --list to see available templates.
+    """
+    from pathlib import Path
+
+    from browsix.init import generate_config
+    from browsix.init import list_templates as do_list
+
+    if list_templates:
+        for name, desc in do_list():
+            typer.echo(f"  {name} — {desc}")
+        return
+
+    if template:
+        try:
+            yaml_content = generate_config(
+                template=template,
+                url=url or None,
+                expression=expression or None,
+                selector=selector or None,
+                text=text or None,
+            )
+        except ValueError as e:
+            typer.echo(f"Error: {e}", err=True)
+            raise typer.Exit(1) from e
+    else:
+        from browsix.init import interactive_init
+
+        try:
+            yaml_content = interactive_init()
+        except (ValueError, EOFError, KeyboardInterrupt) as e:
+            typer.echo(f"\nCancelled: {e}", err=True)
+            raise typer.Exit(1) from e
+
+    out_path = Path(output)
+    out_path.write_text(yaml_content, encoding="utf-8")
+    typer.echo(f"Config saved to {output}")
+    typer.echo(f"Run with: browsix multi {output}")
+
+
 if __name__ == "__main__":
     app()
