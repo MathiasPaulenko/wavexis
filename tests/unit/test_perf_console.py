@@ -86,6 +86,7 @@ class TestPerfBackend:
     async def test_perf_metrics(self) -> None:
         """Test that _perf calls perf_metrics for metrics type."""
         import sys
+
         from browsix.cli.app import _perf
 
         app_module = sys.modules["browsix.cli.app"]
@@ -111,6 +112,7 @@ class TestPerfBackend:
     async def test_perf_trace(self) -> None:
         """Test that _perf calls perf_trace for trace type."""
         import sys
+
         from browsix.cli.app import _perf
 
         app_module = sys.modules["browsix.cli.app"]
@@ -134,6 +136,7 @@ class TestPerfBackend:
     async def test_perf_coverage(self) -> None:
         """Test that _perf calls perf_coverage for coverage type."""
         import sys
+
         from browsix.cli.app import _perf
 
         app_module = sys.modules["browsix.cli.app"]
@@ -162,6 +165,7 @@ class TestConsoleEnhancements:
     async def test_console_capture_both(self) -> None:
         """Test that _console with capture='both' gets console and logs."""
         import sys
+
         from browsix.cli.app import _console
 
         app_module = sys.modules["browsix.cli.app"]
@@ -192,6 +196,7 @@ class TestConsoleEnhancements:
     async def test_console_capture_logs_only(self) -> None:
         """Test that _console with capture='logs' only gets logs."""
         import sys
+
         from browsix.cli.app import _console
 
         app_module = sys.modules["browsix.cli.app"]
