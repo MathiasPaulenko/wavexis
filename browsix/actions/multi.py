@@ -11,10 +11,21 @@ from browsix.multi import execute_actions, parse_yaml
 
 
 class MultiAction(BaseAction[Path, list[Any]]):
-    """Action that parses a YAML config and executes multiple actions sequentially.
+    """Action that parses a YAML config and executes multiple actions.
 
-    Reuses a single backend instance for all actions.
+    Reuses a single backend instance for all actions. Supports both
+    sequential (default) and parallel execution modes.
     """
+
+    def __init__(self, params: Path, parallel: bool = False) -> None:
+        """Initialize the multi-action.
+
+        Args:
+            params: Path to the YAML config file.
+            parallel: If True, execute actions concurrently.
+        """
+        super().__init__(params)
+        self._parallel = parallel
 
     async def execute(self, backend: AbstractBackend) -> list[Any]:
         """Parse the YAML config and execute all actions on the backend.
@@ -26,4 +37,4 @@ class MultiAction(BaseAction[Path, list[Any]]):
             List of results from each action.
         """
         actions = parse_yaml(self.params)
-        return await execute_actions(actions, backend)
+        return await execute_actions(actions, backend, parallel=self._parallel)

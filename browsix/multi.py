@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
+import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -10,8 +13,40 @@ import yaml
 from browsix.exceptions import MultiConfigError
 
 
+def _substitute_variables(value: Any, variables: dict[str, str]) -> Any:
+    """Recursively substitute {{var}} and {{env.X}} in strings.
+
+    Args:
+        value: The value to substitute in (str, dict, list, etc.).
+        variables: User-defined variables from the config's 'vars' section.
+
+    Returns:
+        The value with all substitutions applied.
+    """
+    if isinstance(value, str):
+        def replacer(match: re.Match[str]) -> str:
+            expr = match.group(1).strip()
+            if expr.startswith("env."):
+                env_key = expr[4:]
+                return os.environ.get(env_key, match.group(0))
+            if expr in variables:
+                return variables[expr]
+            return match.group(0)
+
+        return re.sub(r"\{\{(.+?)\}\}", replacer, value)
+    if isinstance(value, dict):
+        return {k: _substitute_variables(v, variables) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_substitute_variables(item, variables) for item in value]
+    return value
+
+
 def parse_yaml(path: Path) -> list[dict[str, Any]]:
     """Parse a YAML config file and validate its structure.
+
+    Supports a top-level 'vars' key for variable definitions. Variables
+    are substituted in all action parameters using {{var}} syntax.
+    Environment variables are accessible via {{env.KEY}}.
 
     Args:
         path: Path to the YAML config file.
@@ -28,6 +63,9 @@ def parse_yaml(path: Path) -> list[dict[str, Any]]:
     raw = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(raw, dict):
         raise MultiConfigError("root", "Config must be a YAML mapping")
+    variables = raw.get("vars", {})
+    if variables and not isinstance(variables, dict):
+        raise MultiConfigError("vars", "vars must be a mapping of key-value pairs")
     actions = raw.get("actions")
     if not isinstance(actions, list):
         raise MultiConfigError("actions", "Must be a list of action mappings")
@@ -45,6 +83,7 @@ def parse_yaml(path: Path) -> list[dict[str, Any]]:
                 f"actions[{i}].{action_type}",
                 "Action parameters must be a mapping",
             )
+        action_params = _substitute_variables(action_params, variables)
         parsed.append({action_type: action_params})
     return parsed
 
@@ -52,16 +91,25 @@ def parse_yaml(path: Path) -> list[dict[str, Any]]:
 async def execute_actions(
     actions: list[dict[str, Any]],
     backend: Any,
+    parallel: bool = False,
 ) -> list[Any]:
-    """Execute each action sequentially, reusing the same backend.
+    """Execute each action, reusing the same backend.
 
     Args:
         actions: List of action dicts from parse_yaml.
         backend: An launched AbstractBackend instance.
+        parallel: If True, execute all actions concurrently.
 
     Returns:
-        List of results from each action.
+        List of results from each action, in the same order as actions.
     """
+    if parallel:
+        tasks = [
+            _dispatch(next(iter(ad)), ad[next(iter(ad))], backend)
+            for ad in actions
+        ]
+        return await asyncio.gather(*tasks)
+
     results: list[Any] = []
     for action_dict in actions:
         action_type = next(iter(action_dict))
@@ -211,6 +259,38 @@ async def _dispatch(
             wait=WaitStrategy(strategy="load"),
         )
         return await HeaderAction(hp).execute(backend)
+
+    if action_type == "wait":
+        from browsix.actions.wait import WaitAction
+        from browsix.config import WaitStrategy
+
+        ws = WaitStrategy(
+            strategy=params.get("strategy", "load"),
+            selector=params.get("selector"),
+            url_pattern=params.get("url_pattern"),
+            timeout=params.get("timeout", 30000),
+        )
+        return await WaitAction(ws).execute(backend)
+
+    if action_type == "emulation":
+        from browsix.actions.emulation import EmulationAction
+        from browsix.config import EmulationParams, WaitStrategy
+
+        emp = EmulationParams(
+            action=params.get("action", "device"),
+            device=params.get("device"),
+            width=params.get("width", 0),
+            height=params.get("height", 0),
+            device_scale_factor=params.get("device_scale_factor", 1.0),
+            latitude=params.get("latitude", 0.0),
+            longitude=params.get("longitude", 0.0),
+            accuracy=params.get("accuracy", 100.0),
+            timezone=params.get("timezone", ""),
+            dark_mode=params.get("dark_mode", False),
+            url=params.get("url", ""),
+            wait=WaitStrategy(strategy="load"),
+        )
+        return await EmulationAction(emp).execute(backend)
 
     from browsix.plugins import get_registry
 

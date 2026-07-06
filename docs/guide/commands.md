@@ -203,6 +203,7 @@ browsix multi <config> [options]
 |--------|-------------|
 | `--watch` | Re-run on config file changes |
 | `--dry-run` | Validate and show plan without launching browser |
+| `--parallel` | Execute all actions concurrently instead of sequentially |
 
 ## backends
 

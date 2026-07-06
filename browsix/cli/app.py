@@ -927,10 +927,16 @@ def multi(
         "--watch",
         help="Re-execute actions when the config file changes (Ctrl+C to stop)",
     ),
+    parallel: bool = typer.Option(
+        False,
+        "--parallel",
+        help="Execute all actions concurrently instead of sequentially",
+    ),
 ) -> None:
     """Execute multiple actions from a YAML config file.
 
     Use --watch to re-run automatically when the config file changes.
+    Use --parallel to execute all actions concurrently on the same backend.
     """
     from pathlib import Path
 
@@ -948,11 +954,11 @@ def multi(
         return
 
     if watch:
-        _multi_watch(config_path)
+        _multi_watch(config_path, parallel=parallel)
         return
 
     try:
-        results = asyncio.run(_multi(config_path))
+        results = asyncio.run(_multi(config_path, parallel=parallel))
     except BrowsixError as e:
         _handle_error(e)
         return
@@ -967,23 +973,25 @@ def multi(
             typer.echo(f"  Action {i + 1}: {type(result).__name__}")
 
 
-def _multi_watch(config_path: Any) -> None:
+def _multi_watch(config_path: Any, parallel: bool = False) -> None:
     """Watch a config file and re-execute on change.
 
     Uses polling to detect file modifications (cross-platform compatible).
 
     Args:
         config_path: Path to the YAML config file to watch.
+        parallel: If True, execute actions concurrently.
     """
     import time
 
     last_mtime = config_path.stat().st_mtime
-    typer.echo(f"Watching {config_path} for changes (Ctrl+C to stop)...")
+    mode = "parallel" if parallel else "sequential"
+    typer.echo(f"Watching {config_path} for changes ({mode}, Ctrl+C to stop)...")
 
     try:
         while True:
             try:
-                results = asyncio.run(_multi(config_path))
+                results = asyncio.run(_multi(config_path, parallel=parallel))
                 typer.echo(
                     f"[{time.strftime('%H:%M:%S')}] "
                     f"Completed {len(results)} actions"
@@ -1003,14 +1011,19 @@ def _multi_watch(config_path: Any) -> None:
         typer.echo("\nStopped watching.")
 
 
-async def _multi(config_path: Any) -> list[Any]:
-    """Async helper for multi-action execution."""
+async def _multi(config_path: Any, parallel: bool = False) -> list[Any]:
+    """Async helper for multi-action execution.
+
+    Args:
+        config_path: Path to the YAML config file.
+        parallel: If True, execute actions concurrently.
+    """
     from browsix.actions.multi import MultiAction
 
     backend = _get_backend()
     try:
         await backend.launch(BrowserOptions())
-        action = MultiAction(config_path)
+        action = MultiAction(config_path, parallel=parallel)
         return await action.execute(backend)
     finally:
         await backend.close()
