@@ -46,7 +46,7 @@ browsix pdf <url> [options]
 
 ## eval
 
-Evaluate a JavaScript expression on a web page.
+Evaluate a JavaScript expression on a web page. Supports `--assert` for CI gates and `--format` for output control.
 
 ```bash
 browsix eval <url> [options]
@@ -58,6 +58,10 @@ browsix eval <url> [options]
 | `-o, --output` | Output file path (JSON) |
 | `--await-promise` | Await a returned Promise |
 | `--file` | Read expression from file |
+| `--assert` | Assertion: `== value`, `!= value`, `contains text`, `matches regex` |
+| `--format` | Output format: json, csv, yaml |
+
+When `--assert` is provided, the command exits with code 0 (pass) or 1 (fail). See [CI Assertions](assert.md) for details.
 
 ## navigate
 
@@ -90,11 +94,24 @@ Actions: `list`, `new`, `close`, `activate`
 
 ## console
 
-Capture console messages from a web page.
+Capture console messages and browser logs from a web page. Supports level filtering, output format selection, and capture mode.
 
 ```bash
 browsix console <url> [options]
 ```
+
+| Option | Description |
+|--------|-------------|
+| `--level` | Filter by level: all, error, warning, info, log, debug |
+| `--capture` | What to capture: console, logs, both (default: console) |
+| `--format` | Output format: json, csv, yaml |
+| `-o, --output` | Output file path |
+
+The `--capture` option controls what data is collected:
+
+- **console** — JavaScript `console.*` messages (console.log, console.error, etc.)
+- **logs** — Browser-level log entries (network errors, CSP violations, etc.)
+- **both** — Both console messages and browser logs, returned as a combined object
 
 ## logs
 
@@ -176,11 +193,16 @@ browsix devices
 
 ## multi
 
-Execute multiple actions from a YAML config file.
+Execute multiple actions from a YAML config file. See [Multi Config](multi.md) for detailed documentation.
 
 ```bash
-browsix multi <config>
+browsix multi <config> [options]
 ```
+
+| Option | Description |
+|--------|-------------|
+| `--watch` | Re-run on config file changes |
+| `--dry-run` | Validate and show plan without launching browser |
 
 ## backends
 
@@ -284,13 +306,34 @@ browsix debug-resume
 
 ## perf
 
-Performance profiling commands.
+Capture performance metrics from a web page. See [Performance](perf.md) for detailed documentation.
 
 ```bash
-browsix perf-metrics <url>
-browsix perf-trace <url> [-o trace.json]
-browsix perf-profile <url> [-o profile.json]
-browsix perf-coverage <url> [-o coverage.json]
+browsix perf <url> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `-m, --metric` | Metric type: metrics, trace, profile, heap-snapshot, coverage, css-coverage |
+| `-f, --format` | Output format: json, yaml |
+| `-o, --output` | Output file path |
+| `-d, --duration` | Duration in ms (for trace and profile) |
+
+```bash
+# Core Web Vitals (LCP, FCP, CLS, TTFB)
+browsix perf https://example.com
+
+# CPU trace (5 seconds)
+browsix perf https://example.com -m trace -d 5000 -o trace.json
+
+# JS code coverage
+browsix perf https://example.com -m coverage -o coverage.json
+
+# CSS coverage
+browsix perf https://example.com -m css-coverage -o css-coverage.json
+
+# Heap snapshot
+browsix perf https://example.com -m heap-snapshot -o heap.json
 ```
 
 ## sw
@@ -342,3 +385,40 @@ Bluetooth emulation commands.
 browsix bluetooth emulate --name "Test Adapter"
 browsix bluetooth stop
 ```
+
+## repl
+
+Interactive REPL for live browser sessions. See [REPL](repl.md) for detailed documentation.
+
+```bash
+browsix repl
+```
+
+Launches a non-headless browser and an interactive shell with 16 commands: `navigate`, `screenshot`, `eval`, `click`, `type`, `fill`, `hover`, `key`, `cookies`, `url`, `title`, `wait`, `back`, `forward`, `reload`, `help`, `exit`.
+
+## init
+
+Generate a `browsix.yaml` config from templates. See [Init Wizard](init.md) for detailed documentation.
+
+```bash
+# Interactive wizard
+browsix init
+
+# Non-interactive with flags
+browsix init -t multi-step -u https://example.com -o config.yaml
+
+# List available templates
+browsix init --list
+```
+
+| Option | Description |
+|--------|-------------|
+| `-t, --template` | Template name |
+| `-u, --url` | URL to use in config |
+| `-e, --expression` | JavaScript expression (scrape, eval) |
+| `-s, --selector` | CSS selector (multi-step) |
+| `--text` | Text to type (multi-step) |
+| `-o, --output` | Output file path (default: browsix.yaml) |
+| `--list` | List available templates and exit |
+
+Templates: `screenshot`, `pdf`, `scrape`, `eval`, `multi-step`, `cookies`, `har`.

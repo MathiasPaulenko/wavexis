@@ -63,7 +63,11 @@ browsix emulation device https://example.com --device iphone-15 -o mobile.png
 ## What's next?
 
 - [Commands](commands.md) — full command reference
-- [Multi Config](multi.md) — YAML multi-action configs
+- [Multi Config](multi.md) — YAML multi-action configs with watch mode
+- [REPL](repl.md) — interactive browser shell for live sessions
+- [Init Wizard](init.md) — generate configs from templates
+- [Performance](perf.md) — Core Web Vitals and profiling
+- [CI Assertions](assert.md) — pass/fail gates for CI pipelines
 - [Backends](backends.md) — CDP vs BiDi with full parity
 - [Raw Protocol](raw.md) — escape hatch for direct protocol commands
 - [Cookbook: Auth](../cookbook/auth.md) — credential profiles

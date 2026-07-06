@@ -39,6 +39,10 @@ nav:
       - Quickstart: guide/quickstart.md
       - Commands: guide/commands.md
       - Multi Config: guide/multi.md
+      - REPL: guide/repl.md
+      - Init Wizard: guide/init.md
+      - Performance: guide/perf.md
+      - CI Assertions: guide/assert.md
       - Backends: guide/backends.md
       - Plugins: guide/plugins.md
       - Raw Protocol: guide/raw.md

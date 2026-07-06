@@ -9,6 +9,17 @@
 
 > Browser automation CLI — wraps cdpwave and bidiwave. No Node.js, no Chromium download. Uses your existing Chrome/Edge. 100+ commands across CDP and BiDi backends with full parity.
 
+## Why browsix?
+
+browsix is a command-line tool for browser automation. It wraps the [cdpwave](https://pypi.org/project/cdpwave/) (Chrome DevTools Protocol) and [bidiwave](https://pypi.org/project/bidiwave/) (WebDriver BiDi) libraries, exposing their capabilities through a single unified CLI. You don't need Node.js, Playwright, or a separate Chromium download — browsix launches your existing Chrome or Edge installation directly.
+
+### Core concepts
+
+- **Backend** — The browser driver that executes commands. browsix supports two backends with full feature parity: CDP (default, via cdpwave) and BiDi (via bidiwave). Both implement all 100+ methods, so you can switch with `--backend bidi` without losing functionality.
+- **Action** — A single operation (screenshot, eval, click, etc.). Each action maps to a CLI command or a step in a multi-action YAML config.
+- **Multi-action** — A YAML config that chains multiple actions in sequence on a single browser session. Avoids the overhead of launching a browser per action.
+- **Serve mode** — An HTTP API server that exposes all browsix commands as REST endpoints with WebSocket streaming for real-time events.
+
 ## Install
 
 ```bash
@@ -61,6 +72,101 @@ browsix scrape https://example.com --selector "article"
 # Emulate a device
 browsix device https://example.com --preset iphone-15 -o shot.png
 ```
+
+## REPL
+
+Interactive REPL for live browser sessions. Launch a non-headless browser and execute commands in real time:
+
+```bash
+browsix repl
+```
+
+Inside the REPL:
+
+```
+browsix> navigate https://example.com
+browsix> screenshot
+browsix> eval document.title
+browsix> click #login-button
+browsix> type #username admin@example.com
+browsix> cookies
+browsix> url
+browsix> title
+browsix> wait 2
+browsix> back
+browsix> help
+browsix> exit
+```
+
+Supported commands: `navigate`, `screenshot`, `eval`, `click`, `type`, `fill`, `hover`, `key`, `cookies`, `url`, `title`, `wait`, `back`, `forward`, `reload`, `help`, `exit`/`quit`.
+
+## Init wizard
+
+Generate a `browsix.yaml` config interactively from predefined templates:
+
+```bash
+browsix init
+```
+
+Or generate directly with flags:
+
+```bash
+browsix init -t multi-step -u https://example.com -s "#login" --text "admin" -o config.yaml
+```
+
+List available templates:
+
+```bash
+browsix init --list
+```
+
+Templates: `screenshot`, `pdf`, `scrape`, `eval`, `multi-step`, `cookies`, `har`.
+
+## CI assertions
+
+Use `--assert` with `eval` to create CI gates that pass or fail based on the result:
+
+```bash
+# Equality check — exit 0 if title matches, 1 otherwise
+browsix eval https://example.com -e "document.title" --assert "== Expected Title"
+
+# Inequality
+browsix eval https://example.com -e "document.title" --assert "!= Old Title"
+
+# Substring
+browsix eval https://example.com -e "document.body.innerText" --assert "contains Welcome"
+
+# Regex
+browsix eval https://example.com -e "document.title" --assert "matches Error \\d+"
+```
+
+Output includes `assert:`, `result:`, and `status: PASS/FAIL`. Exit code 0 on pass, 1 on fail.
+
+## Performance metrics
+
+Capture Core Web Vitals and performance data:
+
+```bash
+# Key metrics (LCP, FCP, CLS, TTFB) with human-readable summary
+browsix perf https://example.com
+
+# CPU trace
+browsix perf https://example.com -m trace -d 5000 -o trace.json
+
+# CPU profile
+browsix perf https://example.com -m profile -o profile.json
+
+# JS code coverage
+browsix perf https://example.com -m coverage -o coverage.json
+
+# CSS coverage
+browsix perf https://example.com -m css-coverage -o css-coverage.json
+
+# Heap snapshot
+browsix perf https://example.com -m heap-snapshot -o heap.json
+```
+
+Metrics: `metrics` (default), `trace`, `profile`, `heap-snapshot`, `coverage`, `css-coverage`.
 
 ## Auth
 
@@ -129,7 +235,7 @@ asyncio.run(stream())
 
 ## Multi-action
 
-Create a YAML config and run multiple actions in sequence:
+Create a YAML config and run multiple actions in sequence on a single browser session:
 
 ```yaml
 # actions.yml
@@ -147,6 +253,53 @@ actions:
 
 ```bash
 browsix multi actions.yml
+```
+
+### Watch mode
+
+Re-execute the config automatically when the file changes. Useful for iterative config development:
+
+```bash
+browsix multi actions.yml --watch
+```
+
+### Dry run
+
+Validate the config and show the planned actions without launching a browser:
+
+```bash
+browsix multi actions.yml --dry-run
+```
+
+### Supported action types
+
+| Action | Key parameters |
+|---------|------------|
+| `screenshot` | `url`, `full_page`, `format` |
+| `pdf` | `url`, `paper`, `landscape` |
+| `eval` | `url`, `expression`, `await_promise` |
+| `dom` | `url`, `action`, `selector` |
+| `navigate` | `url` |
+| `scrape` | `urls`, `expression` |
+| `click` | `url`, `selector` |
+| `type` | `url`, `selector`, `text` |
+| `cookies` | `url`, `action` (get/set/delete/clear), `cookie` |
+| `headers` | `url`, `action` (set-headers/set-user-agent), `headers`, `user_agent` |
+
+### Cookies and headers in multi
+
+```yaml
+actions:
+  - cookies:
+      url: https://example.com
+      action: get
+  - headers:
+      url: https://example.com
+      action: set-headers
+      headers:
+        X-Custom-Header: my-value
+  - screenshot:
+      url: https://example.com
 ```
 
 ## Backends
@@ -207,7 +360,7 @@ browsix provides 100+ CLI commands organized into categories:
 |----------|----------|
 | Capture | `screenshot`, `pdf`, `screencast`, `scrape` |
 | Navigate | `navigate`, `back`, `forward`, `reload`, `stop`, `tabs` |
-| Console | `console`, `logs`, `har` |
+| Console | `console` (with `--capture`, `--format`), `logs`, `har` |
 | Cookies | `cookies` (get/set/delete/clear) |
 | Network | `headers`, `user-agent`, `block`, `throttle`, `cache`, `intercept`, `mock` |
 | Browser | `open`, `close`, `version` |
@@ -215,12 +368,13 @@ browsix provides 100+ CLI commands organized into categories:
 | Input | `click`, `type`, `fill`, `select`, `hover`, `key`, `drag`, `tap` |
 | CSS | `css-styles`, `css-computed`, `css-rules` |
 | Debug | `debug-break`, `debug-step`, `debug-pause`, `debug-resume` |
-| Performance | `perf-metrics`, `perf-trace`, `perf-profile`, `perf-coverage` |
+| Performance | `perf` (metrics, trace, profile, coverage, heap-snapshot, css-coverage) |
 | Storage | `storage` (get/set/clear/list), `indexeddb` |
 | Advanced | `sw`, `animation`, `record`, `replay`, `webauthn`, `cast`, `bluetooth` |
 | Auth | `auth save`, `auth use`, `auth list`, `auth delete` |
 | Serve | `serve` (HTTP API server) |
-| Utility | `multi`, `raw`, `backends`, `install_check`, `completions` |
+| Interactive | `repl` (live browser REPL), `init` (config wizard) |
+| Utility | `multi` (with `--watch`, `--dry-run`), `raw`, `backends`, `install_check`, `completions` |
 
 Run `browsix --help` for the full list.
 
@@ -247,6 +401,11 @@ Run `browsix --help` for the full list.
 | Debug breakpoints | Yes | No | No |
 | WebAuthn | Yes | No | No |
 | Shell completions | Yes | No | No |
+| Interactive REPL | Yes | No | No |
+| Config wizard | Yes | No | No |
+| CI assertions | Yes | No | No |
+| Performance metrics | Yes | No | No |
+| Watch mode | Yes | No | No |
 
 ## Documentation
 
