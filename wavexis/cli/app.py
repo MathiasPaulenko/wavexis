@@ -88,7 +88,7 @@ class CLIContext:
     proxy: str | None = None
 
 
-_ctx: contextvars.ContextVar[CLIContext] = contextvars.ContextVar(
+_ctx: contextvars.ContextVar[CLIContext | None] = contextvars.ContextVar(
     "wavexis_cli_ctx", default=None
 )
 
@@ -1724,7 +1724,7 @@ def input_scroll(
 def input_upload(
     url: str = typer.Argument(..., help="URL to navigate to"),
     selector: str = typer.Argument(..., help="CSS selector for file input element"),
-    files: Annotated[list[str], typer.Argument(help="Absolute file paths to upload")] = ...,
+    files: Annotated[list[str], typer.Argument(help="Absolute file paths to upload")] = [],  # noqa: B006
 ) -> None:
     """Upload files to a file input element on a web page."""
     try:

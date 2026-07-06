@@ -1385,7 +1385,10 @@ class CDPBackend(AbstractBackend):
 
         await asyncio.sleep(2)
 
-        for fpath in await asyncio.to_thread(list, Path(download_dir).iterdir):
+        def _list_files() -> list[Path]:
+            return list(Path(download_dir).iterdir())
+
+        for fpath in await asyncio.to_thread(_list_files):
             if await asyncio.to_thread(Path(fpath).is_file):
                 return await asyncio.to_thread(Path(fpath).read_bytes)
 

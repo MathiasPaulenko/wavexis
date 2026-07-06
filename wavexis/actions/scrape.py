@@ -33,8 +33,9 @@ class ScrapeAction(BaseAction[ScrapeParams, list[dict[str, Any]]]):
         expression = params.expression
 
         if params.file:
+            file_path = params.file
             expression = await asyncio.to_thread(
-                lambda: Path(params.file).read_text(encoding="utf-8")
+                lambda: Path(file_path).read_text(encoding="utf-8")
             )
 
         if not expression:
