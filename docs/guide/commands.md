@@ -225,6 +225,98 @@ browsix input scroll https://example.com --x 0 --y 500
 browsix input upload https://example.com "#file-input" /path/to/file.pdf
 ```
 
+## session
+
+Save and load browser session state (cookies + localStorage + sessionStorage).
+
+```bash
+browsix session save <url> -o <file>
+browsix session load <file> [url]
+```
+
+```bash
+browsix session save https://app.com -o mysession.json
+browsix session load mysession.json https://app.com/dashboard
+```
+
+## extract
+
+Extract structured data from a page using a CSS selector schema.
+
+```bash
+browsix extract <url> -s '<schema>' [--selector <css>] [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `-s, --schema` | JSON mapping field names to CSS selectors |
+| `--selector` | CSS selector to scope extraction (repeats per match) |
+| `-o, --output` | Output file path (.json) |
+
+```bash
+browsix extract https://shop.com -s '{"title":"h1","price":".price"}'
+browsix extract https://shop.com/products \
+    -s '{"name":".name","price":".price"}' --selector ".product"
+```
+
+## form
+
+Auto-fill form fields from JSON data and optionally submit.
+
+```bash
+browsix form <url> -d '<data>' [--submit <selector>] [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `-d, --data` | JSON mapping CSS selectors to values |
+| `--submit` | CSS selector for submit button |
+| `-o, --output` | Output file path (.json) |
+
+```bash
+browsix form https://app.com/register -d '{"#name":"Mathias","#email":"test@test.com"}'
+browsix form https://app.com/register -d '{"#name":"Mathias"}' --submit "#submit-btn"
+```
+
+## ws
+
+Intercept WebSocket frames on a page. Capture sent/received or mock responses.
+
+```bash
+browsix ws <url> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--duration` | Capture duration in ms (default: 5000) |
+| `--pattern` | Regex pattern to filter WS URLs |
+| `--mock` | JSON mapping request payloads to mock responses |
+| `-o, --output` | Output file path (.json) |
+
+```bash
+browsix ws https://app.com --duration 10000
+browsix ws https://app.com --pattern '.*api.*' -o frames.json
+browsix ws https://app.com --mock '{"ping":"pong"}' --duration 5000
+```
+
+## lighthouse
+
+Run a Lighthouse-style audit (performance, accessibility, SEO, best practices).
+
+```bash
+browsix lighthouse <url> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `-c, --category` | Audit category (repeatable): performance, accessibility, seo, best-practices |
+| `-o, --output` | Output file path (.json) |
+
+```bash
+browsix lighthouse https://example.com
+browsix lighthouse https://example.com -c performance -c seo -o report.json
+```
+
 ## headers
 
 Set extra HTTP headers for all requests.

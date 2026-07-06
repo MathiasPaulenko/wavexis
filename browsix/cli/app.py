@@ -3551,5 +3551,324 @@ async def _perf(url: str, metric: str, duration: int) -> Any:
         await backend.close()
 
 
+# ── Session ─────────────────────────────────────────────────────
+
+
+@app.command()
+def session(
+    action: str = typer.Argument(
+        ..., help="Session action: save, load"
+    ),
+    url: str = typer.Argument(
+        "", help="URL to navigate to (for save) or load before navigating (for load)"
+    ),
+    output: str = typer.Option(
+        "session.json", "--output", "-o", help="Session file path"
+    ),
+) -> None:
+    """Save or load browser session state (cookies + localStorage + sessionStorage).
+
+    \b
+    Save:  browsix session save https://app.com -o mysession.json
+    Load:  browsix session load mysession.json https://app.com
+    """
+    from pathlib import Path
+
+    from browsix.actions.session import SessionLoadAction, SessionSaveAction
+
+    session_path = Path(output)
+
+    if action == "save":
+        if not url:
+            typer.echo("Error: URL required for session save", err=True)
+            raise typer.Exit(1)
+
+        async def _save_session() -> Any:
+            backend = _get_backend()
+            await backend.launch(_browser_options())
+            try:
+                await backend.navigate(url, WaitStrategy(strategy="load"))
+                save_action = SessionSaveAction(session_path)
+                return await save_action.execute(backend)
+            finally:
+                await backend.close()
+
+        try:
+            asyncio.run(_save_session())
+        except BrowsixError as e:
+            _handle_error(e)
+            return
+        typer.echo(f"Session saved to {output}")
+
+    elif action == "load":
+        if not session_path.exists():
+            typer.echo(f"Error: session file not found: {output}", err=True)
+            raise typer.Exit(1)
+
+        async def _load_session() -> Any:
+            backend = _get_backend()
+            await backend.launch(_browser_options())
+            try:
+                load_action = SessionLoadAction(session_path)
+                await load_action.execute(backend)
+                if url:
+                    await backend.navigate(url, WaitStrategy(strategy="load"))
+                    title = await backend.eval("document.title", await_promise=False)
+                    return title
+                return "Session loaded"
+            finally:
+                await backend.close()
+
+        try:
+            result = asyncio.run(_load_session())
+        except BrowsixError as e:
+            _handle_error(e)
+            return
+        typer.echo(f"Session loaded from {output}: {result}")
+
+    else:
+        typer.echo(f"Error: unknown session action '{action}'. Use save or load.", err=True)
+        raise typer.Exit(1)
+
+
+# ── Extract ──────────────────────────────────────────────────────
+
+
+@app.command()
+def extract(
+    url: str = typer.Argument(..., help="URL to extract data from"),
+    schema: str = typer.Option(
+        ..., "--schema", "-s",
+        help=(
+            'JSON schema mapping field names to CSS selectors, '
+            'e.g. \'{"title":"h1","price":".price"}\''
+        )
+    ),
+    selector: str = typer.Option(
+        "", "--selector", help="CSS selector to scope extraction (repeats per match)"
+    ),
+    output: str | None = typer.Option(
+        None, "--output", "-o", help="Output file path (.json)"
+    ),
+    format: str = typer.Option("json", "--format", "-f", help="Output format (json)"),
+) -> None:
+    """Extract structured data from a web page using a CSS selector schema.
+
+    \b
+    Examples:
+        browsix extract https://shop.com -s '{"title":"h1","price":".price"}'
+        browsix extract https://shop.com/products \
+            -s '{"name":".name","price":".price"}' --selector ".product"
+    """
+    from browsix.actions.extract import ExtractAction, ExtractParams
+
+    try:
+        schema_dict = json.loads(schema)
+    except json.JSONDecodeError as e:
+        typer.echo(f"Error: invalid JSON schema: {e}", err=True)
+        raise typer.Exit(1) from e
+
+    async def _extract() -> list[dict[str, Any]]:
+        backend = _get_backend()
+        params = ExtractParams(
+            url=url,
+            schema=schema_dict,
+            selector=selector or None,
+            wait=WaitStrategy(strategy="load"),
+        )
+        action = ExtractAction(params)
+        return await action.execute(backend)
+
+    try:
+        results = asyncio.run(_extract())
+    except BrowsixError as e:
+        _handle_error(e)
+        return
+
+    Output.write_formatted(results, format, output)
+    if output:
+        typer.echo(f"Extracted {len(results)} record(s), saved to {output}")
+    else:
+        typer.echo(f"Extracted {len(results)} record(s)")
+
+
+# ── Form ─────────────────────────────────────────────────────────
+
+
+@app.command()
+def form(
+    url: str = typer.Argument(..., help="URL to navigate to"),
+    data: str = typer.Option(
+        ..., "--data", "-d",
+        help=(
+            'JSON mapping CSS selectors to values, '
+            'e.g. \'{"#name":"Mathias","#email":"test@test.com"}\''
+        )
+    ),
+    submit: str = typer.Option(
+        "", "--submit", help="CSS selector for submit button to click after filling"
+    ),
+    output: str | None = typer.Option(
+        None, "--output", "-o", help="Output file path (.json)"
+    ),
+    format: str = typer.Option("json", "--format", "-f", help="Output format (json)"),
+) -> None:
+    """Auto-fill form fields from JSON data and optionally submit.
+
+    \b
+    Examples:
+        browsix form https://app.com/register -d '{"#name":"Mathias","#email":"test@test.com"}'
+        browsix form https://app.com/register -d '{"#name":"Mathias"}' --submit "#submit-btn"
+    """
+    from browsix.actions.form import FormAction, FormParams
+
+    try:
+        fields = json.loads(data)
+    except json.JSONDecodeError as e:
+        typer.echo(f"Error: invalid JSON data: {e}", err=True)
+        raise typer.Exit(1) from e
+
+    async def _form() -> dict[str, Any]:
+        backend = _get_backend()
+        params = FormParams(
+            url=url,
+            fields=fields,
+            submit=submit or None,
+            wait=WaitStrategy(strategy="load"),
+        )
+        action = FormAction(params)
+        return await action.execute(backend)
+
+    try:
+        result = asyncio.run(_form())
+    except BrowsixError as e:
+        _handle_error(e)
+        return
+
+    Output.write_formatted(result, format, output)
+    typer.echo(
+        f"Filled {result['fields_filled']}/{result['fields_total']} fields"
+        + (", submitted" if result["submitted"] else "")
+    )
+
+
+# ── WebSocket intercept ──────────────────────────────────────────
+
+
+@app.command()
+def ws(
+    url: str = typer.Argument(..., help="URL to navigate to"),
+    duration: int = typer.Option(
+        5000, "--duration", help="How long to capture WS frames (ms)"
+    ),
+    pattern: str = typer.Option(
+        "", "--pattern", help="Regex pattern to filter WS URLs (empty = all)"
+    ),
+    mock: str = typer.Option(
+        "", "--mock",
+        help='JSON mapping request payloads to mock response payloads'
+    ),
+    output: str | None = typer.Option(
+        None, "--output", "-o", help="Output file path (.json)"
+    ),
+    format: str = typer.Option("json", "--format", "-f", help="Output format (json)"),
+) -> None:
+    """Intercept WebSocket frames on a page. Capture sent/received or mock responses.
+
+    \b
+    Examples:
+        browsix ws https://app.com --duration 10000
+        browsix ws https://app.com --pattern '.*api.*' -o frames.json
+        browsix ws https://app.com --mock '{"ping":"pong"}' --duration 5000
+    """
+    from browsix.actions.websocket import WebSocketInterceptAction, WebSocketParams
+
+    mock_dict: dict[str, str] = {}
+    if mock:
+        try:
+            mock_dict = json.loads(mock)
+        except json.JSONDecodeError as e:
+            typer.echo(f"Error: invalid JSON mock: {e}", err=True)
+            raise typer.Exit(1) from e
+
+    async def _ws() -> dict[str, Any]:
+        backend = _get_backend()
+        params = WebSocketParams(
+            url=url,
+            url_pattern=pattern,
+            duration_ms=duration,
+            mock_responses=mock_dict,
+            wait=WaitStrategy(strategy="load"),
+        )
+        action = WebSocketInterceptAction(params)
+        return await action.execute(backend)
+
+    try:
+        result = asyncio.run(_ws())
+    except BrowsixError as e:
+        _handle_error(e)
+        return
+
+    Output.write_formatted(result, format, output)
+    sent = len(result.get("sent", []))
+    received = len(result.get("received", []))
+    typer.echo(f"WS intercept: {sent} sent, {received} received frames")
+
+
+# ── Lighthouse ───────────────────────────────────────────────────
+
+
+@app.command()
+def lighthouse(
+    url: str = typer.Argument(..., help="URL to audit"),
+    categories: list[str] = typer.Option(  # noqa: B008
+        [], "--category", "-c",
+        help=(
+            "Audit category: performance, accessibility, seo, "
+            "best-practices (repeatable, empty=all)"
+        ),
+    ),
+    output: str | None = typer.Option(
+        None, "--output", "-o", help="Output file path (.json)"
+    ),
+    format: str = typer.Option("json", "--format", "-f", help="Output format (json)"),
+) -> None:
+    """Run a Lighthouse-style audit (performance, accessibility, SEO, best practices).
+
+    \b
+    Examples:
+        browsix lighthouse https://example.com
+        browsix lighthouse https://example.com -c performance -c seo -o report.json
+    """
+    from browsix.actions.lighthouse import LighthouseAction, LighthouseParams
+
+    async def _lighthouse() -> dict[str, Any]:
+        backend = _get_backend()
+        params = LighthouseParams(
+            url=url,
+            categories=categories,
+            wait=WaitStrategy(strategy="load"),
+        )
+        action = LighthouseAction(params)
+        return await action.execute(backend)
+
+    try:
+        result = asyncio.run(_lighthouse())
+    except BrowsixError as e:
+        _handle_error(e)
+        return
+
+    Output.write_formatted(result, format, output)
+    scores = {
+        cat: data.get("score", 0)
+        for cat, data in result.get("categories", {}).items()
+    }
+    score_str = ", ".join(f"{k}: {v}" for k, v in scores.items())
+    if output:
+        typer.echo(f"Audit complete ({score_str}), saved to {output}")
+    else:
+        typer.echo(f"Audit complete ({score_str})")
+
+
 if __name__ == "__main__":
     app()

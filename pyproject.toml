@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "browsix"
-version = "1.19.0"
+version = "1.20.0"
 description = "Browser automation CLI — wraps cdpwave and bidiwave, no Node.js, no Chromium download"
 readme = "README.md"
 license = { text = "MIT" }
