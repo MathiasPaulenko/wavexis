@@ -12,7 +12,6 @@ import yaml
 from browsix.backend.base import AbstractBackend
 from browsix.config import BrowserOptions, WaitStrategy
 
-
 _RECORD_SCRIPT = """
 (function() {
     const events = [];
