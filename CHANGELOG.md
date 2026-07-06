@@ -2,6 +2,12 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.0.5 — 2026-07-07
+
+### Fixed
+
+- Fixed `a11y_node` and `a11y_ancestors` in `backend/cdp.py` — were passing AX `nodeId` to `Accessibility.getPartialAXTree` which expects a DOM `nodeId`, causing `CommandError: [-32602] Invalid parameters`. Now searches the full AX tree from `getFullAXTree` and filters by `nodeId`.
+
 ## v2.0.4 — 2026-07-07
 
 ### Refactored
