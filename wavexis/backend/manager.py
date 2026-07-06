@@ -5,6 +5,26 @@ from __future__ import annotations
 from wavexis.backend.base import AbstractBackend
 from wavexis.exceptions import BackendNotAvailableError, BackendNotSupportedError
 
+_manager: BackendManager | None = None
+
+
+def get_manager() -> BackendManager:
+    """Return the singleton BackendManager instance.
+
+    Returns:
+        The shared BackendManager, created on first call.
+    """
+    global _manager
+    if _manager is None:
+        _manager = BackendManager()
+    return _manager
+
+
+def reset_manager() -> None:
+    """Reset the singleton manager (useful for tests)."""
+    global _manager
+    _manager = None
+
 
 class BackendManager:
     """Manages backend availability, selection, and registration.

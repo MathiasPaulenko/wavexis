@@ -260,6 +260,8 @@ class FakeBackend(AbstractBackend):
         """Bluetooth emulate."""
     async def bluetooth_stop(self):
         """Bluetooth stop."""
+    async def set_files(self, selector, files):
+        """Set files."""
 
 
 class TestBackendManager:

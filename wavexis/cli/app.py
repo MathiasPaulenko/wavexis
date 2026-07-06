@@ -34,7 +34,7 @@ from wavexis.actions.storage import StorageAction
 from wavexis.actions.tabs import TabsAction, TabsParams
 from wavexis.actions.webaudio import WebAudioAction, WebAudioParams
 from wavexis.actions.webauthn import WebAuthnAction, WebAuthnParams
-from wavexis.backend.manager import BackendManager
+from wavexis.backend.manager import get_manager
 from wavexis.config import (
     DEVICE_PRESETS,
     AnimationParams,
@@ -188,8 +188,7 @@ def _handle_error(e: Exception) -> None:
 
 def _get_backend() -> Any:
     """Select a backend using the global preferred backend if set."""
-    manager = BackendManager()
-    return manager.select(_preferred_backend)
+    return get_manager().select(_preferred_backend)
 
 
 def _browser_options() -> BrowserOptions:
@@ -233,6 +232,7 @@ def screenshot(
         )
     except WavexisError as e:
         _handle_error(e)
+        return
 
     Output.write_bytes(image_bytes, output)
     typer.echo(f"Screenshot saved to {output}")
@@ -291,6 +291,7 @@ def pdf(
         )
     except WavexisError as e:
         _handle_error(e)
+        return
 
     Output.write_bytes(pdf_bytes, output)
     typer.echo(f"PDF saved to {output}")
@@ -460,6 +461,7 @@ def navigate(
         asyncio.run(_navigate(url, wait))
     except WavexisError as e:
         _handle_error(e)
+        return
     typer.echo(f"Navigated to {url}")
 
 
@@ -481,6 +483,7 @@ def back() -> None:
         asyncio.run(_nav_simple(lambda b: BackAction(None).execute(b)))
     except WavexisError as e:
         _handle_error(e)
+        return
     typer.echo("Navigated back")
 
 
@@ -491,6 +494,7 @@ def forward() -> None:
         asyncio.run(_nav_simple(lambda b: ForwardAction(None).execute(b)))
     except WavexisError as e:
         _handle_error(e)
+        return
     typer.echo("Navigated forward")
 
 
@@ -503,6 +507,7 @@ def reload(
         asyncio.run(_nav_simple(lambda b: ReloadAction(ignore_cache).execute(b)))
     except WavexisError as e:
         _handle_error(e)
+        return
     typer.echo("Page reloaded")
 
 
@@ -513,6 +518,7 @@ def stop() -> None:
         asyncio.run(_nav_simple(lambda b: StopAction(None).execute(b)))
     except WavexisError as e:
         _handle_error(e)
+        return
     typer.echo("Stopped loading")
 
 
@@ -537,6 +543,7 @@ def tabs(
         result = asyncio.run(_tabs(action, url, tab_id))
     except WavexisError as e:
         _handle_error(e)
+        return
 
     if action == "list":
         typer.echo(json.dumps(result, indent=2, default=str))
@@ -617,6 +624,7 @@ def logs(
         result = asyncio.run(_logs(url))
     except WavexisError as e:
         _handle_error(e)
+        return
 
     if output:
         Output.write_json(result, output)
@@ -683,6 +691,7 @@ def dom(
         )
     except WavexisError as e:
         _handle_error(e)
+        return
 
     if isinstance(result, str):
         if output:
@@ -882,6 +891,7 @@ def har(
         result = asyncio.run(_har(url, wait, filter))
     except WavexisError as e:
         _handle_error(e)
+        return
 
     if output:
         Output.write_json(result, output)
@@ -922,6 +932,7 @@ def cookies(
         )
     except WavexisError as e:
         _handle_error(e)
+        return
 
     if action == "get":
         if output:
@@ -981,6 +992,7 @@ def headers(
         asyncio.run(_headers(data))
     except WavexisError as e:
         _handle_error(e)
+        return
     typer.echo("Headers set")
 
 
@@ -1003,6 +1015,7 @@ def user_agent(
         asyncio.run(_user_agent(ua))
     except WavexisError as e:
         _handle_error(e)
+        return
     typer.echo("User-Agent set")
 
 
@@ -1027,6 +1040,7 @@ def browser(
         result = asyncio.run(_browser(action))
     except WavexisError as e:
         _handle_error(e)
+        return
 
     if isinstance(result, str):
         typer.echo(result)
@@ -1133,6 +1147,7 @@ def _multi_watch(config_path: Any, parallel: bool = False) -> None:
                 )
             except WavexisError as e:
                 _handle_error(e)
+                return
 
             typer.echo("  Waiting for changes...")
             while True:
@@ -1350,7 +1365,7 @@ async def _batch_single(
 @app.command()
 def backends() -> None:
     """List available backends."""
-    manager = BackendManager()
+    manager = get_manager()
     available = manager.list_available()
     if not available:
         typer.echo("No backends available. Install cdpwave or bidiwave.")
@@ -1362,7 +1377,7 @@ def backends() -> None:
 @app.command()
 def install_check() -> None:
     """Check which backends are installed and their versions."""
-    manager = BackendManager()
+    manager = get_manager()
     status = manager.install_check()
     for name, version in status.items():
         typer.echo(f"  {name}: {version}")
@@ -1385,6 +1400,7 @@ def emulation_device(
         image_bytes = asyncio.run(_emulation_device(url, device))
     except WavexisError as e:
         _handle_error(e)
+        return
 
     Output.write_bytes(image_bytes, output)
     typer.echo(f"Screenshot saved to {output}")
@@ -1417,6 +1433,7 @@ def emulation_viewport(
         image_bytes = asyncio.run(_emulation_viewport(url, width, height))
     except WavexisError as e:
         _handle_error(e)
+        return
 
     Output.write_bytes(image_bytes, output)
     typer.echo(f"Screenshot saved to {output}")
@@ -1449,6 +1466,7 @@ def emulation_geolocation(
         image_bytes = asyncio.run(_emulation_geolocation(url, lat, lon))
     except WavexisError as e:
         _handle_error(e)
+        return
 
     Output.write_bytes(image_bytes, output)
     typer.echo(f"Screenshot saved to {output}")
@@ -1480,6 +1498,7 @@ def emulation_timezone(
         image_bytes = asyncio.run(_emulation_timezone(url, tz))
     except WavexisError as e:
         _handle_error(e)
+        return
 
     Output.write_bytes(image_bytes, output)
     typer.echo(f"Screenshot saved to {output}")
@@ -1510,6 +1529,7 @@ def emulation_dark_mode(
         image_bytes = asyncio.run(_emulation_dark_mode(url))
     except WavexisError as e:
         _handle_error(e)
+        return
 
     Output.write_bytes(image_bytes, output)
     typer.echo(f"Screenshot saved to {output}")
@@ -1550,6 +1570,7 @@ def input_click(
         ))
     except WavexisError as e:
         _handle_error(e)
+        return
     typer.echo(f"Clicked '{selector}' on {url}")
 
 
@@ -1565,6 +1586,7 @@ def input_type(
         asyncio.run(_input_action(url, "type", selector=selector, text=text, delay=delay))
     except WavexisError as e:
         _handle_error(e)
+        return
     typer.echo(f"Typed text into '{selector}' on {url}")
 
 
@@ -1579,6 +1601,7 @@ def input_fill(
         asyncio.run(_input_action(url, "fill", selector=selector, value=value))
     except WavexisError as e:
         _handle_error(e)
+        return
     typer.echo(f"Filled '{selector}' with value on {url}")
 
 
@@ -1593,6 +1616,7 @@ def input_select(
         asyncio.run(_input_action(url, "select", selector=selector, value=value))
     except WavexisError as e:
         _handle_error(e)
+        return
     typer.echo(f"Selected '{value}' in '{selector}' on {url}")
 
 
@@ -1606,6 +1630,7 @@ def input_hover(
         asyncio.run(_input_action(url, "hover", selector=selector))
     except WavexisError as e:
         _handle_error(e)
+        return
     typer.echo(f"Hovered over '{selector}' on {url}")
 
 
@@ -1619,6 +1644,7 @@ def input_key(
         asyncio.run(_input_action(url, "key", key=key))
     except WavexisError as e:
         _handle_error(e)
+        return
     typer.echo(f"Pressed key '{key}' on {url}")
 
 
@@ -1633,6 +1659,7 @@ def input_drag(
         asyncio.run(_input_action(url, "drag", source=source, target=target))
     except WavexisError as e:
         _handle_error(e)
+        return
     typer.echo(f"Dragged '{source}' to '{target}' on {url}")
 
 
@@ -1646,6 +1673,7 @@ def input_tap(
         asyncio.run(_input_action(url, "tap", selector=selector))
     except WavexisError as e:
         _handle_error(e)
+        return
     typer.echo(f"Tapped '{selector}' on {url}")
 
 
@@ -1663,6 +1691,7 @@ def input_scroll(
         asyncio.run(_input_action(url, "scroll", selector=selector, scroll_x=x, scroll_y=y))
     except WavexisError as e:
         _handle_error(e)
+        return
     if selector:
         typer.echo(f"Scrolled to '{selector}' on {url}")
     else:
@@ -1680,6 +1709,7 @@ def input_upload(
         asyncio.run(_input_action(url, "upload", selector=selector, files=files))
     except WavexisError as e:
         _handle_error(e)
+        return
     typer.echo(f"Uploaded {len(files)} file(s) to '{selector}' on {url}")
 
 
@@ -1738,6 +1768,7 @@ def network_block(
         asyncio.run(_network_block(patterns))
     except WavexisError as e:
         _handle_error(e)
+        return
     typer.echo(f"Blocked {len(patterns)} URL pattern(s)")
 
 
@@ -1770,6 +1801,7 @@ def network_throttle(
         asyncio.run(_network_throttle(params))
     except WavexisError as e:
         _handle_error(e)
+        return
     typer.echo("Network throttling set")
 
 
@@ -1796,6 +1828,7 @@ def network_cache(
         asyncio.run(_network_cache(disabled))
     except WavexisError as e:
         _handle_error(e)
+        return
     typer.echo(f"Cache {'disabled' if disabled else 'enabled'}")
 
 
@@ -1826,6 +1859,7 @@ def network_intercept(
         asyncio.run(_network_intercept(pattern))
     except WavexisError as e:
         _handle_error(e)
+        return
     typer.echo(f"Intercepting requests matching '{url_pattern}'")
 
 
@@ -1858,6 +1892,7 @@ def network_mock(
         asyncio.run(_network_mock(url, response))
     except WavexisError as e:
         _handle_error(e)
+        return
     typer.echo(f"Mocking responses for '{url}'")
 
 
@@ -1891,6 +1926,7 @@ def a11y(
         result = asyncio.run(_a11y(url, action, node_id))
     except WavexisError as e:
         _handle_error(e)
+        return
 
     if output:
         Output.write_json(result, output)
@@ -1937,6 +1973,7 @@ def download(
         data = asyncio.run(_download(url, pattern))
     except WavexisError as e:
         _handle_error(e)
+        return
 
     Output.write_bytes(data, output)
     typer.echo(f"Download saved to {output} ({len(data)} bytes)")
@@ -1977,6 +2014,7 @@ def dialog(
         asyncio.run(_dialog(url, action, prompt_text or None))
     except WavexisError as e:
         _handle_error(e)
+        return
     typer.echo(f"Dialog {action}ed on {url}")
 
 
@@ -2018,6 +2056,7 @@ def permissions(
         asyncio.run(_permissions(action, permission, url))
     except WavexisError as e:
         _handle_error(e)
+        return
     typer.echo(f"Permissions {action} for '{permission}'")
 
 
@@ -2058,6 +2097,7 @@ def security(
         result = asyncio.run(_security(url, action))
     except WavexisError as e:
         _handle_error(e)
+        return
 
     if action == "state":
         if output:
@@ -2117,6 +2157,7 @@ def screencast(
         frames = asyncio.run(_screencast(params, output_dir))
     except WavexisError as e:
         _handle_error(e)
+        return
     typer.echo(f"Saved {len(frames)} frames to {output_dir}/")
 
 
@@ -2154,6 +2195,7 @@ def perf_metrics(
         result = asyncio.run(_perf_action(url, "metrics"))
     except WavexisError as e:
         _handle_error(e)
+        return
     _write_perf_output(result, output, "metrics")
 
 
@@ -2168,6 +2210,7 @@ def perf_trace(
         result = asyncio.run(_perf_action(url, "trace", duration_ms=duration))
     except WavexisError as e:
         _handle_error(e)
+        return
     _write_perf_output(result, output, "trace")
 
 
@@ -2182,6 +2225,7 @@ def perf_profile(
         result = asyncio.run(_perf_action(url, "profile", duration_ms=duration))
     except WavexisError as e:
         _handle_error(e)
+        return
     _write_perf_output(result, output, "profile")
 
 
@@ -2195,6 +2239,7 @@ def perf_heap(
         result = asyncio.run(_perf_action(url, "heap"))
     except WavexisError as e:
         _handle_error(e)
+        return
     _write_perf_output(result, output, "heap snapshot")
 
 
@@ -2208,6 +2253,7 @@ def perf_coverage(
         result = asyncio.run(_perf_action(url, "coverage"))
     except WavexisError as e:
         _handle_error(e)
+        return
     _write_perf_output(result, output, "JS coverage")
 
 
@@ -2221,6 +2267,7 @@ def perf_css_coverage(
         result = asyncio.run(_perf_action(url, "css-coverage"))
     except WavexisError as e:
         _handle_error(e)
+        return
     _write_perf_output(result, output, "CSS coverage")
 
 
@@ -2277,6 +2324,7 @@ def serve(
         _serve(port=port, host=host, backend=backend or _preferred_backend)
     except WavexisError as e:
         _handle_error(e)
+        return
 
 
 @app.command()
@@ -2357,6 +2405,7 @@ def css_styles(
         result = asyncio.run(_css_action(url, "styles", selector=selector))
     except WavexisError as e:
         _handle_error(e)
+        return
     _write_json_output(result, output, "styles")
 
 
@@ -2370,6 +2419,7 @@ def css_stylesheets(
         result = asyncio.run(_css_action(url, "stylesheets"))
     except WavexisError as e:
         _handle_error(e)
+        return
     _write_json_output(result, output, "stylesheets")
 
 
@@ -2384,6 +2434,7 @@ def css_rules(
         result = asyncio.run(_css_action(url, "rules", stylesheet_id=stylesheet_id))
     except WavexisError as e:
         _handle_error(e)
+        return
     _write_json_output(result, output, "rules")
 
 
@@ -2398,6 +2449,7 @@ def css_computed(
         result = asyncio.run(_css_action(url, "computed", selector=selector))
     except WavexisError as e:
         _handle_error(e)
+        return
     _write_json_output(result, output, "computed styles")
 
 
@@ -2453,6 +2505,7 @@ def debug_breakpoint(
         )
     except WavexisError as e:
         _handle_error(e)
+        return
     _echo(f"Breakpoint set: {result}")
 
 
@@ -2468,6 +2521,7 @@ def debug_function_breakpoint(
         )
     except WavexisError as e:
         _handle_error(e)
+        return
     _echo(f"Breakpoint set: {result}")
 
 
@@ -2481,6 +2535,7 @@ def debug_remove_breakpoint(
         asyncio.run(_debug_action(url, "remove_breakpoint", breakpoint_id=breakpoint_id))
     except WavexisError as e:
         _handle_error(e)
+        return
     _echo(f"Breakpoint removed: {breakpoint_id}")
 
 
@@ -2493,6 +2548,7 @@ def debug_step_over(
         asyncio.run(_debug_action(url, "step_over"))
     except WavexisError as e:
         _handle_error(e)
+        return
     _echo("Stepped over")
 
 
@@ -2505,6 +2561,7 @@ def debug_step_into(
         asyncio.run(_debug_action(url, "step_into"))
     except WavexisError as e:
         _handle_error(e)
+        return
     _echo("Stepped into")
 
 
@@ -2517,6 +2574,7 @@ def debug_step_out(
         asyncio.run(_debug_action(url, "step_out"))
     except WavexisError as e:
         _handle_error(e)
+        return
     _echo("Stepped out")
 
 
@@ -2529,6 +2587,7 @@ def debug_pause(
         asyncio.run(_debug_action(url, "pause"))
     except WavexisError as e:
         _handle_error(e)
+        return
     _echo("Paused")
 
 
@@ -2541,6 +2600,7 @@ def debug_resume(
         asyncio.run(_debug_action(url, "resume"))
     except WavexisError as e:
         _handle_error(e)
+        return
     _echo("Resumed")
 
 
@@ -2555,6 +2615,7 @@ def debug_listeners(
         result = asyncio.run(_debug_action(url, "listeners", selector=selector))
     except WavexisError as e:
         _handle_error(e)
+        return
     _write_json_output(result, output, "listeners")
 
 
@@ -2615,6 +2676,7 @@ def dom_snapshot(
         result = asyncio.run(_dom_snapshot_action(url))
     except WavexisError as e:
         _handle_error(e)
+        return
     _write_json_output(result, output, "DOM snapshot")
 
 
@@ -2656,6 +2718,7 @@ def overlay_highlight(
         asyncio.run(_overlay_action(url, "highlight", selector=selector, color=color))
     except WavexisError as e:
         _handle_error(e)
+        return
     _echo(f"Highlighted: {selector}")
 
 
@@ -2668,6 +2731,7 @@ def overlay_clear(
         asyncio.run(_overlay_action(url, "clear"))
     except WavexisError as e:
         _handle_error(e)
+        return
     _echo("Overlay cleared")
 
 
@@ -3127,8 +3191,7 @@ def raw(
         """
         backend = _get_backend()
         if backend_name:
-            manager = BackendManager()
-            backend = manager.select(preferred=backend_name)
+            backend = get_manager().select(preferred=backend_name)
         try:
             await backend.launch(_browser_options())
             result: dict[str, Any] = await backend.raw(method, raw_params)
@@ -3261,6 +3324,7 @@ def repl(
         asyncio.run(repl_loop(backend, url or None))
     except WavexisError as e:
         _handle_error(e)
+        return
 
 
 @app.command()

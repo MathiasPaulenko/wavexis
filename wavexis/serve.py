@@ -12,8 +12,9 @@ import json
 import time
 from typing import Any
 
+from wavexis import __version__
 from wavexis.backend.base import AbstractBackend
-from wavexis.backend.manager import BackendManager
+from wavexis.backend.manager import get_manager
 from wavexis.config import (
     BrowserOptions,
     CookieParams,
@@ -27,8 +28,6 @@ from wavexis.config import (
     WaitStrategy,
 )
 from wavexis.exceptions import WavexisError
-
-__version__ = "1.11.2"
 
 
 def _import_aiohttp() -> Any:
@@ -53,8 +52,7 @@ async def _get_backend(request: Any) -> AbstractBackend:
     a single backend across requests.
     """
     preferred = request.app.get("backend_name")
-    manager = BackendManager()
-    return manager.select(preferred=preferred)
+    return get_manager().select(preferred=preferred)
 
 
 async def _run_action(request: Any, action: Any) -> Any:
@@ -269,7 +267,7 @@ async def handle_health(request: Any) -> Any:
 async def handle_backends(request: Any) -> Any:
     """Handle GET /backends — return available backends."""
     web = _import_aiohttp()
-    manager = BackendManager()
+    manager = get_manager()
     available = manager.list_available()
     return web.json_response({
         "cdp": "cdp" in available,
@@ -613,7 +611,7 @@ def create_app(backend_name: str | None = None) -> Any:
     registry = get_registry()
     middlewares = [m.factory(web) for m in registry.middleware]
     app = web.Application(middlewares=middlewares)
-    manager = BackendManager()
+    manager = get_manager()
     app["backend_name"] = backend_name
     app["backends"] = manager.list_available()
 

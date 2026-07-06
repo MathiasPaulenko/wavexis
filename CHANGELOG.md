@@ -2,6 +2,15 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.0.1 — 2026-07-06
+
+### Fixed
+
+- `serve.py` `/version` endpoint now returns the correct package version instead of hardcoded `1.11.2`
+- `BackendManager` is now cached as a singleton via `get_manager()` — avoids re-discovering entry points on every call
+- Added missing `return` after `_handle_error(e)` in 66 CLI command paths — prevents `NameError` and unintended output after errors
+- `FakeBackend` in `test_manager.py` now implements `set_files` abstract method
+
 ## v2.0.0 — 2026-07-06
 
 ### Changed
