@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from browsix.backend.manager import BackendManager
-from browsix.exceptions import BackendNotAvailableError
+from wavexis.backend.manager import BackendManager
+from wavexis.exceptions import BackendNotAvailableError
 
 
 @pytest.mark.integration

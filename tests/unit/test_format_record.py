@@ -10,8 +10,8 @@ from pathlib import Path
 import pytest
 import yaml
 
-from browsix.actions.record import events_to_yaml
-from browsix.output import Output
+from wavexis.actions.record import events_to_yaml
+from wavexis.output import Output
 
 
 @pytest.mark.unit

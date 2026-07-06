@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from browsix.auth import AuthContext, load_auth, load_auth_context, load_headers
+from wavexis.auth import AuthContext, load_auth, load_auth_context, load_headers
 
 
 class TestLoadAuthContext:

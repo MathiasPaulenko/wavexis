@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from browsix.actions.webauthn import WebAuthnAction, WebAuthnParams
+from wavexis.actions.webauthn import WebAuthnAction, WebAuthnParams
 
 
 @pytest.mark.unit

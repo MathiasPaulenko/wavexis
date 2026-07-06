@@ -1,6 +1,6 @@
-# Contributing to browsix
+# Contributing to wavexis
 
-Thank you for your interest in contributing to browsix! This document outlines
+Thank you for your interest in contributing to wavexis! This document outlines
 the process for contributing bug reports, feature requests, code changes, and
 documentation improvements.
 
@@ -15,8 +15,8 @@ documentation improvements.
 ### Development Setup
 
 ```bash
-git clone https://github.com/MathiasPaulenko/browsix.git
-cd browsix
+git clone https://github.com/MathiasPaulenko/wavexis.git
+cd wavexis
 pip install -e ".[cdp,dev]"
 ```
 
@@ -24,11 +24,11 @@ pip install -e ".[cdp,dev]"
 
 ```bash
 # Unit tests (no browser required)
-pytest tests/unit/ -v --cov=browsix --cov-report=term-missing
+pytest tests/unit/ -v --cov=wavexis --cov-report=term-missing
 
 # Linting and type checking
 ruff check .
-mypy browsix/
+mypy wavexis/
 
 # Spike test (requires Chrome installed)
 python spike.py
@@ -37,8 +37,8 @@ python spike.py
 ### Project Structure
 
 ```
-browsix/
-├── browsix/              # Source code
+wavexis/
+├── wavexis/              # Source code
 │   ├── cli/              # Typer CLI commands
 │   ├── backend/          # Backend abstraction (CDPBackend, BiDiBackend)
 │   ├── actions/          # Action classes (ScreenshotAction, etc.)
@@ -63,7 +63,7 @@ creating a bug report, use the **Bug Report** issue template and include:
 1. A clear description of the problem
 2. Steps to reproduce the issue
 3. Expected vs actual behavior
-4. browsix version, Python version, OS, and browser version
+4. wavexis version, Python version, OS, and browser version
 5. Minimal command example (if applicable)
 
 ### Suggesting Features
@@ -81,7 +81,7 @@ Use the **Feature Request** issue template. Describe:
 3. **Ensure all checks pass**:
    ```bash
    ruff check .
-   mypy browsix/
+   mypy wavexis/
    pytest tests/unit/ -v
    ```
 4. **Use conventional commit messages**:
@@ -106,7 +106,7 @@ Use the **Feature Request** issue template. Describe:
 
 Releases are managed by the maintainer:
 
-1. Version bump in `pyproject.toml` and `browsix/__init__.py`
+1. Version bump in `pyproject.toml` and `wavexis/__init__.py`
 2. Create annotated git tag (`vX.Y.Z`)
 3. GitHub Actions builds and publishes to PyPI automatically
 

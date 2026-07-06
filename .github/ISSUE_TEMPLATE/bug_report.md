@@ -1,7 +1,7 @@
 ---
 
 name: Bug Report
-about: Report a bug to help us improve browsix
+about: Report a bug to help us improve wavexis
 title: "[BUG] "
 labels: bug
 ---
@@ -12,7 +12,7 @@ A clear and concise description of the bug.
 
 ## Steps to Reproduce
 
-1. Run `browsix ...`
+1. Run `wavexis ...`
 2. ...
 3. See error
 
@@ -26,7 +26,7 @@ What actually happened.
 
 ## Environment
 
-- browsix version: `browsix --version` (or pip show browsix)
+- wavexis version: `wavexis --version` (or pip show wavexis)
 - Python version: `python --version`
 - OS: [e.g. Windows 11, Ubuntu 22.04, macOS 14]
 - Browser: [e.g. Chrome 125, Edge 125, Brave 1.65]

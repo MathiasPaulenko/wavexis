@@ -4,9 +4,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from browsix.actions.input import InputAction
-from browsix.backend.base import AbstractBackend
-from browsix.config import InputParams
+from wavexis.actions.input import InputAction
+from wavexis.backend.base import AbstractBackend
+from wavexis.config import InputParams
 
 
 @pytest.mark.unit

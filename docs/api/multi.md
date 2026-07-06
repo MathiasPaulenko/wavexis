@@ -1,3 +1,3 @@
 # Multi
 
-::: browsix.multi
+::: wavexis.multi

@@ -4,9 +4,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from browsix.actions.animation import AnimationAction
-from browsix.backend.base import AbstractBackend
-from browsix.config import AnimationParams
+from wavexis.actions.animation import AnimationAction
+from wavexis.backend.base import AbstractBackend
+from wavexis.config import AnimationParams
 
 
 @pytest.mark.unit

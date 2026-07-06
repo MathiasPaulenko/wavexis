@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from browsix.config import SensorParams, ThrottleParams
+from wavexis.config import SensorParams, ThrottleParams
 
 
 @pytest.mark.unit
@@ -14,7 +14,7 @@ class TestBiDiBackendPhase5:
     """Test suite for bidibackendphase5."""
     def _make_bidi_backend(self) -> Any:
         """ make bidi backend."""
-        from browsix.backend.bidi import BiDiBackend
+        from wavexis.backend.bidi import BiDiBackend
 
         backend = BiDiBackend()
         backend._client = MagicMock()

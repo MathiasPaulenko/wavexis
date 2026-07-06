@@ -1,3 +1,3 @@
 # Config
 
-::: browsix.config
+::: wavexis.config

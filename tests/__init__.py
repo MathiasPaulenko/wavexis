@@ -1,1 +1,1 @@
-"""Test suite for browsix."""
+"""Test suite for wavexis."""

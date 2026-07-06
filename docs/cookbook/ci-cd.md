@@ -13,9 +13,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install browsix[cdp]
+      - run: pip install wavexis[cdp]
       - uses: browser-actions/setup-chrome@v1
-      - run: browsix screenshot https://example.com -o out.png
+      - run: wavexis screenshot https://example.com -o out.png
       - uses: actions/upload-artifact@v4
         with:
           name: screenshot
@@ -37,24 +37,24 @@ actions:
 ```
 
 ```yaml
-- run: browsix multi actions.yml
+- run: wavexis multi actions.yml
 ```
 
 ## Docker
 
-browsix ships with a multi-stage Dockerfile for serve mode. The image is published to GHCR on every release tag.
+wavexis ships with a multi-stage Dockerfile for serve mode. The image is published to GHCR on every release tag.
 
 ### Pull from GHCR
 
 ```bash
-docker run -p 8080:8080 ghcr.io/mathiaspaulenko/browsix:latest
+docker run -p 8080:8080 ghcr.io/mathiaspaulenko/wavexis:latest
 ```
 
 ### Build locally
 
 ```bash
-docker build -t browsix .
-docker run -p 8080:8080 browsix
+docker build -t wavexis .
+docker run -p 8080:8080 wavexis
 ```
 
 ### Dockerfile (multi-stage)
@@ -63,7 +63,7 @@ docker run -p 8080:8080 browsix
 FROM python:3.12-slim AS builder
 WORKDIR /build
 COPY pyproject.toml README.md ./
-COPY browsix/ browsix/
+COPY wavexis/ wavexis/
 RUN pip install build && python -m build --wheel
 
 FROM python:3.12-slim AS runtime
@@ -75,7 +75,7 @@ RUN pip install /tmp/*.whl[cdp,serve] && rm /tmp/*.whl
 ENV CHROME_PATH=/usr/bin/chromium
 EXPOSE 8080
 HEALTHCHECK CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')" || exit 1
-ENTRYPOINT ["browsix", "serve", "--host", "0.0.0.0", "--port", "8080"]
+ENTRYPOINT ["wavexis", "serve", "--host", "0.0.0.0", "--port", "8080"]
 ```
 
 ### CI matrix
@@ -87,4 +87,4 @@ CI runs unit tests on Python 3.11, 3.12, and 3.13 with coverage reporting. Serve
 On `v*.*.*` tag push:
 1. Build sdist + wheel
 2. Publish to PyPI (trusted publishing)
-3. Build and push Docker image to `ghcr.io/mathiaspaulenko/browsix` with semver tags
+3. Build and push Docker image to `ghcr.io/mathiaspaulenko/wavexis` with semver tags

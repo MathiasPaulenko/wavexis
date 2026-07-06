@@ -4,9 +4,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from browsix.actions.storage import StorageAction
-from browsix.backend.base import AbstractBackend
-from browsix.config import StorageParams
+from wavexis.actions.storage import StorageAction
+from wavexis.backend.base import AbstractBackend
+from wavexis.config import StorageParams
 
 
 @pytest.mark.unit

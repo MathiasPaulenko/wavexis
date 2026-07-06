@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from browsix.cli.app import _check_assertion
+from wavexis.cli.app import _check_assertion
 
 
 @pytest.mark.unit
@@ -86,7 +86,7 @@ class TestMultiDispatchCookies:
 
     async def test_cookies_get_dispatch(self) -> None:
         """Test cookies get action is dispatched correctly in multi."""
-        from browsix.multi import _dispatch
+        from wavexis.multi import _dispatch
 
         backend = MagicMock()
         backend.launch = AsyncMock()
@@ -104,7 +104,7 @@ class TestMultiDispatchCookies:
 
     async def test_cookies_set_dispatch(self) -> None:
         """Test cookies set action is dispatched correctly in multi."""
-        from browsix.multi import _dispatch
+        from wavexis.multi import _dispatch
 
         backend = MagicMock()
         backend.launch = AsyncMock()
@@ -131,7 +131,7 @@ class TestMultiDispatchCookies:
 
     async def test_cookies_clear_dispatch(self) -> None:
         """Test cookies clear action is dispatched correctly in multi."""
-        from browsix.multi import _dispatch
+        from wavexis.multi import _dispatch
 
         backend = MagicMock()
         backend.launch = AsyncMock()
@@ -154,7 +154,7 @@ class TestMultiDispatchHeaders:
 
     async def test_headers_set_headers_dispatch(self) -> None:
         """Test headers set-headers action is dispatched correctly in multi."""
-        from browsix.multi import _dispatch
+        from wavexis.multi import _dispatch
 
         backend = MagicMock()
         backend.launch = AsyncMock()
@@ -176,7 +176,7 @@ class TestMultiDispatchHeaders:
 
     async def test_headers_set_user_agent_dispatch(self) -> None:
         """Test headers set-user-agent action is dispatched correctly in multi."""
-        from browsix.multi import _dispatch
+        from wavexis.multi import _dispatch
 
         backend = MagicMock()
         backend.launch = AsyncMock()

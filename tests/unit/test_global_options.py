@@ -7,12 +7,12 @@ from pathlib import Path
 
 import pytest
 
-import browsix.cli.app  # noqa: F401 — ensure module is loaded
-from browsix.config import BrowserOptions
+import wavexis.cli.app  # noqa: F401 — ensure module is loaded
+from wavexis.config import BrowserOptions
 
 pytestmark = pytest.mark.unit
 
-_cli = sys.modules["browsix.cli.app"]
+_cli = sys.modules["wavexis.cli.app"]
 
 
 class TestBrowserOptions:
@@ -91,7 +91,7 @@ class TestLoadGlobalConfig:
         assert _cli._proxy is None
 
     def test_loads_config(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        config_dir = tmp_path / ".browsix"
+        config_dir = tmp_path / ".wavexis"
         config_dir.mkdir()
         config_file = config_dir / "config.yml"
         config_file.write_text(
@@ -114,7 +114,7 @@ class TestLoadGlobalConfig:
     def test_cli_overrides_config(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        config_dir = tmp_path / ".browsix"
+        config_dir = tmp_path / ".wavexis"
         config_dir.mkdir()
         config_file = config_dir / "config.yml"
         config_file.write_text("backend: bidi\ntimeout: 60000\n", encoding="utf-8")
@@ -131,7 +131,7 @@ class TestLoadGlobalConfig:
 
 
 class TestConfigCommand:
-    """Tests for browsix config command."""
+    """Tests for wavexis config command."""
 
     def test_config_path(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
@@ -140,7 +140,7 @@ class TestConfigCommand:
         runner = CliRunner()
         result = runner.invoke(_cli.app, ["config", "path"])
         assert result.exit_code == 0
-        assert str(tmp_path / ".browsix" / "config.yml") in result.output
+        assert str(tmp_path / ".wavexis" / "config.yml") in result.output
 
     def test_config_init(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
@@ -149,7 +149,7 @@ class TestConfigCommand:
         runner = CliRunner()
         result = runner.invoke(_cli.app, ["config", "init"])
         assert result.exit_code == 0
-        config_path = tmp_path / ".browsix" / "config.yml"
+        config_path = tmp_path / ".wavexis" / "config.yml"
         assert config_path.exists()
         import yaml
 
@@ -169,7 +169,7 @@ class TestConfigCommand:
             _cli.app, ["config", "set", "--key", "timeout", "--value", "45000"]
         )
         assert result.exit_code == 0
-        config_path = tmp_path / ".browsix" / "config.yml"
+        config_path = tmp_path / ".wavexis" / "config.yml"
         import yaml
 
         data = yaml.safe_load(config_path.read_text(encoding="utf-8"))
@@ -186,7 +186,7 @@ class TestConfigCommand:
             _cli.app, ["config", "set", "--key", "headless", "--value", "false"]
         )
         assert result.exit_code == 0
-        config_path = tmp_path / ".browsix" / "config.yml"
+        config_path = tmp_path / ".wavexis" / "config.yml"
         import yaml
 
         data = yaml.safe_load(config_path.read_text(encoding="utf-8"))
@@ -206,7 +206,7 @@ class TestConfigCommand:
     def test_config_show(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        config_dir = tmp_path / ".browsix"
+        config_dir = tmp_path / ".wavexis"
         config_dir.mkdir()
         (config_dir / "config.yml").write_text(
             "backend: cdp\ntimeout: 30000\n", encoding="utf-8"

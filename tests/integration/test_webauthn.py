@@ -2,9 +2,9 @@
 
 import pytest
 
-from browsix.actions.webauthn import WebAuthnAction, WebAuthnParams
-from browsix.backend.cdp import CDPBackend
-from browsix.config import BrowserOptions, WaitStrategy
+from wavexis.actions.webauthn import WebAuthnAction, WebAuthnParams
+from wavexis.backend.cdp import CDPBackend
+from wavexis.config import BrowserOptions, WaitStrategy
 
 pytestmark = [pytest.mark.integration, pytest.mark.chrome]
 

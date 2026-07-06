@@ -1,6 +1,6 @@
 # Init Wizard
 
-The `browsix init` command generates `browsix.yaml` configuration files from predefined templates. It provides an interactive wizard for beginners and direct flags for scripting.
+The `wavexis init` command generates `wavexis.yaml` configuration files from predefined templates. It provides an interactive wizard for beginners and direct flags for scripting.
 
 ## Why use init?
 
@@ -8,13 +8,13 @@ Writing multi-action YAML configs from scratch requires knowing the exact action
 
 - **Providing templates** — 7 pre-built configs for common automation scenarios.
 - **Guiding interactively** — prompts for the essential parameters (URL, expression, selector, text) so you don't need to memorize the YAML schema.
-- **Generating valid YAML** — output is always parseable and ready to run with `browsix multi`.
+- **Generating valid YAML** — output is always parseable and ready to run with `wavexis multi`.
 - **Supporting non-interactive mode** — use flags for scripting and CI.
 
 ## Interactive mode
 
 ```bash
-browsix init
+wavexis init
 ```
 
 The wizard shows available templates and prompts for selection:
@@ -31,8 +31,8 @@ Available templates:
 
 Select template (number or name): 1
 URL (default: https://example.com): https://my-site.com
-Config saved to browsix.yaml
-Run with: browsix multi browsix.yaml
+Config saved to wavexis.yaml
+Run with: wavexis multi wavexis.yaml
 ```
 
 ## Non-interactive mode
@@ -40,7 +40,7 @@ Run with: browsix multi browsix.yaml
 Generate a config directly with flags — useful for scripts and CI:
 
 ```bash
-browsix init -t screenshot -u https://example.com -o config.yaml
+wavexis init -t screenshot -u https://example.com -o config.yaml
 ```
 
 ### Options
@@ -52,7 +52,7 @@ browsix init -t screenshot -u https://example.com -o config.yaml
 | `-e, --expression` | JavaScript expression (for scrape, eval templates) |
 | `-s, --selector` | CSS selector (for multi-step click action) |
 | `--text` | Text to type (for multi-step type action) |
-| `-o, --output` | Output file path (default: browsix.yaml) |
+| `-o, --output` | Output file path (default: wavexis.yaml) |
 | `--list` | List available templates and exit |
 
 ## Templates
@@ -159,7 +159,7 @@ When using non-interactive mode, you can override template defaults:
 ### Example: customized multi-step
 
 ```bash
-browsix init -t multi-step -u https://app.example.com -s "#submit-btn" --text "hello world" -o login.yaml
+wavexis init -t multi-step -u https://app.example.com -s "#submit-btn" --text "hello world" -o login.yaml
 ```
 
 Generates:
@@ -183,7 +183,7 @@ actions:
 ## Listing templates
 
 ```bash
-browsix init --list
+wavexis init --list
 ```
 
 Output:
@@ -203,8 +203,8 @@ Available templates:
 
 A typical workflow using init:
 
-1. **Generate a starter config**: `browsix init -t multi-step -u https://my-app.com -o config.yaml`
+1. **Generate a starter config**: `wavexis init -t multi-step -u https://my-app.com -o config.yaml`
 2. **Edit the config**: Add or modify actions in the YAML file.
-3. **Validate**: `browsix multi config.yaml --dry-run`
-4. **Run**: `browsix multi config.yaml`
-5. **Iterate with watch**: `browsix multi config.yaml --watch` — edit and save to re-run automatically.
+3. **Validate**: `wavexis multi config.yaml --dry-run`
+4. **Run**: `wavexis multi config.yaml`
+5. **Iterate with watch**: `wavexis multi config.yaml --watch` — edit and save to re-run automatically.

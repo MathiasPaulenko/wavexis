@@ -1,19 +1,19 @@
 # Auth Profiles
 
-browsix can save browser credentials and reuse them for authenticated scraping.
+wavexis can save browser credentials and reuse them for authenticated scraping.
 
 ## Save credentials
 
 ```bash
-browsix auth save mysite --user admin --pass secret123
+wavexis auth save mysite --user admin --pass secret123
 ```
 
-Credentials are stored locally in `~/.browsix/auth/` encrypted with your system keyring.
+Credentials are stored locally in `~/.wavexis/auth/` encrypted with your system keyring.
 
 ## Use credentials
 
 ```bash
-browsix auth use mysite --url https://example.com/login
+wavexis auth use mysite --url https://example.com/login
 ```
 
 This launches a browser, navigates to the login URL, fills in the credentials,
@@ -22,13 +22,13 @@ and saves the session cookies for reuse.
 ## List saved profiles
 
 ```bash
-browsix auth list
+wavexis auth list
 ```
 
 ## Delete a profile
 
 ```bash
-browsix auth delete mysite
+wavexis auth delete mysite
 ```
 
 ## Multi-action with auth
@@ -44,5 +44,5 @@ actions:
 ```
 
 ```bash
-browsix multi auth-screenshot.yml
+wavexis multi auth-screenshot.yml
 ```

@@ -4,7 +4,7 @@ The `--assert` flag on the `eval` command enables pass/fail gates directly from 
 
 ## How it works
 
-When `--assert` is provided, `browsix eval` evaluates the JavaScript expression, compares the result against the assertion, and exits with code 0 (pass) or 1 (fail). The assertion output is printed to stdout for CI logs.
+When `--assert` is provided, `wavexis eval` evaluates the JavaScript expression, compares the result against the assertion, and exits with code 0 (pass) or 1 (fail). The assertion output is printed to stdout for CI logs.
 
 ## Operators
 
@@ -20,7 +20,7 @@ Four assertion operators are supported:
 ## Usage
 
 ```bash
-browsix eval <url> -e "<expression>" --assert "<operator> <value>"
+wavexis eval <url> -e "<expression>" --assert "<operator> <value>"
 ```
 
 ## Examples
@@ -30,7 +30,7 @@ browsix eval <url> -e "<expression>" --assert "<operator> <value>"
 Verify the page title matches an expected value:
 
 ```bash
-browsix eval https://example.com -e "document.title" --assert "== Example Domain"
+wavexis eval https://example.com -e "document.title" --assert "== Example Domain"
 ```
 
 Output:
@@ -48,7 +48,7 @@ Exit code: 0
 Verify the page title has changed from an old value:
 
 ```bash
-browsix eval https://example.com -e "document.title" --assert "!= Old Title"
+wavexis eval https://example.com -e "document.title" --assert "!= Old Title"
 ```
 
 ### Substring check
@@ -56,7 +56,7 @@ browsix eval https://example.com -e "document.title" --assert "!= Old Title"
 Verify the page body contains expected text:
 
 ```bash
-browsix eval https://example.com -e "document.body.innerText" --assert "contains Welcome"
+wavexis eval https://example.com -e "document.body.innerText" --assert "contains Welcome"
 ```
 
 ### Regex match
@@ -64,7 +64,7 @@ browsix eval https://example.com -e "document.body.innerText" --assert "contains
 Verify the title matches a pattern (e.g., contains an error code):
 
 ```bash
-browsix eval https://example.com -e "document.title" --assert "matches Error \\d+"
+wavexis eval https://example.com -e "document.title" --assert "matches Error \\d+"
 ```
 
 ### Numeric comparison
@@ -72,7 +72,7 @@ browsix eval https://example.com -e "document.title" --assert "matches Error \\d
 The result is converted to a string before comparison, so numeric results work with `==`:
 
 ```bash
-browsix eval https://example.com -e "document.querySelectorAll('a').length" --assert "== 5"
+wavexis eval https://example.com -e "document.querySelectorAll('a').length" --assert "== 5"
 ```
 
 ## CI pipeline integration
@@ -87,15 +87,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: pip install browsix[cdp]
+      - run: pip install wavexis[cdp]
       - name: Check page title
         run: |
-          browsix eval https://my-app.com \
+          wavexis eval https://my-app.com \
             -e "document.title" \
             --assert "== My App — Dashboard"
       - name: Check content loaded
         run: |
-          browsix eval https://my-app.com \
+          wavexis eval https://my-app.com \
             -e "document.querySelector('#root').children.length" \
             --assert "!= 0"
 ```
@@ -109,15 +109,15 @@ set -e
 URL="https://my-app.com"
 
 # Verify title
-browsix eval "$URL" -e "document.title" --assert "== Dashboard"
+wavexis eval "$URL" -e "document.title" --assert "== Dashboard"
 
 # Verify API data loaded
-browsix eval "$URL" \
+wavexis eval "$URL" \
   -e "document.querySelector('[data-testid=user-list]').children.length" \
   --assert "!= 0"
 
 # Verify no error messages
-browsix eval "$URL" \
+wavexis eval "$URL" \
   -e "document.querySelector('.error-message')?.textContent || ''" \
   --assert "== "
 
@@ -148,7 +148,7 @@ On failure, a fourth line is printed to stderr with details:
 - `--file` — read the expression from a file and assert on the result.
 
 ```bash
-browsix eval https://example.com \
+wavexis eval https://example.com \
   --file check.js \
   --await-promise \
   --assert "== expected result"
@@ -157,5 +157,5 @@ browsix eval https://example.com \
 ## Limitations
 
 - **String comparison** — All comparisons are string-based. The result is converted with `str()` before comparing. This means `42` and `"42"` are equal.
-- **No numeric operators** — Operators like `>`, `<`, `>=`, `<=` are not supported. Use `matches` with regex for range checks, or compare in JavaScript: `browsix eval url -e "performance.now() < 3000 ? 'pass' : 'fail'" --assert "== pass"`.
+- **No numeric operators** — Operators like `>`, `<`, `>=`, `<=` are not supported. Use `matches` with regex for range checks, or compare in JavaScript: `wavexis eval url -e "performance.now() < 3000 ? 'pass' : 'fail'" --assert "== pass"`.
 - **Single assertion** — Only one assertion per command. For multiple checks, run multiple `eval` commands or use a multi-action YAML config.

@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from browsix.backend.cdp import CDPBackend
-from browsix.config import BrowserOptions
-from browsix.record import record_to_yaml, replay_from_yaml
+from wavexis.backend.cdp import CDPBackend
+from wavexis.config import BrowserOptions
+from wavexis.record import record_to_yaml, replay_from_yaml
 
 pytestmark = [pytest.mark.integration, pytest.mark.chrome]
 

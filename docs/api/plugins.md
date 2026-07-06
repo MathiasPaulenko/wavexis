@@ -1,3 +1,3 @@
 # Plugins
 
-::: browsix.plugins
+::: wavexis.plugins

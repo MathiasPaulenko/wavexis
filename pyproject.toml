@@ -3,8 +3,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "browsix"
-version = "1.20.0"
+name = "wavexis"
+version = "2.0.0"
 description = "Browser automation CLI — wraps cdpwave and bidiwave, no Node.js, no Chromium download"
 readme = "README.md"
 license = { text = "MIT" }
@@ -50,18 +50,18 @@ docs = [
 ]
 
 [project.scripts]
-browsix = "browsix.cli:main"
+wavexis = "wavexis.cli:main"
 
-[project.entry-points."browsix.plugins"]
+[project.entry-points."wavexis.plugins"]
 # Third-party plugins register here, e.g.:
 # my-action = "my_plugin:action_plugin"
 # my-backend = "my_plugin:MyBackend"
 # my-middleware = "my_plugin:make_middleware"
 
 [project.urls]
-Homepage = "https://github.com/MathiasPaulenko/browsix"
-Repository = "https://github.com/MathiasPaulenko/browsix"
-Issues = "https://github.com/MathiasPaulenko/browsix/issues"
+Homepage = "https://github.com/MathiasPaulenko/wavexis"
+Repository = "https://github.com/MathiasPaulenko/wavexis"
+Issues = "https://github.com/MathiasPaulenko/wavexis/issues"
 
 [tool.ruff]
 line-length = 100
@@ -87,4 +87,4 @@ markers = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["browsix"]
+packages = ["wavexis"]

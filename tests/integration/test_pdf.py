@@ -2,9 +2,9 @@
 
 import pytest
 
-from browsix.actions.pdf import PDFAction
-from browsix.backend.manager import BackendManager
-from browsix.config import BrowserOptions, PDFParams, WaitStrategy
+from wavexis.actions.pdf import PDFAction
+from wavexis.backend.manager import BackendManager
+from wavexis.config import BrowserOptions, PDFParams, WaitStrategy
 
 
 @pytest.mark.integration

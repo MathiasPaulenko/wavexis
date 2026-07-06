@@ -1,13 +1,13 @@
 # Backends
 
-browsix supports two backends with **full feature parity** as of v1.7.0.
+wavexis supports two backends with **full feature parity** as of v1.7.0.
 
 ## CDP backend (cdpwave)
 
 The default backend. Uses the Chrome DevTools Protocol directly.
 
 ```bash
-pip install browsix[cdp]
+pip install wavexis[cdp]
 ```
 
 All 100+ methods are supported natively.
@@ -21,7 +21,7 @@ WebDriver BiDi backend. Uses a combination of:
 - **CDP bridge** — `browser.cdp.sendCommand` for Debugger, WebAuthn, WebAudio, Media, Cast, Bluetooth, performance profiling, accessibility, IndexedDB, HAR
 
 ```bash
-pip install browsix[bidi]
+pip install wavexis[bidi]
 ```
 
 All 100+ methods are supported. Zero `NotImplementedError`.
@@ -39,14 +39,14 @@ All 100+ methods are supported. Zero `NotImplementedError`.
 Use the `--backend` global flag:
 
 ```bash
-browsix --backend cdp screenshot https://example.com -o out.png
-browsix --backend bidi screenshot https://example.com -o out.png
+wavexis --backend cdp screenshot https://example.com -o out.png
+wavexis --backend bidi screenshot https://example.com -o out.png
 ```
 
 ## Checking installation
 
 ```bash
-browsix install_check
+wavexis install_check
 ```
 
 Output:
@@ -59,7 +59,7 @@ Output:
 ## Listing available backends
 
 ```bash
-browsix backends
+wavexis backends
 ```
 
 ## When to use which

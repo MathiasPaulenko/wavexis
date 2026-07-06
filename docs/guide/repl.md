@@ -1,6 +1,6 @@
 # REPL
 
-The `browsix repl` command launches an interactive shell for live browser sessions. It opens a non-headless browser and lets you execute commands in real time — navigate, click, type, take screenshots, evaluate JavaScript, and inspect page state without writing scripts.
+The `wavexis repl` command launches an interactive shell for live browser sessions. It opens a non-headless browser and lets you execute commands in real time — navigate, click, type, take screenshots, evaluate JavaScript, and inspect page state without writing scripts.
 
 ## When to use the REPL
 
@@ -14,14 +14,14 @@ The REPL is designed for **interactive exploration and debugging**. Use it when 
 ## Launching
 
 ```bash
-browsix repl
+wavexis repl
 ```
 
 This opens a Chrome window (non-headless) and starts the interactive prompt:
 
 ```text
-browsix REPL — type 'help' for commands, 'exit' to quit
-browsix>
+wavexis REPL — type 'help' for commands, 'exit' to quit
+wavexis>
 ```
 
 ## Commands
@@ -53,44 +53,44 @@ The REPL supports 16 commands, each mapping to a backend operation:
 ### Basic navigation and inspection
 
 ```text
-browsix> navigate https://example.com
-browsix> title
+wavexis> navigate https://example.com
+wavexis> title
 Example Domain
-browsix> url
+wavexis> url
 https://example.com/
-browsix> eval document.querySelector('h1').textContent
+wavexis> eval document.querySelector('h1').textContent
 Example Domain
 ```
 
 ### Form interaction
 
 ```text
-browsix> navigate https://example.com/login
-browsix> type #username admin@example.com
-browsix> type #password secret123
-browsix> click #login-button
-browsix> wait 2
-browsix> title
+wavexis> navigate https://example.com/login
+wavexis> type #username admin@example.com
+wavexis> type #password secret123
+wavexis> click #login-button
+wavexis> wait 2
+wavexis> title
 Dashboard - Example App
-browsix> screenshot dashboard.png
+wavexis> screenshot dashboard.png
 ```
 
 ### Cookie inspection
 
 ```text
-browsix> navigate https://example.com
-browsix> cookies
+wavexis> navigate https://example.com
+wavexis> cookies
 [{"name": "session", "value": "abc123", "domain": ".example.com", ...}]
 ```
 
 ### Keyboard input
 
 ```text
-browsix> navigate https://example.com/search
-browsix> type #search-input hello world
-browsix> key Enter
-browsix> wait 1
-browsix> screenshot results.png
+wavexis> navigate https://example.com/search
+wavexis> type #search-input hello world
+wavexis> key Enter
+wavexis> wait 1
+wavexis> screenshot results.png
 ```
 
 ## How it works
@@ -110,4 +110,4 @@ The browser stays open for the duration of the session, so you can chain command
 - **Selectors** — Use CSS selectors (e.g. `#id`, `.class`, `tag`). Quote selectors with special characters: `click "button[data-action='submit']"`.
 - **Multi-word text** — The `type` and `fill` commands accept text with spaces. The REPL uses `shlex.split` so you can quote: `type #input "hello world"`.
 - **Screenshots** — Without a filename, screenshots are saved to `screenshot.png`. Provide a path to customize: `screenshot /tmp/page.png`.
-- **Backend selection** — Use `--backend bidi` to launch the REPL with the BiDi backend: `browsix --backend bidi repl`.
+- **Backend selection** — Use `--backend bidi` to launch the REPL with the BiDi backend: `wavexis --backend bidi repl`.

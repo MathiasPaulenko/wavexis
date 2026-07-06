@@ -1,50 +1,50 @@
 # Debugging
 
-browsix provides debugger commands via the CDP bridge.
+wavexis provides debugger commands via the CDP bridge.
 
 ## Set a breakpoint
 
 ```bash
-browsix debug-break https://example.com --line 25
+wavexis debug-break https://example.com --line 25
 ```
 
 Set a conditional breakpoint:
 
 ```bash
-browsix debug-break https://example.com --line 25 --condition "x > 100"
+wavexis debug-break https://example.com --line 25 --condition "x > 100"
 ```
 
 ## Set a function breakpoint
 
 ```bash
-browsix debug-break https://example.com --function "handleClick"
+wavexis debug-break https://example.com --function "handleClick"
 ```
 
 ## Stepping
 
 ```bash
-browsix debug-step over
-browsix debug-step into
-browsix debug-step out
+wavexis debug-step over
+wavexis debug-step into
+wavexis debug-step out
 ```
 
 ## Pause and resume
 
 ```bash
-browsix debug-pause
-browsix debug-resume
+wavexis debug-pause
+wavexis debug-resume
 ```
 
 ## Remove a breakpoint
 
 ```bash
-browsix debug-break --remove <breakpoint-id>
+wavexis debug-break --remove <breakpoint-id>
 ```
 
 ## Get event listeners
 
 ```bash
-browsix eval https://example.com -e "
+wavexis eval https://example.com -e "
   JSON.stringify(
     getEventListeners(document.querySelector('button'))
   )
@@ -55,7 +55,7 @@ browsix eval https://example.com -e "
 
 ```bash
 # Start serve mode
-browsix serve --port 8080
+wavexis serve --port 8080
 
 # Set breakpoint via API
 curl -X POST http://localhost:8080/debug/breakpoint \

@@ -1,6 +1,17 @@
 # Changelog
 
-All notable changes to browsix are documented in this file.
+All notable changes to wavexis are documented in this file.
+
+## v2.0.0 — 2026-07-06
+
+### Changed
+
+- **Breaking:** Renamed package from `browsix` to `wavexis`
+- CLI entry point changed from `browsix` to `wavexis`
+- Plugin entry-point group changed from `browsix.plugins` to `wavexis.plugins`
+- All imports updated from `browsix.*` to `wavexis.*`
+- Project URLs updated to `github.com/MathiasPaulenko/wavexis`
+- Version bumped to 2.0.0
 
 ## v1.0.0 — 2026-07-05
 
@@ -9,7 +20,7 @@ All notable changes to browsix are documented in this file.
 - Error handling with consistent exit codes (0 success, 1 browser, 2 config, 3 backend)
 - `Output.error()`, `Output.success()`, `Output.info()` with optional rich formatting
 - Global CLI flags: `--verbose`, `--quiet`, `--version`
-- Shell completions command (`browsix completions <shell>`)
+- Shell completions command (`wavexis completions <shell>`)
 - GitHub Actions CI workflow (lint, typecheck, unit tests, integration tests)
 - GitHub Actions release workflow (PyPI publish, GitHub Pages docs)
 - mkdocs documentation site with material theme
@@ -65,7 +76,7 @@ All notable changes to browsix are documented in this file.
 
 ### Added
 
-- Initial browsix release
+- Initial wavexis release
 - `AbstractBackend` interface with all core methods
 - `CDPBackend` implementation using cdpwave
 - `BiDiBackend` minimal implementation using bidiwave
@@ -75,6 +86,6 @@ All notable changes to browsix are documented in this file.
 - `BrowserOptions`, `ScreenshotParams`, `PDFParams`, `EvalParams` dataclasses
 - `WaitStrategy` with load, domcontentloaded, selector, networkidle strategies
 - `Output` helpers for bytes, JSON, text, CSV
-- Exception hierarchy: `BrowsixError`, `BackendNotAvailableError`, `NavigationError`, `WaitTimeoutError`, `ElementNotFoundError`
+- Exception hierarchy: `wavexisError`, `BackendNotAvailableError`, `NavigationError`, `WaitTimeoutError`, `ElementNotFoundError`
 - Typer CLI with help strings and no-args-is-help
 - Unit and integration test infrastructure

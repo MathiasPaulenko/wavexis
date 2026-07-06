@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from browsix.config import ScreenshotParams
+from wavexis.config import ScreenshotParams
 
 
 @pytest.mark.unit
@@ -14,16 +14,16 @@ class TestBiDiBackend:
     """Test suite for bidibackend."""
     def test_import_error(self) -> None:
         """Test import error."""
-        with patch("browsix.backend.bidi.BiDiClient", None):
-            from browsix.backend.bidi import BiDiBackend
+        with patch("wavexis.backend.bidi.BiDiClient", None):
+            from wavexis.backend.bidi import BiDiBackend
 
             with pytest.raises(ImportError, match="bidiwave"):
                 BiDiBackend()
 
     async def test_implemented_methods_raise_runtime_without_launch(self) -> None:
         """Test implemented methods raise runtime without launch."""
-        with patch("browsix.backend.bidi.BiDiClient", MagicMock()):
-            from browsix.backend.bidi import BiDiBackend
+        with patch("wavexis.backend.bidi.BiDiClient", MagicMock()):
+            from wavexis.backend.bidi import BiDiBackend
 
             backend = BiDiBackend()
             with pytest.raises(RuntimeError, match="not launched"):
@@ -189,8 +189,8 @@ class TestBiDiBackend:
 
     async def test_bidi_paridad_methods_raise_runtime_without_launch(self) -> None:
         """Test bidi paridad methods raise runtime without launch."""
-        with patch("browsix.backend.bidi.BiDiClient", MagicMock()):
-            from browsix.backend.bidi import BiDiBackend
+        with patch("wavexis.backend.bidi.BiDiClient", MagicMock()):
+            from wavexis.backend.bidi import BiDiBackend
 
             backend = BiDiBackend()
             with pytest.raises(RuntimeError, match="not launched"):
@@ -222,8 +222,8 @@ class TestBiDiBackend:
 
     async def test_navigate_without_launch(self) -> None:
         """Test navigate without launch."""
-        with patch("browsix.backend.bidi.BiDiClient", MagicMock()):
-            from browsix.backend.bidi import BiDiBackend
+        with patch("wavexis.backend.bidi.BiDiClient", MagicMock()):
+            from wavexis.backend.bidi import BiDiBackend
 
             backend = BiDiBackend()
             with pytest.raises(RuntimeError, match="not launched"):
@@ -231,8 +231,8 @@ class TestBiDiBackend:
 
     async def test_eval_without_launch(self) -> None:
         """Test eval without launch."""
-        with patch("browsix.backend.bidi.BiDiClient", MagicMock()):
-            from browsix.backend.bidi import BiDiBackend
+        with patch("wavexis.backend.bidi.BiDiClient", MagicMock()):
+            from wavexis.backend.bidi import BiDiBackend
 
             backend = BiDiBackend()
             with pytest.raises(RuntimeError, match="not launched"):
@@ -240,8 +240,8 @@ class TestBiDiBackend:
 
     async def test_raw_without_launch(self) -> None:
         """Test raw without launch."""
-        with patch("browsix.backend.bidi.BiDiClient", MagicMock()):
-            from browsix.backend.bidi import BiDiBackend
+        with patch("wavexis.backend.bidi.BiDiClient", MagicMock()):
+            from wavexis.backend.bidi import BiDiBackend
 
             backend = BiDiBackend()
             with pytest.raises(RuntimeError, match="not launched"):
@@ -249,8 +249,8 @@ class TestBiDiBackend:
 
     async def test_screenshot_without_launch(self) -> None:
         """Test screenshot without launch."""
-        with patch("browsix.backend.bidi.BiDiClient", MagicMock()):
-            from browsix.backend.bidi import BiDiBackend
+        with patch("wavexis.backend.bidi.BiDiClient", MagicMock()):
+            from wavexis.backend.bidi import BiDiBackend
 
             backend = BiDiBackend()
             params = ScreenshotParams(url="https://example.com")
@@ -259,8 +259,8 @@ class TestBiDiBackend:
 
     async def test_close_without_launch(self) -> None:
         """Test close without launch."""
-        with patch("browsix.backend.bidi.BiDiClient", MagicMock()):
-            from browsix.backend.bidi import BiDiBackend
+        with patch("wavexis.backend.bidi.BiDiClient", MagicMock()):
+            from wavexis.backend.bidi import BiDiBackend
 
             backend = BiDiBackend()
             await backend.close()

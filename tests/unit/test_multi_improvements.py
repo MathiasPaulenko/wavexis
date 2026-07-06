@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from browsix.multi import (
+from wavexis.multi import (
     _substitute_variables,
     execute_actions,
     parse_yaml,
@@ -148,7 +148,7 @@ actions:
         assert actions[0]["screenshot"]["url"] == "https://example.com"
 
     def test_invalid_vars(self, tmp_path: Path) -> None:
-        from browsix.exceptions import MultiConfigError
+        from wavexis.exceptions import MultiConfigError
 
         config = tmp_path / "config.yml"
         config.write_text(
@@ -237,7 +237,7 @@ class TestParallelExecution:
                 return "nav-result"
             return b"screenshot-data"
 
-        with patch("browsix.multi._dispatch", side_effect=fake_dispatch):
+        with patch("wavexis.multi._dispatch", side_effect=fake_dispatch):
             actions = [
                 {"navigate": {"url": "https://example.com"}},
                 {"screenshot": {"url": "https://example.com"}},
@@ -255,7 +255,7 @@ class TestParallelExecution:
             call_order.append(action_type)
             return "result"
 
-        with patch("browsix.multi._dispatch", side_effect=fake_dispatch):
+        with patch("wavexis.multi._dispatch", side_effect=fake_dispatch):
             actions = [
                 {"navigate": {"url": "https://a.com"}},
                 {"screenshot": {"url": "https://b.com"}},

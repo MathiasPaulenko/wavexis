@@ -2,9 +2,9 @@
 
 import pytest
 
-from browsix.actions.tabs import TabsAction, TabsParams
-from browsix.backend.manager import BackendManager
-from browsix.config import BrowserOptions
+from wavexis.actions.tabs import TabsAction, TabsParams
+from wavexis.backend.manager import BackendManager
+from wavexis.config import BrowserOptions
 
 
 @pytest.mark.integration

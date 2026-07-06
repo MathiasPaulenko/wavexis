@@ -3,7 +3,7 @@
 import aiohttp
 import pytest
 
-from browsix.serve import create_app
+from wavexis.serve import create_app
 
 pytestmark = [pytest.mark.integration, pytest.mark.chrome]
 

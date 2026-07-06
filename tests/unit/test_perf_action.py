@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from browsix.actions.performance import PerformanceAction, PerformanceParams
-from browsix.backend.base import AbstractBackend
+from wavexis.actions.performance import PerformanceAction, PerformanceParams
+from wavexis.backend.base import AbstractBackend
 
 
 @pytest.mark.unit

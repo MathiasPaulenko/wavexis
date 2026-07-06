@@ -2,8 +2,8 @@
 
 import pytest
 
-from browsix.backend.manager import BackendManager
-from browsix.config import BrowserOptions
+from wavexis.backend.manager import BackendManager
+from wavexis.config import BrowserOptions
 
 
 @pytest.mark.integration

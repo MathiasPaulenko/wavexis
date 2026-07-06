@@ -6,10 +6,10 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from browsix.actions.download import DownloadAction
-from browsix.actions.screencast import ScreencastAction
-from browsix.backend.base import AbstractBackend
-from browsix.config import ScreencastParams
+from wavexis.actions.download import DownloadAction
+from wavexis.actions.screencast import ScreencastAction
+from wavexis.backend.base import AbstractBackend
+from wavexis.config import ScreencastParams
 
 
 def _make_backend() -> MagicMock:

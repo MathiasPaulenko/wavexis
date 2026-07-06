@@ -2,8 +2,8 @@
 
 import pytest
 
-from browsix.backend.manager import BackendManager
-from browsix.config import BrowserOptions, CookieParams, WaitStrategy
+from wavexis.backend.manager import BackendManager
+from wavexis.config import BrowserOptions, CookieParams, WaitStrategy
 
 
 @pytest.mark.integration
@@ -95,7 +95,7 @@ class TestHeadersIntegration:
         backend = manager.select()
         try:
             await backend.launch(BrowserOptions())
-            await backend.set_headers({"X-Test-Header": "browsix-test"})
+            await backend.set_headers({"X-Test-Header": "wavexis-test"})
             await backend.navigate(
                 "https://example.com", WaitStrategy(strategy="load")
             )
@@ -113,11 +113,11 @@ class TestUserAgentIntegration:
         backend = manager.select()
         try:
             await backend.launch(BrowserOptions())
-            await backend.set_user_agent("BrowsixTestBot/1.0")
+            await backend.set_user_agent("wavexisTestBot/1.0")
             await backend.navigate(
                 "https://example.com", WaitStrategy(strategy="load")
             )
             ua = await backend.eval("navigator.userAgent", await_promise=False)
-            assert "BrowsixTestBot" in ua
+            assert "wavexisTestBot" in ua
         finally:
             await backend.close()

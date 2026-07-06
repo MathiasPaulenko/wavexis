@@ -2,9 +2,9 @@
 
 import pytest
 
-from browsix.actions.navigate import NavigateAction, NavigateParams, ReloadAction
-from browsix.backend.manager import BackendManager
-from browsix.config import BrowserOptions, WaitStrategy
+from wavexis.actions.navigate import NavigateAction, NavigateParams, ReloadAction
+from wavexis.backend.manager import BackendManager
+from wavexis.config import BrowserOptions, WaitStrategy
 
 
 @pytest.mark.integration

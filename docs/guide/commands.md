@@ -2,7 +2,7 @@
 
 ## Global flags
 
-These flags go before the subcommand (e.g. `browsix --headed screenshot <url>`).
+These flags go before the subcommand (e.g. `wavexis --headed screenshot <url>`).
 
 | Flag | Description |
 |------|-------------|
@@ -12,15 +12,15 @@ These flags go before the subcommand (e.g. `browsix --headed screenshot <url>`).
 | `--headed` | Run browser in headed mode (visible window) |
 | `--timeout <ms>` | Navigation timeout in milliseconds (default: 30000) |
 | `--proxy <url>` | Proxy server URL (e.g. `http://proxy:8080`, `socks5://proxy:1080`) |
-| `--version` | Print browsix version and exit |
+| `--version` | Print wavexis version and exit |
 
-Global flags can also be set persistently via `browsix config`:
+Global flags can also be set persistently via `wavexis config`:
 
 ```bash
-browsix config set --key backend --value cdp
-browsix config set --key headless --value false
-browsix config set --key timeout --value 60000
-browsix config set --key proxy --value http://proxy:8080
+wavexis config set --key backend --value cdp
+wavexis config set --key headless --value false
+wavexis config set --key timeout --value 60000
+wavexis config set --key proxy --value http://proxy:8080
 ```
 
 CLI flags override config file values.
@@ -30,7 +30,7 @@ CLI flags override config file values.
 Take a screenshot of a web page.
 
 ```bash
-browsix screenshot <url> [options]
+wavexis screenshot <url> [options]
 ```
 
 | Option | Description |
@@ -48,7 +48,7 @@ browsix screenshot <url> [options]
 Generate a PDF of a web page.
 
 ```bash
-browsix pdf <url> [options]
+wavexis pdf <url> [options]
 ```
 
 | Option | Description |
@@ -65,7 +65,7 @@ browsix pdf <url> [options]
 Evaluate a JavaScript expression on a web page. Supports `--assert` for CI gates and `--format` for output control.
 
 ```bash
-browsix eval <url> [options]
+wavexis eval <url> [options]
 ```
 
 | Option | Description |
@@ -84,7 +84,7 @@ When `--assert` is provided, the command exits with code 0 (pass) or 1 (fail). S
 Navigate to a URL and optionally wait for an element.
 
 ```bash
-browsix navigate <url> [options]
+wavexis navigate <url> [options]
 ```
 
 ## back / forward / reload / stop
@@ -92,10 +92,10 @@ browsix navigate <url> [options]
 Browser history navigation commands.
 
 ```bash
-browsix back
-browsix forward
-browsix reload [--ignore-cache]
-browsix stop
+wavexis back
+wavexis forward
+wavexis reload [--ignore-cache]
+wavexis stop
 ```
 
 ## tabs
@@ -103,7 +103,7 @@ browsix stop
 Manage browser tabs.
 
 ```bash
-browsix tabs <action> [options]
+wavexis tabs <action> [options]
 ```
 
 Actions: `list`, `new`, `close`, `activate`
@@ -113,7 +113,7 @@ Actions: `list`, `new`, `close`, `activate`
 Capture console messages and browser logs from a web page. Supports level filtering, output format selection, and capture mode.
 
 ```bash
-browsix console <url> [options]
+wavexis console <url> [options]
 ```
 
 | Option | Description |
@@ -134,7 +134,7 @@ The `--capture` option controls what data is collected:
 Capture browser log entries.
 
 ```bash
-browsix logs <url> [options]
+wavexis logs <url> [options]
 ```
 
 ## dom
@@ -142,7 +142,7 @@ browsix logs <url> [options]
 DOM operations on a web page.
 
 ```bash
-browsix dom <url> [options]
+wavexis dom <url> [options]
 ```
 
 Actions: `get`, `query`, `attr`, `remove_attr`, `remove`, `focus`, `scroll`
@@ -152,7 +152,7 @@ Actions: `get`, `query`, `attr`, `remove_attr`, `remove`, `focus`, `scroll`
 Scrape multiple URLs by evaluating a JS expression on each.
 
 ```bash
-browsix scrape <urls...> [options]
+wavexis scrape <urls...> [options]
 ```
 
 ## crawl
@@ -160,7 +160,7 @@ browsix scrape <urls...> [options]
 Crawl a website starting from a URL, collecting titles and links.
 
 ```bash
-browsix crawl <url> [options]
+wavexis crawl <url> [options]
 ```
 
 | Option | Description |
@@ -173,9 +173,9 @@ browsix crawl <url> [options]
 | `-f, --format` | Output format (json) |
 
 ```bash
-browsix crawl https://example.com
-browsix crawl https://example.com --depth 3 --max-pages 100
-browsix crawl https://example.com --pattern '.*blog.*' -o results.json
+wavexis crawl https://example.com
+wavexis crawl https://example.com --depth 3 --max-pages 100
+wavexis crawl https://example.com --pattern '.*blog.*' -o results.json
 ```
 
 ## har
@@ -183,7 +183,7 @@ browsix crawl https://example.com --pattern '.*blog.*' -o results.json
 Capture network traffic as HAR 1.2.
 
 ```bash
-browsix har <url> [options]
+wavexis har <url> [options]
 ```
 
 ## cookies
@@ -191,7 +191,7 @@ browsix har <url> [options]
 Manage browser cookies.
 
 ```bash
-browsix cookies <action> [options]
+wavexis cookies <action> [options]
 ```
 
 Actions: `get`, `set`, `delete`, `clear`
@@ -201,7 +201,7 @@ Actions: `get`, `set`, `delete`, `clear`
 Input interaction subcommands (click, type, fill, select, hover, key, drag, tap, scroll, upload).
 
 ```bash
-browsix input <action> <args> [options]
+wavexis input <action> <args> [options]
 ```
 
 | Subcommand | Description |
@@ -218,11 +218,11 @@ browsix input <action> <args> [options]
 | `upload` | Upload files to a file input |
 
 ```bash
-browsix input click https://example.com "#button"
-browsix input type https://example.com "#input" "hello"
-browsix input scroll https://example.com --selector "#footer"
-browsix input scroll https://example.com --x 0 --y 500
-browsix input upload https://example.com "#file-input" /path/to/file.pdf
+wavexis input click https://example.com "#button"
+wavexis input type https://example.com "#input" "hello"
+wavexis input scroll https://example.com --selector "#footer"
+wavexis input scroll https://example.com --x 0 --y 500
+wavexis input upload https://example.com "#file-input" /path/to/file.pdf
 ```
 
 ## session
@@ -230,13 +230,13 @@ browsix input upload https://example.com "#file-input" /path/to/file.pdf
 Save and load browser session state (cookies + localStorage + sessionStorage).
 
 ```bash
-browsix session save <url> -o <file>
-browsix session load <file> [url]
+wavexis session save <url> -o <file>
+wavexis session load <file> [url]
 ```
 
 ```bash
-browsix session save https://app.com -o mysession.json
-browsix session load mysession.json https://app.com/dashboard
+wavexis session save https://app.com -o mysession.json
+wavexis session load mysession.json https://app.com/dashboard
 ```
 
 ## extract
@@ -244,7 +244,7 @@ browsix session load mysession.json https://app.com/dashboard
 Extract structured data from a page using a CSS selector schema.
 
 ```bash
-browsix extract <url> -s '<schema>' [--selector <css>] [options]
+wavexis extract <url> -s '<schema>' [--selector <css>] [options]
 ```
 
 | Option | Description |
@@ -254,8 +254,8 @@ browsix extract <url> -s '<schema>' [--selector <css>] [options]
 | `-o, --output` | Output file path (.json) |
 
 ```bash
-browsix extract https://shop.com -s '{"title":"h1","price":".price"}'
-browsix extract https://shop.com/products \
+wavexis extract https://shop.com -s '{"title":"h1","price":".price"}'
+wavexis extract https://shop.com/products \
     -s '{"name":".name","price":".price"}' --selector ".product"
 ```
 
@@ -264,7 +264,7 @@ browsix extract https://shop.com/products \
 Auto-fill form fields from JSON data and optionally submit.
 
 ```bash
-browsix form <url> -d '<data>' [--submit <selector>] [options]
+wavexis form <url> -d '<data>' [--submit <selector>] [options]
 ```
 
 | Option | Description |
@@ -274,8 +274,8 @@ browsix form <url> -d '<data>' [--submit <selector>] [options]
 | `-o, --output` | Output file path (.json) |
 
 ```bash
-browsix form https://app.com/register -d '{"#name":"Mathias","#email":"test@test.com"}'
-browsix form https://app.com/register -d '{"#name":"Mathias"}' --submit "#submit-btn"
+wavexis form https://app.com/register -d '{"#name":"Mathias","#email":"test@test.com"}'
+wavexis form https://app.com/register -d '{"#name":"Mathias"}' --submit "#submit-btn"
 ```
 
 ## ws
@@ -283,7 +283,7 @@ browsix form https://app.com/register -d '{"#name":"Mathias"}' --submit "#submit
 Intercept WebSocket frames on a page. Capture sent/received or mock responses.
 
 ```bash
-browsix ws <url> [options]
+wavexis ws <url> [options]
 ```
 
 | Option | Description |
@@ -294,9 +294,9 @@ browsix ws <url> [options]
 | `-o, --output` | Output file path (.json) |
 
 ```bash
-browsix ws https://app.com --duration 10000
-browsix ws https://app.com --pattern '.*api.*' -o frames.json
-browsix ws https://app.com --mock '{"ping":"pong"}' --duration 5000
+wavexis ws https://app.com --duration 10000
+wavexis ws https://app.com --pattern '.*api.*' -o frames.json
+wavexis ws https://app.com --mock '{"ping":"pong"}' --duration 5000
 ```
 
 ## lighthouse
@@ -304,7 +304,7 @@ browsix ws https://app.com --mock '{"ping":"pong"}' --duration 5000
 Run a Lighthouse-style audit (performance, accessibility, SEO, best practices).
 
 ```bash
-browsix lighthouse <url> [options]
+wavexis lighthouse <url> [options]
 ```
 
 | Option | Description |
@@ -313,8 +313,8 @@ browsix lighthouse <url> [options]
 | `-o, --output` | Output file path (.json) |
 
 ```bash
-browsix lighthouse https://example.com
-browsix lighthouse https://example.com -c performance -c seo -o report.json
+wavexis lighthouse https://example.com
+wavexis lighthouse https://example.com -c performance -c seo -o report.json
 ```
 
 ## headers
@@ -322,7 +322,7 @@ browsix lighthouse https://example.com -c performance -c seo -o report.json
 Set extra HTTP headers for all requests.
 
 ```bash
-browsix headers '<json>'
+wavexis headers '<json>'
 ```
 
 ## user-agent
@@ -330,7 +330,7 @@ browsix headers '<json>'
 Override the browser's User-Agent string.
 
 ```bash
-browsix user-agent <ua>
+wavexis user-agent <ua>
 ```
 
 ## browser
@@ -338,7 +338,7 @@ browsix user-agent <ua>
 Browser management commands.
 
 ```bash
-browsix browser <action>
+wavexis browser <action>
 ```
 
 Actions: `version`, `new_context`, `list_contexts`
@@ -348,7 +348,7 @@ Actions: `version`, `new_context`, `list_contexts`
 List available device presets.
 
 ```bash
-browsix devices
+wavexis devices
 ```
 
 ## multi
@@ -356,7 +356,7 @@ browsix devices
 Execute multiple actions from a YAML config file. See [Multi Config](multi.md) for detailed documentation.
 
 ```bash
-browsix multi <config> [options]
+wavexis multi <config> [options]
 ```
 
 | Option | Description |
@@ -370,7 +370,7 @@ browsix multi <config> [options]
 List available backends.
 
 ```bash
-browsix backends
+wavexis backends
 ```
 
 ## install_check
@@ -378,7 +378,7 @@ browsix backends
 Check which backends are installed and their versions.
 
 ```bash
-browsix install_check
+wavexis install_check
 ```
 
 ## emulation
@@ -386,11 +386,11 @@ browsix install_check
 Emulation subcommands.
 
 ```bash
-browsix emulation device <url> --device <name> [-o output]
-browsix emulation viewport <url> --width <w> --height <h> [-o output]
-browsix emulation geolocation <url> --lat <lat> --lon <lon> [-o output]
-browsix emulation timezone <url> --tz <timezone> [-o output]
-browsix emulation dark_mode <url> [-o output]
+wavexis emulation device <url> --device <name> [-o output]
+wavexis emulation viewport <url> --width <w> --height <h> [-o output]
+wavexis emulation geolocation <url> --lat <lat> --lon <lon> [-o output]
+wavexis emulation timezone <url> --tz <timezone> [-o output]
+wavexis emulation dark_mode <url> [-o output]
 ```
 
 ## raw
@@ -398,7 +398,7 @@ browsix emulation dark_mode <url> [-o output]
 Send raw protocol commands directly to the browser backend.
 
 ```bash
-browsix raw <method> [params] [--backend cdp|bidi] [-o output]
+wavexis raw <method> [params] [--backend cdp|bidi] [-o output]
 ```
 
 See [Raw Protocol](raw.md) for details.
@@ -408,7 +408,7 @@ See [Raw Protocol](raw.md) for details.
 Install shell completions.
 
 ```bash
-browsix completions <shell>
+wavexis completions <shell>
 ```
 
 Shells: `bash`, `zsh`, `fish`, `powershell`
@@ -418,10 +418,10 @@ Shells: `bash`, `zsh`, `fish`, `powershell`
 Manage browser credential profiles for authenticated scraping.
 
 ```bash
-browsix auth save <name> --user <username> --pass <password>
-browsix auth use <name> --url <login-url>
-browsix auth list
-browsix auth delete <name>
+wavexis auth save <name> --user <username> --pass <password>
+wavexis auth use <name> --url <login-url>
+wavexis auth list
+wavexis auth delete <name>
 ```
 
 ## record
@@ -429,9 +429,9 @@ browsix auth delete <name>
 Record and replay browser sessions.
 
 ```bash
-browsix record start <url> [-o session.json]
-browsix record replay <session.json>
-browsix record list
+wavexis record start <url> [-o session.json]
+wavexis record replay <session.json>
+wavexis record list
 ```
 
 ## serve
@@ -439,7 +439,7 @@ browsix record list
 Start an HTTP API server.
 
 ```bash
-browsix serve [--host 0.0.0.0] [--port 8080]
+wavexis serve [--host 0.0.0.0] [--port 8080]
 ```
 
 See [Serve Mode](../cookbook/serve-mode.md) for endpoint documentation.
@@ -449,9 +449,9 @@ See [Serve Mode](../cookbook/serve-mode.md) for endpoint documentation.
 CSS inspection commands.
 
 ```bash
-browsix css-styles <url> --selector "h1"
-browsix css-computed <url> --selector "h1"
-browsix css-rules <url> --sheet 0
+wavexis css-styles <url> --selector "h1"
+wavexis css-computed <url> --selector "h1"
+wavexis css-rules <url> --sheet 0
 ```
 
 ## debug
@@ -459,10 +459,10 @@ browsix css-rules <url> --sheet 0
 Debugger commands (CDP bridge).
 
 ```bash
-browsix debug-break <url> --line 10 [--condition "x > 5"]
-browsix debug-step over|into|out
-browsix debug-pause
-browsix debug-resume
+wavexis debug-break <url> --line 10 [--condition "x > 5"]
+wavexis debug-step over|into|out
+wavexis debug-pause
+wavexis debug-resume
 ```
 
 ## perf
@@ -470,7 +470,7 @@ browsix debug-resume
 Capture performance metrics from a web page. See [Performance](perf.md) for detailed documentation.
 
 ```bash
-browsix perf <url> [options]
+wavexis perf <url> [options]
 ```
 
 | Option | Description |
@@ -482,19 +482,19 @@ browsix perf <url> [options]
 
 ```bash
 # Core Web Vitals (LCP, FCP, CLS, TTFB)
-browsix perf https://example.com
+wavexis perf https://example.com
 
 # CPU trace (5 seconds)
-browsix perf https://example.com -m trace -d 5000 -o trace.json
+wavexis perf https://example.com -m trace -d 5000 -o trace.json
 
 # JS code coverage
-browsix perf https://example.com -m coverage -o coverage.json
+wavexis perf https://example.com -m coverage -o coverage.json
 
 # CSS coverage
-browsix perf https://example.com -m css-coverage -o css-coverage.json
+wavexis perf https://example.com -m css-coverage -o css-coverage.json
 
 # Heap snapshot
-browsix perf https://example.com -m heap-snapshot -o heap.json
+wavexis perf https://example.com -m heap-snapshot -o heap.json
 ```
 
 ## sw
@@ -502,9 +502,9 @@ browsix perf https://example.com -m heap-snapshot -o heap.json
 Service worker management.
 
 ```bash
-browsix sw list <url>
-browsix sw unregister <url> --scope <scope>
-browsix sw update <url> --scope <scope>
+wavexis sw list <url>
+wavexis sw unregister <url> --scope <scope>
+wavexis sw update <url> --scope <scope>
 ```
 
 ## animation
@@ -512,10 +512,10 @@ browsix sw update <url> --scope <scope>
 Animation control commands.
 
 ```bash
-browsix animation list <url>
-browsix animation pause <url> --id 0
-browsix animation play <url> --id 0
-browsix animation seek <url> --id 0 --time 500
+wavexis animation list <url>
+wavexis animation pause <url> --id 0
+wavexis animation play <url> --id 0
+wavexis animation seek <url> --id 0 --time 500
 ```
 
 ## webauthn
@@ -523,9 +523,9 @@ browsix animation seek <url> --id 0 --time 500
 WebAuthn virtual authenticator commands.
 
 ```bash
-browsix webauthn add --protocol ctap2 --transport usb
-browsix webauthn credentials <authenticator-id>
-browsix webauthn remove <authenticator-id>
+wavexis webauthn add --protocol ctap2 --transport usb
+wavexis webauthn credentials <authenticator-id>
+wavexis webauthn remove <authenticator-id>
 ```
 
 ## cast
@@ -533,9 +533,9 @@ browsix webauthn remove <authenticator-id>
 Cast commands.
 
 ```bash
-browsix cast list
-browsix cast start --sink <sink-name>
-browsix cast stop
+wavexis cast list
+wavexis cast start --sink <sink-name>
+wavexis cast stop
 ```
 
 ## bluetooth
@@ -543,8 +543,8 @@ browsix cast stop
 Bluetooth emulation commands.
 
 ```bash
-browsix bluetooth emulate --name "Test Adapter"
-browsix bluetooth stop
+wavexis bluetooth emulate --name "Test Adapter"
+wavexis bluetooth stop
 ```
 
 ## repl
@@ -552,24 +552,24 @@ browsix bluetooth stop
 Interactive REPL for live browser sessions. See [REPL](repl.md) for detailed documentation.
 
 ```bash
-browsix repl
+wavexis repl
 ```
 
 Launches a non-headless browser and an interactive shell with 16 commands: `navigate`, `screenshot`, `eval`, `click`, `type`, `fill`, `hover`, `key`, `cookies`, `url`, `title`, `wait`, `back`, `forward`, `reload`, `help`, `exit`.
 
 ## init
 
-Generate a `browsix.yaml` config from templates. See [Init Wizard](init.md) for detailed documentation.
+Generate a `wavexis.yaml` config from templates. See [Init Wizard](init.md) for detailed documentation.
 
 ```bash
 # Interactive wizard
-browsix init
+wavexis init
 
 # Non-interactive with flags
-browsix init -t multi-step -u https://example.com -o config.yaml
+wavexis init -t multi-step -u https://example.com -o config.yaml
 
 # List available templates
-browsix init --list
+wavexis init --list
 ```
 
 | Option | Description |
@@ -579,17 +579,17 @@ browsix init --list
 | `-e, --expression` | JavaScript expression (scrape, eval) |
 | `-s, --selector` | CSS selector (multi-step) |
 | `--text` | Text to type (multi-step) |
-| `-o, --output` | Output file path (default: browsix.yaml) |
+| `-o, --output` | Output file path (default: wavexis.yaml) |
 | `--list` | List available templates and exit |
 
 Templates: `screenshot`, `pdf`, `scrape`, `eval`, `multi-step`, `cookies`, `har`.
 
 ## config
 
-Manage global browsix configuration at `~/.browsix/config.yml`.
+Manage global wavexis configuration at `~/.wavexis/config.yml`.
 
 ```bash
-browsix config <action> [options]
+wavexis config <action> [options]
 ```
 
 | Action | Description |
@@ -606,17 +606,17 @@ browsix config <action> [options]
 
 ```bash
 # Show current config
-browsix config show
+wavexis config show
 
 # Set defaults
-browsix config set --key backend --value cdp
-browsix config set --key headless --value false
-browsix config set --key timeout --value 60000
-browsix config set --key proxy --value http://proxy:8080
+wavexis config set --key backend --value cdp
+wavexis config set --key headless --value false
+wavexis config set --key timeout --value 60000
+wavexis config set --key proxy --value http://proxy:8080
 
 # Create initial config
-browsix config init
+wavexis config init
 
 # Show config file path
-browsix config path
+wavexis config path
 ```

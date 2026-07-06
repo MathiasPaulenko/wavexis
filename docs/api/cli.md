@@ -1,3 +1,3 @@
 # CLI
 
-::: browsix.cli.app
+::: wavexis.cli.app

@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from browsix.actions.emulation import EmulationAction
-from browsix.config import EmulationParams
+from wavexis.actions.emulation import EmulationAction
+from wavexis.config import EmulationParams
 
 
 @pytest.mark.unit

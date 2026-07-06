@@ -1,10 +1,10 @@
-"""Unit tests for serve mode (browsix.serve)."""
+"""Unit tests for serve mode (wavexis.serve)."""
 
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from browsix.backend.base import AbstractBackend
+from wavexis.backend.base import AbstractBackend
 
 
 def _has_aiohttp() -> bool:
@@ -24,7 +24,7 @@ class TestServeImport:
     """Test suite for serveimport."""
     def test_import_aiohttp_raises_without_install(self) -> None:
         """Test that import aiohttp raises without install raises an appropriate error."""
-        from browsix.serve import _import_aiohttp
+        from wavexis.serve import _import_aiohttp
 
         web = _import_aiohttp()
         assert web is not None
@@ -35,7 +35,7 @@ class TestServeCreateApp:
     """Test suite for servecreateapp."""
     def test_create_app_returns_application(self) -> None:
         """Test create app returns application."""
-        from browsix.serve import create_app
+        from wavexis.serve import create_app
 
         app = create_app()
         assert app is not None
@@ -43,7 +43,7 @@ class TestServeCreateApp:
 
     def test_create_app_has_routes(self) -> None:
         """Test create app has routes."""
-        from browsix.serve import create_app
+        from wavexis.serve import create_app
 
         app = create_app()
         routes = [r.resource.canonical for r in app.router.routes()]
@@ -80,7 +80,7 @@ class TestServeHandlers:
         """Test health endpoint."""
         from aiohttp.test_utils import TestClient, TestServer
 
-        from browsix.serve import create_app
+        from wavexis.serve import create_app
 
         app = create_app()
         server = TestServer(app)
@@ -96,7 +96,7 @@ class TestServeHandlers:
         """Test version endpoint."""
         from aiohttp.test_utils import TestClient, TestServer
 
-        from browsix.serve import __version__, create_app
+        from wavexis.serve import __version__, create_app
 
         app = create_app()
         server = TestServer(app)
@@ -112,7 +112,7 @@ class TestServeHandlers:
         """Test backends endpoint."""
         from aiohttp.test_utils import TestClient, TestServer
 
-        from browsix.serve import create_app
+        from wavexis.serve import create_app
 
         app = create_app()
         server = TestServer(app)
@@ -155,14 +155,14 @@ class TestServeHandlerMocks:
 
         from aiohttp.test_utils import TestClient, TestServer
 
-        from browsix.serve import create_app
+        from wavexis.serve import create_app
 
         mock_backend = self._make_mock_backend()
         app = create_app()
         server = TestServer(app)
         client = TestClient(server)
         await client.start_server()
-        with patch("browsix.serve.BackendManager.select", return_value=mock_backend):
+        with patch("wavexis.serve.BackendManager.select", return_value=mock_backend):
             resp = await client.post(
                 "/screenshot",
                 json={"url": "https://example.com"},
@@ -179,14 +179,14 @@ class TestServeHandlerMocks:
 
         from aiohttp.test_utils import TestClient, TestServer
 
-        from browsix.serve import create_app
+        from wavexis.serve import create_app
 
         mock_backend = self._make_mock_backend()
         app = create_app()
         server = TestServer(app)
         client = TestClient(server)
         await client.start_server()
-        with patch("browsix.serve.BackendManager.select", return_value=mock_backend):
+        with patch("wavexis.serve.BackendManager.select", return_value=mock_backend):
             resp = await client.post(
                 "/pdf",
                 json={"url": "https://example.com"},
@@ -203,14 +203,14 @@ class TestServeHandlerMocks:
 
         from aiohttp.test_utils import TestClient, TestServer
 
-        from browsix.serve import create_app
+        from wavexis.serve import create_app
 
         mock_backend = self._make_mock_backend()
         app = create_app()
         server = TestServer(app)
         client = TestClient(server)
         await client.start_server()
-        with patch("browsix.serve.BackendManager.select", return_value=mock_backend):
+        with patch("wavexis.serve.BackendManager.select", return_value=mock_backend):
             resp = await client.post(
                 "/eval",
                 json={"url": "https://example.com", "expression": "1+1"},
@@ -226,14 +226,14 @@ class TestServeHandlerMocks:
 
         from aiohttp.test_utils import TestClient, TestServer
 
-        from browsix.serve import create_app
+        from wavexis.serve import create_app
 
         mock_backend = self._make_mock_backend()
         app = create_app()
         server = TestServer(app)
         client = TestClient(server)
         await client.start_server()
-        with patch("browsix.serve.BackendManager.select", return_value=mock_backend):
+        with patch("wavexis.serve.BackendManager.select", return_value=mock_backend):
             resp = await client.post(
                 "/perf/metrics",
                 json={"url": "https://example.com"},
@@ -249,14 +249,14 @@ class TestServeHandlerMocks:
 
         from aiohttp.test_utils import TestClient, TestServer
 
-        from browsix.serve import create_app
+        from wavexis.serve import create_app
 
         mock_backend = self._make_mock_backend()
         app = create_app()
         server = TestServer(app)
         client = TestClient(server)
         await client.start_server()
-        with patch("browsix.serve.BackendManager.select", return_value=mock_backend):
+        with patch("wavexis.serve.BackendManager.select", return_value=mock_backend):
             resp = await client.post(
                 "/perf/trace",
                 json={"url": "https://example.com", "duration_ms": 1000},
@@ -272,14 +272,14 @@ class TestServeHandlerMocks:
 
         from aiohttp.test_utils import TestClient, TestServer
 
-        from browsix.serve import create_app
+        from wavexis.serve import create_app
 
         mock_backend = self._make_mock_backend()
         app = create_app()
         server = TestServer(app)
         client = TestClient(server)
         await client.start_server()
-        with patch("browsix.serve.BackendManager.select", return_value=mock_backend):
+        with patch("wavexis.serve.BackendManager.select", return_value=mock_backend):
             resp = await client.post(
                 "/navigate",
                 json={"url": "https://example.com"},
@@ -295,14 +295,14 @@ class TestServeHandlerMocks:
 
         from aiohttp.test_utils import TestClient, TestServer
 
-        from browsix.serve import create_app
+        from wavexis.serve import create_app
 
         mock_backend = self._make_mock_backend()
         app = create_app()
         server = TestServer(app)
         client = TestClient(server)
         await client.start_server()
-        with patch("browsix.serve.BackendManager.select", return_value=mock_backend):
+        with patch("wavexis.serve.BackendManager.select", return_value=mock_backend):
             resp = await client.post(
                 "/cookies/get",
                 json={"url": "https://example.com"},
@@ -318,14 +318,14 @@ class TestServeHandlerMocks:
 
         from aiohttp.test_utils import TestClient, TestServer
 
-        from browsix.serve import create_app
+        from wavexis.serve import create_app
 
         mock_backend = self._make_mock_backend()
         app = create_app()
         server = TestServer(app)
         client = TestClient(server)
         await client.start_server()
-        with patch("browsix.serve.BackendManager.select", return_value=mock_backend):
+        with patch("wavexis.serve.BackendManager.select", return_value=mock_backend):
             resp = await client.post(
                 "/cookies/set",
                 json={
@@ -345,7 +345,7 @@ class TestServeHandlerMocks:
 
         from aiohttp.test_utils import TestClient, TestServer
 
-        from browsix.serve import create_app
+        from wavexis.serve import create_app
 
         mock_backend = self._make_mock_backend()
         mock_backend.capture_console = AsyncMock(return_value=[])
@@ -353,7 +353,7 @@ class TestServeHandlerMocks:
         server = TestServer(app)
         client = TestClient(server)
         await client.start_server()
-        with patch("browsix.serve.BackendManager.select", return_value=mock_backend):
+        with patch("wavexis.serve.BackendManager.select", return_value=mock_backend):
             ws = await client.ws_connect("/ws")
             await ws.send_json({
                 "url": "https://example.com",
@@ -375,7 +375,7 @@ class TestServeHandlerMocks:
 
         from aiohttp.test_utils import TestClient, TestServer
 
-        from browsix.serve import create_app
+        from wavexis.serve import create_app
 
         mock_backend = self._make_mock_backend()
         mock_backend.capture_console = AsyncMock(return_value=[])
@@ -383,7 +383,7 @@ class TestServeHandlerMocks:
         server = TestServer(app)
         client = TestClient(server)
         await client.start_server()
-        with patch("browsix.serve.BackendManager.select", return_value=mock_backend):
+        with patch("wavexis.serve.BackendManager.select", return_value=mock_backend):
             ws = await client.ws_connect("/ws")
             await ws.send_json({
                 "url": "https://example.com",

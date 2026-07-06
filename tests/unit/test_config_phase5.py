@@ -2,7 +2,7 @@
 
 import pytest
 
-from browsix.config import (
+from wavexis.config import (
     BrowserOptions,
     InputParams,
     ScreencastParams,

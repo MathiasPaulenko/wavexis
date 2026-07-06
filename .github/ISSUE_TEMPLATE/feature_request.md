@@ -1,7 +1,7 @@
 ---
 
 name: Feature Request
-about: Suggest a new feature or improvement for browsix
+about: Suggest a new feature or improvement for wavexis
 title: "[FEATURE] "
 labels: enhancement
 ---

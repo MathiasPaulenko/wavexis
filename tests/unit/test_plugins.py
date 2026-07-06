@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from browsix.plugins import (
+from wavexis.plugins import (
     ActionPlugin,
     MiddlewarePlugin,
     Plugin,
@@ -130,7 +130,7 @@ class TestPluginRegistry:
 
     def test_register_backend(self) -> None:
         """Test register backend."""
-        from browsix.backend.base import AbstractBackend
+        from wavexis.backend.base import AbstractBackend
 
         registry = PluginRegistry()
         mock_cls = MagicMock(spec=type[AbstractBackend])
@@ -177,7 +177,7 @@ class TestActionPlugin:
     """Test suite for actionplugin."""
     def test_action_plugin_factory_called(self) -> None:
         """Test action plugin factory called."""
-        from browsix.actions.base import BaseAction
+        from wavexis.actions.base import BaseAction
 
         class DummyAction(BaseAction[dict, str]):
             """Test suite for dummyaction."""

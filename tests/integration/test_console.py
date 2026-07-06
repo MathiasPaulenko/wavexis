@@ -2,9 +2,9 @@
 
 import pytest
 
-from browsix.actions.console import ConsoleAction, ConsoleParams
-from browsix.backend.manager import BackendManager
-from browsix.config import BrowserOptions, WaitStrategy
+from wavexis.actions.console import ConsoleAction, ConsoleParams
+from wavexis.backend.manager import BackendManager
+from wavexis.config import BrowserOptions, WaitStrategy
 
 
 @pytest.mark.integration

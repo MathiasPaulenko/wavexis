@@ -1,4 +1,4 @@
-"""Pytest configuration and fixtures for browsix tests."""
+"""Pytest configuration and fixtures for wavexis tests."""
 
 import pytest
 

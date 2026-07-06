@@ -1,3 +1,3 @@
 # Serve
 
-::: browsix.serve
+::: wavexis.serve

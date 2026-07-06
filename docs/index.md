@@ -1,21 +1,21 @@
-# browsix
+# wavexis
 
 Browser automation CLI — wraps [cdpwave](https://pypi.org/project/cdpwave/) and [bidiwave](https://pypi.org/project/bidiwave/).
 
 No Node.js. No Chromium download. Uses your existing Chrome/Edge installation.
 
-## Why browsix?
+## Why wavexis?
 
-browsix is a command-line tool for browser automation. It wraps the cdpwave (Chrome DevTools Protocol) and bidiwave (WebDriver BiDi) libraries, exposing their capabilities through a single unified CLI. You don't need Node.js, Playwright, or a separate Chromium download — browsix launches your existing Chrome or Edge installation directly.
+wavexis is a command-line tool for browser automation. It wraps the cdpwave (Chrome DevTools Protocol) and bidiwave (WebDriver BiDi) libraries, exposing their capabilities through a single unified CLI. You don't need Node.js, Playwright, or a separate Chromium download — wavexis launches your existing Chrome or Edge installation directly.
 
 ### Core concepts
 
 - **Backend** — The browser driver that executes commands. Two backends with full feature parity: CDP (default, via cdpwave) and BiDi (via bidiwave). Switch with `--backend bidi` without losing functionality.
 - **Action** — A single operation (screenshot, eval, click, etc.). Each action maps to a CLI command or a step in a multi-action YAML config.
 - **Multi-action** — A YAML config that chains multiple actions in sequence on a single browser session. Avoids the overhead of launching a browser per action.
-- **Serve mode** — An HTTP API server that exposes all browsix commands as REST endpoints with WebSocket streaming for real-time events.
+- **Serve mode** — An HTTP API server that exposes all wavexis commands as REST endpoints with WebSocket streaming for real-time events.
 - **REPL** — An interactive shell for live browser sessions. Navigate, click, type, and inspect in real time without writing scripts.
-- **Init wizard** — An interactive generator that creates `browsix.yaml` configs from predefined templates for common automation scenarios.
+- **Init wizard** — An interactive generator that creates `wavexis.yaml` configs from predefined templates for common automation scenarios.
 
 ### Key features
 
@@ -27,7 +27,7 @@ browsix is a command-line tool for browser automation. It wraps the cdpwave (Chr
 - **Auth profiles** — save and reuse browser credentials
 - **Record & replay** — record browser sessions and replay them
 - **Interactive REPL** — live browser shell with 16 commands
-- **Config wizard** — generate browsix.yaml from 7 templates interactively
+- **Config wizard** — generate wavexis.yaml from 7 templates interactively
 - **CI assertions** — `--assert` flag on `eval` for pass/fail gates with exit codes
 - **Performance metrics** — LCP, FCP, CLS, TTFB, CPU traces, profiles, coverage
 - **Console capture** — console messages and browser logs with level filtering
@@ -39,15 +39,15 @@ browsix is a command-line tool for browser automation. It wraps the cdpwave (Chr
 ## Install
 
 ```bash
-pip install browsix[cdp]
+pip install wavexis[cdp]
 ```
 
 ## Quick start
 
 ```bash
-browsix screenshot https://example.com -o out.png
-browsix pdf https://example.com -o out.pdf
-browsix eval https://example.com -e "document.title"
+wavexis screenshot https://example.com -o out.png
+wavexis pdf https://example.com -o out.pdf
+wavexis eval https://example.com -e "document.title"
 ```
 
 ## Commands
@@ -73,7 +73,7 @@ browsix eval https://example.com -e "document.title"
 | `perf` | Metrics (LCP/FCP/CLS/TTFB), trace, profile, coverage, heap snapshot |
 | `console` | Capture console messages and browser logs (with `--capture`, `--format`) |
 | `repl` | Interactive REPL for live browser sessions |
-| `init` | Generate browsix.yaml from templates interactively |
+| `init` | Generate wavexis.yaml from templates interactively |
 | `sw` | Service worker list, unregister, update |
 | `animation` | List, pause, play, seek animations |
 | `webauthn` | Virtual authenticator management |

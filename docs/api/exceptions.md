@@ -1,3 +1,3 @@
 # Exceptions
 
-::: browsix.exceptions
+::: wavexis.exceptions

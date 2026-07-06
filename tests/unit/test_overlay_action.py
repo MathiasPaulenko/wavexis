@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from browsix.actions.overlay import OverlayAction, OverlayParams
-from browsix.backend.base import AbstractBackend
+from wavexis.actions.overlay import OverlayAction, OverlayParams
+from wavexis.backend.base import AbstractBackend
 
 
 @pytest.mark.unit

@@ -1,8 +1,8 @@
-site_name: browsix
+site_name: wavexis
 site_description: Browser automation CLI — wraps cdpwave and bidiwave
-site_url: https://mathiaspaulenko.github.io/browsix/
-repo_url: https://github.com/MathiasPaulenko/browsix
-repo_name: MathiasPaulenko/browsix
+site_url: https://mathiaspaulenko.github.io/wavexis/
+repo_url: https://github.com/MathiasPaulenko/wavexis
+repo_name: MathiasPaulenko/wavexis
 edit_uri: edit/main/docs/
 
 theme:

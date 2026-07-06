@@ -2,9 +2,9 @@
 
 import pytest
 
-from browsix.actions.dom import DOMAction
-from browsix.backend.manager import BackendManager
-from browsix.config import BrowserOptions, DOMParams, WaitStrategy
+from wavexis.actions.dom import DOMAction
+from wavexis.backend.manager import BackendManager
+from wavexis.config import BrowserOptions, DOMParams, WaitStrategy
 
 
 @pytest.mark.integration

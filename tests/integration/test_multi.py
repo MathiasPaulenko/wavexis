@@ -6,10 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from browsix.backend.cdp import CDPBackend
-from browsix.config import BrowserOptions
-from browsix.exceptions import MultiConfigError
-from browsix.multi import execute_actions, parse_yaml
+from wavexis.backend.cdp import CDPBackend
+from wavexis.config import BrowserOptions
+from wavexis.exceptions import MultiConfigError
+from wavexis.multi import execute_actions, parse_yaml
 
 
 @pytest.mark.integration

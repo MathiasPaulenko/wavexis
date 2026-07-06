@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 import yaml
 
-from browsix.backend.base import AbstractBackend
-from browsix.record import Recorder, record_to_yaml, replay_from_yaml
+from wavexis.backend.base import AbstractBackend
+from wavexis.record import Recorder, record_to_yaml, replay_from_yaml
 
 
 @pytest.mark.unit

@@ -4,9 +4,9 @@ import json
 
 import pytest
 
-from browsix.actions.performance import PerformanceAction, PerformanceParams
-from browsix.backend.cdp import CDPBackend
-from browsix.config import BrowserOptions, WaitStrategy
+from wavexis.actions.performance import PerformanceAction, PerformanceParams
+from wavexis.backend.cdp import CDPBackend
+from wavexis.config import BrowserOptions, WaitStrategy
 
 pytestmark = [pytest.mark.integration, pytest.mark.chrome]
 

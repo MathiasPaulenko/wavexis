@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from browsix.backend.cdp import CDPBackend
-from browsix.config import BrowserOptions, ScreenshotParams, WaitStrategy
+from wavexis.backend.cdp import CDPBackend
+from wavexis.config import BrowserOptions, ScreenshotParams, WaitStrategy
 
 
 @pytest.mark.integration

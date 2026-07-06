@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from browsix.backend.base import AbstractBackend
+from wavexis.backend.base import AbstractBackend
 
 
 @pytest.mark.unit

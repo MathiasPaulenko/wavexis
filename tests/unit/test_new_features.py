@@ -10,16 +10,16 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from browsix.actions.extract import ExtractAction, ExtractParams
-from browsix.actions.form import FormAction, FormParams
-from browsix.actions.lighthouse import LighthouseAction, LighthouseParams
-from browsix.actions.session import (
+from wavexis.actions.extract import ExtractAction, ExtractParams
+from wavexis.actions.form import FormAction, FormParams
+from wavexis.actions.lighthouse import LighthouseAction, LighthouseParams
+from wavexis.actions.session import (
     SessionData,
     SessionLoadAction,
     SessionSaveAction,
 )
-from browsix.actions.websocket import WebSocketInterceptAction, WebSocketParams
-from browsix.config import WaitStrategy
+from wavexis.actions.websocket import WebSocketInterceptAction, WebSocketParams
+from wavexis.config import WaitStrategy
 
 pytestmark = pytest.mark.unit
 

@@ -2,9 +2,9 @@
 
 import pytest
 
-from browsix.actions.screenshot import ScreenshotAction
-from browsix.backend.manager import BackendManager
-from browsix.config import BrowserOptions, ScreenshotParams, WaitStrategy
+from wavexis.actions.screenshot import ScreenshotAction
+from wavexis.backend.manager import BackendManager
+from wavexis.config import BrowserOptions, ScreenshotParams, WaitStrategy
 
 
 @pytest.mark.integration

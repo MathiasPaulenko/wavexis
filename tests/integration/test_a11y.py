@@ -2,8 +2,8 @@
 
 import pytest
 
-from browsix.backend.cdp import CDPBackend
-from browsix.config import BrowserOptions, WaitStrategy
+from wavexis.backend.cdp import CDPBackend
+from wavexis.config import BrowserOptions, WaitStrategy
 
 pytestmark = [pytest.mark.integration, pytest.mark.chrome]
 

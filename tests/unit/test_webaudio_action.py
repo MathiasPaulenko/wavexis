@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from browsix.actions.webaudio import WebAudioAction, WebAudioParams
+from wavexis.actions.webaudio import WebAudioAction, WebAudioParams
 
 
 @pytest.mark.unit

@@ -1,7 +1,7 @@
 # Plugin System
 
-browsix supports plugins via Python entry points (`importlib.metadata`).
-Plugins can extend browsix with custom actions, backends, and serve middleware.
+wavexis supports plugins via Python entry points (`importlib.metadata`).
+Plugins can extend wavexis with custom actions, backends, and serve middleware.
 
 ## Plugin types
 
@@ -18,13 +18,13 @@ Plugins can extend browsix with custom actions, backends, and serve middleware.
 
 ```python
 # my_plugin.py
-from browsix.plugins import ActionPlugin
-from browsix.actions.base import BaseAction
+from wavexis.plugins import ActionPlugin
+from wavexis.actions.base import BaseAction
 
 
 class ScreenshotAction(BaseAction[dict, bytes]):
     async def execute(self, backend):
-        from browsix.config import ScreenshotParams
+        from wavexis.config import ScreenshotParams
         params = ScreenshotParams(url=self.params.get("url", ""))
         return await backend.screenshot(params)
 
@@ -40,7 +40,7 @@ action_plugin = ActionPlugin(
 
 ```python
 # my_plugin.py
-from browsix.backend.base import AbstractBackend
+from wavexis.backend.base import AbstractBackend
 
 
 class MyBackend(AbstractBackend):
@@ -63,7 +63,7 @@ class MyBackend(AbstractBackend):
 
 ```python
 # my_plugin.py
-from browsix.plugins import MiddlewarePlugin
+from wavexis.plugins import MiddlewarePlugin
 
 
 def make_logging_middleware(web):
@@ -87,7 +87,7 @@ middleware_plugin = MiddlewarePlugin(
 
 ```python
 # my_plugin.py
-from browsix.plugins import Plugin, PluginContext
+from wavexis.plugins import Plugin, PluginContext
 
 
 class MyPlugin(Plugin):
@@ -106,21 +106,21 @@ class MyPlugin(Plugin):
 In your plugin package's `pyproject.toml`:
 
 ```toml
-[project.entry-points."browsix.plugins"]
+[project.entry-points."wavexis.plugins"]
 my-action = "my_plugin:action_plugin"
 my-backend = "my_plugin:MyBackend"
 my-middleware = "my_plugin:middleware_plugin"
 my-hooks = "my_plugin:MyPlugin"
 ```
 
-Install the package with `pip install my-plugin` and browsix will discover it automatically.
+Install the package with `pip install my-plugin` and wavexis will discover it automatically.
 
 ## Using plugins
 
 ### CLI
 
 ```bash
-browsix plugins
+wavexis plugins
 ```
 
 Lists all discovered plugins (actions, backends, middleware).
@@ -150,5 +150,5 @@ Returns JSON with discovered plugins.
 Custom backends are registered with `BackendManager` and can be selected with `--backend`:
 
 ```bash
-browsix screenshot https://example.com --backend my-backend
+wavexis screenshot https://example.com --backend my-backend
 ```

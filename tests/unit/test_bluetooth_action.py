@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from browsix.actions.bluetooth import BluetoothAction, BluetoothParams
+from wavexis.actions.bluetooth import BluetoothAction, BluetoothParams
 
 
 @pytest.mark.unit

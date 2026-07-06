@@ -2,9 +2,9 @@
 
 import pytest
 
-from browsix.actions.storage import StorageAction
-from browsix.backend.cdp import CDPBackend
-from browsix.config import BrowserOptions, StorageParams, WaitStrategy
+from wavexis.actions.storage import StorageAction
+from wavexis.backend.cdp import CDPBackend
+from wavexis.config import BrowserOptions, StorageParams, WaitStrategy
 
 pytestmark = [pytest.mark.integration, pytest.mark.chrome]
 

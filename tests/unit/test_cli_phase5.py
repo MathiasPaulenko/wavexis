@@ -4,7 +4,7 @@
 import pytest
 from typer.testing import CliRunner
 
-from browsix.cli.app import app
+from wavexis.cli.app import app
 
 runner = CliRunner()
 

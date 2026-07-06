@@ -4,16 +4,16 @@ FROM python:3.12-slim AS builder
 WORKDIR /build
 
 COPY pyproject.toml README.md ./
-COPY browsix/ browsix/
+COPY wavexis/ wavexis/
 
 RUN pip install --no-cache-dir build && python -m build --wheel
 
 # ── Stage 2: runtime ────────────────────────────────────────
 FROM python:3.12-slim AS runtime
 
-LABEL org.opencontainers.image.title="browsix"
+LABEL org.opencontainers.image.title="wavexis"
 LABEL org.opencontainers.image.description="Browser automation CLI — serve mode"
-LABEL org.opencontainers.image.source="https://github.com/MathiasPaulenko/browsix"
+LABEL org.opencontainers.image.source="https://github.com/MathiasPaulenko/wavexis"
 LABEL org.opencontainers.image.license="MIT"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -46,4 +46,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')" || exit 1
 
-ENTRYPOINT ["browsix", "serve", "--host", "0.0.0.0", "--port", "8080"]
+ENTRYPOINT ["wavexis", "serve", "--host", "0.0.0.0", "--port", "8080"]

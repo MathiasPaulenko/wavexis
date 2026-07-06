@@ -5,15 +5,15 @@ This tutorial takes about 5 minutes. You'll learn to take screenshots, generate 
 ## Install
 
 ```bash
-pip install browsix[cdp]
+pip install wavexis[cdp]
 ```
 
-browsix detects Chrome, Edge, Brave, or Chromium on your system. No browser download needed.
+wavexis detects Chrome, Edge, Brave, or Chromium on your system. No browser download needed.
 
 ## First screenshot
 
 ```bash
-browsix screenshot https://example.com -o out.png
+wavexis screenshot https://example.com -o out.png
 ```
 
 Output: `Screenshot saved to out.png`
@@ -21,7 +21,7 @@ Output: `Screenshot saved to out.png`
 ## First PDF
 
 ```bash
-browsix pdf https://example.com -o out.pdf --paper a4
+wavexis pdf https://example.com -o out.pdf --paper a4
 ```
 
 Output: `PDF saved to out.pdf`
@@ -29,7 +29,7 @@ Output: `PDF saved to out.pdf`
 ## First eval
 
 ```bash
-browsix eval https://example.com -e "document.title"
+wavexis eval https://example.com -e "document.title"
 ```
 
 Output: `"Example Domain"`
@@ -51,13 +51,13 @@ actions:
 Run it:
 
 ```bash
-browsix multi actions.yml
+wavexis multi actions.yml
 ```
 
 ## Device emulation
 
 ```bash
-browsix emulation device https://example.com --device iphone-15 -o mobile.png
+wavexis emulation device https://example.com --device iphone-15 -o mobile.png
 ```
 
 ## What's next?

@@ -1,4 +1,4 @@
-"""Unit tests for browsix perf command and console enhancements."""
+"""Unit tests for wavexis perf command and console enhancements."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from browsix.cli.app import _print_perf_summary
+from wavexis.cli.app import _print_perf_summary
 
 
 @pytest.mark.unit
@@ -87,9 +87,9 @@ class TestPerfBackend:
         """Test that _perf calls perf_metrics for metrics type."""
         import sys
 
-        from browsix.cli.app import _perf
+        from wavexis.cli.app import _perf
 
-        app_module = sys.modules["browsix.cli.app"]
+        app_module = sys.modules["wavexis.cli.app"]
 
         backend = MagicMock()
         backend.launch = AsyncMock()
@@ -113,9 +113,9 @@ class TestPerfBackend:
         """Test that _perf calls perf_trace for trace type."""
         import sys
 
-        from browsix.cli.app import _perf
+        from wavexis.cli.app import _perf
 
-        app_module = sys.modules["browsix.cli.app"]
+        app_module = sys.modules["wavexis.cli.app"]
 
         backend = MagicMock()
         backend.launch = AsyncMock()
@@ -137,9 +137,9 @@ class TestPerfBackend:
         """Test that _perf calls perf_coverage for coverage type."""
         import sys
 
-        from browsix.cli.app import _perf
+        from wavexis.cli.app import _perf
 
-        app_module = sys.modules["browsix.cli.app"]
+        app_module = sys.modules["wavexis.cli.app"]
 
         backend = MagicMock()
         backend.launch = AsyncMock()
@@ -166,9 +166,9 @@ class TestConsoleEnhancements:
         """Test that _console with capture='both' gets console and logs."""
         import sys
 
-        from browsix.cli.app import _console
+        from wavexis.cli.app import _console
 
-        app_module = sys.modules["browsix.cli.app"]
+        app_module = sys.modules["wavexis.cli.app"]
 
         backend = MagicMock()
         backend.launch = AsyncMock()
@@ -197,9 +197,9 @@ class TestConsoleEnhancements:
         """Test that _console with capture='logs' only gets logs."""
         import sys
 
-        from browsix.cli.app import _console
+        from wavexis.cli.app import _console
 
-        app_module = sys.modules["browsix.cli.app"]
+        app_module = sys.modules["wavexis.cli.app"]
 
         backend = MagicMock()
         backend.launch = AsyncMock()

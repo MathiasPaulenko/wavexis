@@ -3,19 +3,19 @@
 ## Single page
 
 ```bash
-browsix eval https://example.com -e "document.title"
+wavexis eval https://example.com -e "document.title"
 ```
 
 ## Multiple pages
 
 ```bash
-browsix scrape https://example.com https://example.org -e "document.title"
+wavexis scrape https://example.com https://example.org -e "document.title"
 ```
 
 ## Extract structured data
 
 ```bash
-browsix eval https://example.com -e "
+wavexis eval https://example.com -e "
   JSON.stringify({
     title: document.title,
     h1: document.querySelector('h1')?.textContent,
@@ -37,11 +37,11 @@ actions:
 ```
 
 ```bash
-browsix multi scrape.yml
+wavexis multi scrape.yml
 ```
 
 ## DOM query
 
 ```bash
-browsix dom https://example.com --action query --selector "h1"
+wavexis dom https://example.com --action query --selector "h1"
 ```

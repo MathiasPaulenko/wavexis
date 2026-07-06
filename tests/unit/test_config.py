@@ -1,6 +1,6 @@
 """Unit tests for config dataclasses."""
 
-from browsix.config import (
+from wavexis.config import (
     DEVICE_PRESETS,
     PAPER_SIZES,
     BrowserOptions,

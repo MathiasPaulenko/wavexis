@@ -4,11 +4,11 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from browsix.actions.accessibility import AccessibilityAction
-from browsix.actions.dialog import DialogAction
-from browsix.actions.permissions import PermissionsAction
-from browsix.actions.security import SecurityAction
-from browsix.backend.base import AbstractBackend
+from wavexis.actions.accessibility import AccessibilityAction
+from wavexis.actions.dialog import DialogAction
+from wavexis.actions.permissions import PermissionsAction
+from wavexis.actions.security import SecurityAction
+from wavexis.backend.base import AbstractBackend
 
 
 def _make_backend() -> MagicMock:

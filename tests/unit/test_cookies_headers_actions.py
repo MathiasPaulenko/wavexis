@@ -6,9 +6,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from browsix.actions.cookies import CookieAction
-from browsix.actions.headers import HeaderAction
-from browsix.config import CookieActionParams, CookieParams, HeaderParams
+from wavexis.actions.cookies import CookieAction
+from wavexis.actions.headers import HeaderAction
+from wavexis.config import CookieActionParams, CookieParams, HeaderParams
 
 
 @pytest.mark.unit

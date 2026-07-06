@@ -1,1 +1,1 @@
-"""Unit tests for browsix."""
+"""Unit tests for wavexis."""

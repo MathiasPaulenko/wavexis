@@ -14,7 +14,7 @@ Brief description of the changes.
 
 - [ ] Code follows PEP 8 and passes `ruff check .`
 - [ ] Type hints on all parameters and return types
-- [ ] `mypy browsix/` passes
+- [ ] `mypy wavexis/` passes
 - [ ] Tests added or updated for changes
 - [ ] `pytest tests/unit/ -v` passes
 - [ ] Conventional commit message used

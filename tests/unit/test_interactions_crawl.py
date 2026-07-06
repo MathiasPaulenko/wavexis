@@ -6,9 +6,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from browsix.actions.crawl import CrawlAction, CrawlParams
-from browsix.actions.input import InputAction
-from browsix.config import InputParams, WaitStrategy
+from wavexis.actions.crawl import CrawlAction, CrawlParams
+from wavexis.actions.input import InputAction
+from wavexis.config import InputParams, WaitStrategy
 
 pytestmark = pytest.mark.unit
 

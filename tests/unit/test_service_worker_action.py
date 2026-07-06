@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from browsix.actions.service_worker import ServiceWorkerAction, ServiceWorkerParams
-from browsix.backend.base import AbstractBackend
+from wavexis.actions.service_worker import ServiceWorkerAction, ServiceWorkerParams
+from wavexis.backend.base import AbstractBackend
 
 
 @pytest.mark.unit

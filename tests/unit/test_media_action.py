@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from browsix.actions.media import MediaAction, MediaParams
+from wavexis.actions.media import MediaAction, MediaParams
 
 
 @pytest.mark.unit

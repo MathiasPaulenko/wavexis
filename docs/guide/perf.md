@@ -1,6 +1,6 @@
 # Performance Metrics
 
-The `browsix perf` command captures performance data from web pages using the Chrome DevTools Protocol. It provides access to Core Web Vitals, CPU traces, code coverage, and heap snapshots — all from the command line.
+The `wavexis perf` command captures performance data from web pages using the Chrome DevTools Protocol. It provides access to Core Web Vitals, CPU traces, code coverage, and heap snapshots — all from the command line.
 
 ## When to use perf
 
@@ -14,7 +14,7 @@ The `browsix perf` command captures performance data from web pages using the Ch
 ## Usage
 
 ```bash
-browsix perf <url> [options]
+wavexis perf <url> [options]
 ```
 
 ### Options
@@ -42,7 +42,7 @@ browsix perf <url> [options]
 The default metric type captures key performance indicators:
 
 ```bash
-browsix perf https://example.com
+wavexis perf https://example.com
 ```
 
 Output includes a human-readable summary:
@@ -73,8 +73,8 @@ Performance Summary:
 ### Saving metrics to a file
 
 ```bash
-browsix perf https://example.com -o metrics.json
-browsix perf https://example.com -f yaml -o metrics.yaml
+wavexis perf https://example.com -o metrics.json
+wavexis perf https://example.com -f yaml -o metrics.yaml
 ```
 
 ## CPU traces
@@ -82,7 +82,7 @@ browsix perf https://example.com -f yaml -o metrics.yaml
 Capture a performance trace with timeline events for detailed analysis:
 
 ```bash
-browsix perf https://example.com -m trace -d 5000 -o trace.json
+wavexis perf https://example.com -m trace -d 5000 -o trace.json
 ```
 
 The trace contains detailed event data (paint, layout, script execution, network requests) that can be loaded in Chrome DevTools or analyzed programmatically.
@@ -94,7 +94,7 @@ The `--duration` flag controls how long the trace captures (in milliseconds). De
 Capture a CPU profile to identify JavaScript functions that consume the most time:
 
 ```bash
-browsix perf https://example.com -m profile -d 5000 -o profile.json
+wavexis perf https://example.com -m profile -d 5000 -o profile.json
 ```
 
 The profile contains a call tree with function names, execution counts, and timing. Load it in Chrome DevTools > Performance > Profiles for visualization.
@@ -106,7 +106,7 @@ The profile contains a call tree with function names, execution counts, and timi
 Identify which JavaScript functions were executed and which were not:
 
 ```bash
-browsix perf https://example.com -m coverage -o coverage.json
+wavexis perf https://example.com -m coverage -o coverage.json
 ```
 
 Output contains per-function coverage data including URL, line ranges, and execution counts. Useful for identifying dead code or measuring test coverage.
@@ -116,7 +116,7 @@ Output contains per-function coverage data including URL, line ranges, and execu
 Identify which CSS rules were used on the page:
 
 ```bash
-browsix perf https://example.com -m css-coverage -o css-coverage.json
+wavexis perf https://example.com -m css-coverage -o css-coverage.json
 ```
 
 Output contains per-rule usage data. Useful for identifying unused CSS and optimizing bundle sizes.
@@ -126,7 +126,7 @@ Output contains per-rule usage data. Useful for identifying unused CSS and optim
 Capture a snapshot of the JavaScript heap for memory analysis:
 
 ```bash
-browsix perf https://example.com -m heap-snapshot -o heap.json
+wavexis perf https://example.com -m heap-snapshot -o heap.json
 ```
 
 The snapshot contains all objects in the heap with their types, sizes, and references. Load it in Chrome DevTools > Memory > Heap snapshots for comparison and leak detection.
@@ -139,7 +139,7 @@ Capture metrics in CI and compare against a baseline:
 
 ```bash
 # Capture current metrics
-browsix perf https://my-app.com -m metrics -o current-metrics.json
+wavexis perf https://my-app.com -m metrics -o current-metrics.json
 
 # Compare with baseline (using jq)
 LCP=$(jq '.LargestContentfulPaint' current-metrics.json)
@@ -154,8 +154,8 @@ fi
 Track JavaScript and CSS coverage over time:
 
 ```bash
-browsix perf https://my-app.com -m coverage -o coverage-$(date +%s).json
-browsix perf https://my-app.com -m css-coverage -o css-coverage-$(date +%s).json
+wavexis perf https://my-app.com -m coverage -o coverage-$(date +%s).json
+wavexis perf https://my-app.com -m css-coverage -o css-coverage-$(date +%s).json
 ```
 
 ## Backend notes

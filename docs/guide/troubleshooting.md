@@ -12,12 +12,12 @@
 
 ## Backend not available
 
-**Error:** `No backend available. Install cdpwave: pip install browsix[cdp]`
+**Error:** `No backend available. Install cdpwave: pip install wavexis[cdp]`
 
 **Solution:** Install the CDP backend:
 
 ```bash
-pip install browsix[cdp]
+pip install wavexis[cdp]
 ```
 
 ## Navigation timeout
@@ -27,7 +27,7 @@ pip install browsix[cdp]
 **Solution:** Increase the wait time or use a different wait strategy:
 
 ```bash
-browsix screenshot https://slow-site.com --wait-for "body"
+wavexis screenshot https://slow-site.com --wait-for "body"
 ```
 
 ## Element not found
@@ -43,7 +43,7 @@ browsix screenshot https://slow-site.com --wait-for "body"
 **Solution:** Install the BiDi backend:
 
 ```bash
-pip install browsix[bidi]
+pip install wavexis[bidi]
 ```
 
 ## Multi config errors

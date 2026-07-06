@@ -5,7 +5,7 @@ The `multi` command lets you execute multiple actions from a single YAML config 
 ## Usage
 
 ```bash
-browsix multi <config.yml>
+wavexis multi <config.yml>
 ```
 
 ## Config format
@@ -38,7 +38,7 @@ actions:
 
 ### How it works
 
-1. browsix parses the YAML file and validates its structure.
+1. wavexis parses the YAML file and validates its structure.
 2. A single browser instance is launched.
 3. Each action is dispatched to the corresponding action class (`ScreenshotAction`, `EvalAction`, etc.).
 4. Actions execute sequentially — each one completes before the next starts.
@@ -50,7 +50,7 @@ actions:
 Re-execute the config automatically when the file changes. This is designed for iterative config development — edit the YAML, save, and see results immediately:
 
 ```bash
-browsix multi config.yml --watch
+wavexis multi config.yml --watch
 ```
 
 Output:
@@ -71,7 +71,7 @@ Watch mode uses file polling (1-second interval) for cross-platform compatibilit
 Validate the config and show the planned actions without launching a browser:
 
 ```bash
-browsix multi config.yml --dry-run
+wavexis multi config.yml --dry-run
 ```
 
 Output:
@@ -336,7 +336,7 @@ actions:
 ```
 
 ```bash
-TARGET_URL=https://staging.example.com browsix multi config.yml
+TARGET_URL=https://staging.example.com wavexis multi config.yml
 ```
 
 ### Substitution rules
@@ -351,7 +351,7 @@ TARGET_URL=https://staging.example.com browsix multi config.yml
 By default, actions execute sequentially. Use `--parallel` to run all actions concurrently on the same backend:
 
 ```bash
-browsix multi config.yml --parallel
+wavexis multi config.yml --parallel
 ```
 
 This is useful when actions are independent (e.g. scraping multiple URLs). Results are returned in the same order as the actions in the config.
@@ -369,7 +369,7 @@ This is useful when actions are independent (e.g. scraping multiple URLs). Resul
 ### Parallel with watch
 
 ```bash
-browsix multi config.yml --parallel --watch
+wavexis multi config.yml --parallel --watch
 ```
 
 ## Validation errors
@@ -413,7 +413,7 @@ actions:
 ```
 
 ```bash
-browsix multi login-flow.yml
+wavexis multi login-flow.yml
 ```
 
 Output:

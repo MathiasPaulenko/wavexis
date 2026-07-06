@@ -6,9 +6,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from browsix.actions.console import ConsoleAction, ConsoleParams
-from browsix.actions.eval import EvalAction
-from browsix.actions.navigate import (
+from wavexis.actions.console import ConsoleAction, ConsoleParams
+from wavexis.actions.eval import EvalAction
+from wavexis.actions.navigate import (
     BackAction,
     ForwardAction,
     NavigateAction,
@@ -16,10 +16,10 @@ from browsix.actions.navigate import (
     ReloadAction,
     StopAction,
 )
-from browsix.actions.pdf import PDFAction
-from browsix.actions.screenshot import ScreenshotAction
-from browsix.actions.tabs import TabsAction, TabsParams
-from browsix.config import (
+from wavexis.actions.pdf import PDFAction
+from wavexis.actions.screenshot import ScreenshotAction
+from wavexis.actions.tabs import TabsAction, TabsParams
+from wavexis.config import (
     EvalParams,
     PDFParams,
     ScreenshotParams,
@@ -275,8 +275,8 @@ class TestDOMAction:
     @pytest.mark.unit
     async def test_dom_get(self, backend: FakeBackend):
         """Test dom get."""
-        from browsix.actions.dom import DOMAction
-        from browsix.config import DOMParams
+        from wavexis.actions.dom import DOMAction
+        from wavexis.config import DOMParams
 
         params = DOMParams(url="https://example.com", action="get", selector="#main")
         action = DOMAction(params)
@@ -287,8 +287,8 @@ class TestDOMAction:
     @pytest.mark.unit
     async def test_dom_get_inner(self, backend: FakeBackend):
         """Test dom get inner."""
-        from browsix.actions.dom import DOMAction
-        from browsix.config import DOMParams
+        from wavexis.actions.dom import DOMAction
+        from wavexis.config import DOMParams
 
         params = DOMParams(
             url="https://example.com", action="get", selector="#main", outer=False
@@ -301,8 +301,8 @@ class TestDOMAction:
     @pytest.mark.unit
     async def test_dom_query_single(self, backend: FakeBackend):
         """Test dom query single."""
-        from browsix.actions.dom import DOMAction
-        from browsix.config import DOMParams
+        from wavexis.actions.dom import DOMAction
+        from wavexis.config import DOMParams
 
         params = DOMParams(
             url="https://example.com", action="query", selector=".item", all=False
@@ -315,8 +315,8 @@ class TestDOMAction:
     @pytest.mark.unit
     async def test_dom_query_all(self, backend: FakeBackend):
         """Test dom query all."""
-        from browsix.actions.dom import DOMAction
-        from browsix.config import DOMParams
+        from wavexis.actions.dom import DOMAction
+        from wavexis.config import DOMParams
 
         params = DOMParams(
             url="https://example.com", action="query", selector=".item", all=True
@@ -328,8 +328,8 @@ class TestDOMAction:
     @pytest.mark.unit
     async def test_dom_set_attr(self, backend: FakeBackend):
         """Test dom set attr."""
-        from browsix.actions.dom import DOMAction
-        from browsix.config import DOMParams
+        from wavexis.actions.dom import DOMAction
+        from wavexis.config import DOMParams
 
         params = DOMParams(
             url="https://example.com",
@@ -345,8 +345,8 @@ class TestDOMAction:
     @pytest.mark.unit
     async def test_dom_get_attr(self, backend: FakeBackend):
         """Test dom get attr."""
-        from browsix.actions.dom import DOMAction
-        from browsix.config import DOMParams
+        from wavexis.actions.dom import DOMAction
+        from wavexis.config import DOMParams
 
         params = DOMParams(
             url="https://example.com",
@@ -362,8 +362,8 @@ class TestDOMAction:
     @pytest.mark.unit
     async def test_dom_remove(self, backend: FakeBackend):
         """Test dom remove."""
-        from browsix.actions.dom import DOMAction
-        from browsix.config import DOMParams
+        from wavexis.actions.dom import DOMAction
+        from wavexis.config import DOMParams
 
         params = DOMParams(
             url="https://example.com", action="remove", selector="#ad-banner"
@@ -375,8 +375,8 @@ class TestDOMAction:
     @pytest.mark.unit
     async def test_dom_focus(self, backend: FakeBackend):
         """Test dom focus."""
-        from browsix.actions.dom import DOMAction
-        from browsix.config import DOMParams
+        from wavexis.actions.dom import DOMAction
+        from wavexis.config import DOMParams
 
         params = DOMParams(
             url="https://example.com", action="focus", selector="#input"
@@ -388,8 +388,8 @@ class TestDOMAction:
     @pytest.mark.unit
     async def test_dom_scroll(self, backend: FakeBackend):
         """Test dom scroll."""
-        from browsix.actions.dom import DOMAction
-        from browsix.config import DOMParams
+        from wavexis.actions.dom import DOMAction
+        from wavexis.config import DOMParams
 
         params = DOMParams(
             url="https://example.com", action="scroll", selector="#section"
@@ -405,8 +405,8 @@ class TestScrapeAction:
     @pytest.mark.unit
     async def test_scrape_basic(self, backend: FakeBackend):
         """Test scrape basic."""
-        from browsix.actions.scrape import ScrapeAction
-        from browsix.config import ScrapeParams
+        from wavexis.actions.scrape import ScrapeAction
+        from wavexis.config import ScrapeParams
 
         params = ScrapeParams(
             urls=["https://example.com", "https://test.com"],
@@ -422,8 +422,8 @@ class TestScrapeAction:
     @pytest.mark.unit
     async def test_scrape_with_file(self, backend: FakeBackend, tmp_path):
         """Test scrape with file."""
-        from browsix.actions.scrape import ScrapeAction
-        from browsix.config import ScrapeParams
+        from wavexis.actions.scrape import ScrapeAction
+        from wavexis.config import ScrapeParams
 
         js_file = tmp_path / "scraper.js"
         js_file.write_text("document.title", encoding="utf-8")
@@ -443,8 +443,8 @@ class TestHARAction:
     @pytest.mark.unit
     async def test_har_capture(self, backend: FakeBackend):
         """Test har capture."""
-        from browsix.actions.har import HARAction
-        from browsix.config import HarParams
+        from wavexis.actions.har import HARAction
+        from wavexis.config import HarParams
 
         params = HarParams(url="https://example.com", wait=100)
         action = HARAction(params)
@@ -460,8 +460,8 @@ class TestNetworkAction:
     @pytest.mark.unit
     async def test_cookies_get(self, backend: FakeBackend):
         """Test cookies get."""
-        from browsix.actions.network import NetworkAction
-        from browsix.config import NetworkParams
+        from wavexis.actions.network import NetworkAction
+        from wavexis.config import NetworkParams
 
         params = NetworkParams(action="cookies_get")
         action = NetworkAction(params)
@@ -472,8 +472,8 @@ class TestNetworkAction:
     @pytest.mark.unit
     async def test_cookies_set(self, backend: FakeBackend):
         """Test cookies set."""
-        from browsix.actions.network import NetworkAction
-        from browsix.config import CookieParams, NetworkParams
+        from wavexis.actions.network import NetworkAction
+        from wavexis.config import CookieParams, NetworkParams
 
         cookie = CookieParams(name="test", value="val", domain="example.com")
         params = NetworkParams(action="cookies_set", cookie=cookie)
@@ -484,8 +484,8 @@ class TestNetworkAction:
     @pytest.mark.unit
     async def test_cookies_clear(self, backend: FakeBackend):
         """Test cookies clear."""
-        from browsix.actions.network import NetworkAction
-        from browsix.config import NetworkParams
+        from wavexis.actions.network import NetworkAction
+        from wavexis.config import NetworkParams
 
         params = NetworkParams(action="cookies_clear")
         action = NetworkAction(params)
@@ -495,8 +495,8 @@ class TestNetworkAction:
     @pytest.mark.unit
     async def test_headers(self, backend: FakeBackend):
         """Test headers."""
-        from browsix.actions.network import NetworkAction
-        from browsix.config import NetworkParams
+        from wavexis.actions.network import NetworkAction
+        from wavexis.config import NetworkParams
 
         params = NetworkParams(
             action="headers", headers={"X-Custom": "value"}
@@ -508,8 +508,8 @@ class TestNetworkAction:
     @pytest.mark.unit
     async def test_user_agent(self, backend: FakeBackend):
         """Test user agent."""
-        from browsix.actions.network import NetworkAction
-        from browsix.config import NetworkParams
+        from wavexis.actions.network import NetworkAction
+        from wavexis.config import NetworkParams
 
         params = NetworkParams(action="user_agent", user_agent="TestBot/1.0")
         action = NetworkAction(params)
@@ -523,7 +523,7 @@ class TestBrowserAction:
     @pytest.mark.unit
     async def test_version(self, backend: FakeBackend):
         """Test version."""
-        from browsix.actions.browser import BrowserAction
+        from wavexis.actions.browser import BrowserAction
 
         action = BrowserAction("version")
         result = await action.execute(backend)
@@ -533,7 +533,7 @@ class TestBrowserAction:
     @pytest.mark.unit
     async def test_new_context(self, backend: FakeBackend):
         """Test new context."""
-        from browsix.actions.browser import BrowserAction
+        from wavexis.actions.browser import BrowserAction
 
         action = BrowserAction("new_context")
         result = await action.execute(backend)
@@ -543,7 +543,7 @@ class TestBrowserAction:
     @pytest.mark.unit
     async def test_list_contexts(self, backend: FakeBackend):
         """Test list contexts."""
-        from browsix.actions.browser import BrowserAction
+        from wavexis.actions.browser import BrowserAction
 
         action = BrowserAction("list_contexts")
         result = await action.execute(backend)

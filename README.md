@@ -1,29 +1,29 @@
-# browsix
+# wavexis
 
-[![CI](https://github.com/MathiasPaulenko/browsix/actions/workflows/ci.yml/badge.svg)](https://github.com/MathiasPaulenko/browsix/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/browsix.svg)](https://pypi.org/project/browsix/)
-[![Python](https://img.shields.io/pypi/pyversions/browsix.svg)](https://pypi.org/project/browsix/)
-[![Docker](https://img.shields.io/badge/Docker-ghcr.io-blue.svg)](https://github.com/MathiasPaulenko/browsix/pkgs/container/browsix)
-[![License](https://img.shields.io/github/license/MathiasPaulenko/browsix.svg)](https://github.com/MathiasPaulenko/browsix/blob/main/LICENSE)
-[![Docs](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://mathiaspaulenko.github.io/browsix/)
+[![CI](https://github.com/MathiasPaulenko/wavexis/actions/workflows/ci.yml/badge.svg)](https://github.com/MathiasPaulenko/wavexis/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/wavexis.svg)](https://pypi.org/project/wavexis/)
+[![Python](https://img.shields.io/pypi/pyversions/wavexis.svg)](https://pypi.org/project/wavexis/)
+[![Docker](https://img.shields.io/badge/Docker-ghcr.io-blue.svg)](https://github.com/MathiasPaulenko/wavexis/pkgs/container/wavexis)
+[![License](https://img.shields.io/github/license/MathiasPaulenko/wavexis.svg)](https://github.com/MathiasPaulenko/wavexis/blob/main/LICENSE)
+[![Docs](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://mathiaspaulenko.github.io/wavexis/)
 
 > Browser automation CLI — wraps cdpwave and bidiwave. No Node.js, no Chromium download. Uses your existing Chrome/Edge. 100+ commands across CDP and BiDi backends with full parity.
 
-## Why browsix?
+## Why wavexis?
 
-browsix is a command-line tool for browser automation. It wraps the [cdpwave](https://pypi.org/project/cdpwave/) (Chrome DevTools Protocol) and [bidiwave](https://pypi.org/project/bidiwave/) (WebDriver BiDi) libraries, exposing their capabilities through a single unified CLI. You don't need Node.js, Playwright, or a separate Chromium download — browsix launches your existing Chrome or Edge installation directly.
+wavexis is a command-line tool for browser automation. It wraps the [cdpwave](https://pypi.org/project/cdpwave/) (Chrome DevTools Protocol) and [bidiwave](https://pypi.org/project/bidiwave/) (WebDriver BiDi) libraries, exposing their capabilities through a single unified CLI. You don't need Node.js, Playwright, or a separate Chromium download — wavexis launches your existing Chrome or Edge installation directly.
 
 ### Core concepts
 
-- **Backend** — The browser driver that executes commands. browsix supports two backends with full feature parity: CDP (default, via cdpwave) and BiDi (via bidiwave). Both implement all 100+ methods, so you can switch with `--backend bidi` without losing functionality.
+- **Backend** — The browser driver that executes commands. wavexis supports two backends with full feature parity: CDP (default, via cdpwave) and BiDi (via bidiwave). Both implement all 100+ methods, so you can switch with `--backend bidi` without losing functionality.
 - **Action** — A single operation (screenshot, eval, click, etc.). Each action maps to a CLI command or a step in a multi-action YAML config.
 - **Multi-action** — A YAML config that chains multiple actions in sequence on a single browser session. Avoids the overhead of launching a browser per action.
-- **Serve mode** — An HTTP API server that exposes all browsix commands as REST endpoints with WebSocket streaming for real-time events.
+- **Serve mode** — An HTTP API server that exposes all wavexis commands as REST endpoints with WebSocket streaming for real-time events.
 
 ## Install
 
 ```bash
-pip install browsix[cdp]
+pip install wavexis[cdp]
 ```
 
 ## Docker
@@ -31,7 +31,7 @@ pip install browsix[cdp]
 Serve mode in a container with Chromium pre-installed:
 
 ```bash
-docker run -p 8080:8080 ghcr.io/mathiaspaulenko/browsix:latest
+docker run -p 8080:8080 ghcr.io/mathiaspaulenko/wavexis:latest
 ```
 
 ```bash
@@ -44,33 +44,33 @@ curl -X POST http://localhost:8080/screenshot \
 Build locally:
 
 ```bash
-docker build -t browsix .
-docker run -p 8080:8080 browsix
+docker build -t wavexis .
+docker run -p 8080:8080 wavexis
 ```
 
 ## Quick start
 
 ```bash
 # Take a screenshot
-browsix screenshot https://example.com -o out.png
+wavexis screenshot https://example.com -o out.png
 
 # Full-page screenshot
-browsix screenshot https://example.com -o full.png --full-page
+wavexis screenshot https://example.com -o full.png --full-page
 
 # Screenshot of a specific element
-browsix screenshot https://example.com -o el.png --selector "h1"
+wavexis screenshot https://example.com -o el.png --selector "h1"
 
 # Generate a PDF
-browsix pdf https://example.com -o out.pdf --paper a4
+wavexis pdf https://example.com -o out.pdf --paper a4
 
 # Evaluate JavaScript
-browsix eval https://example.com -e "document.title"
+wavexis eval https://example.com -e "document.title"
 
 # Scrape page content
-browsix scrape https://example.com --selector "article"
+wavexis scrape https://example.com --selector "article"
 
 # Emulate a device
-browsix device https://example.com --preset iphone-15 -o shot.png
+wavexis device https://example.com --preset iphone-15 -o shot.png
 ```
 
 ## REPL
@@ -78,46 +78,46 @@ browsix device https://example.com --preset iphone-15 -o shot.png
 Interactive REPL for live browser sessions. Launch a non-headless browser and execute commands in real time:
 
 ```bash
-browsix repl
+wavexis repl
 ```
 
 Inside the REPL:
 
 ```
-browsix> navigate https://example.com
-browsix> screenshot
-browsix> eval document.title
-browsix> click #login-button
-browsix> type #username admin@example.com
-browsix> cookies
-browsix> url
-browsix> title
-browsix> wait 2
-browsix> back
-browsix> help
-browsix> exit
+wavexis> navigate https://example.com
+wavexis> screenshot
+wavexis> eval document.title
+wavexis> click #login-button
+wavexis> type #username admin@example.com
+wavexis> cookies
+wavexis> url
+wavexis> title
+wavexis> wait 2
+wavexis> back
+wavexis> help
+wavexis> exit
 ```
 
 Supported commands: `navigate`, `screenshot`, `eval`, `click`, `type`, `fill`, `hover`, `key`, `cookies`, `url`, `title`, `wait`, `back`, `forward`, `reload`, `help`, `exit`/`quit`.
 
 ## Init wizard
 
-Generate a `browsix.yaml` config interactively from predefined templates:
+Generate a `wavexis.yaml` config interactively from predefined templates:
 
 ```bash
-browsix init
+wavexis init
 ```
 
 Or generate directly with flags:
 
 ```bash
-browsix init -t multi-step -u https://example.com -s "#login" --text "admin" -o config.yaml
+wavexis init -t multi-step -u https://example.com -s "#login" --text "admin" -o config.yaml
 ```
 
 List available templates:
 
 ```bash
-browsix init --list
+wavexis init --list
 ```
 
 Templates: `screenshot`, `pdf`, `scrape`, `eval`, `multi-step`, `cookies`, `har`.
@@ -128,16 +128,16 @@ Use `--assert` with `eval` to create CI gates that pass or fail based on the res
 
 ```bash
 # Equality check — exit 0 if title matches, 1 otherwise
-browsix eval https://example.com -e "document.title" --assert "== Expected Title"
+wavexis eval https://example.com -e "document.title" --assert "== Expected Title"
 
 # Inequality
-browsix eval https://example.com -e "document.title" --assert "!= Old Title"
+wavexis eval https://example.com -e "document.title" --assert "!= Old Title"
 
 # Substring
-browsix eval https://example.com -e "document.body.innerText" --assert "contains Welcome"
+wavexis eval https://example.com -e "document.body.innerText" --assert "contains Welcome"
 
 # Regex
-browsix eval https://example.com -e "document.title" --assert "matches Error \\d+"
+wavexis eval https://example.com -e "document.title" --assert "matches Error \\d+"
 ```
 
 Output includes `assert:`, `result:`, and `status: PASS/FAIL`. Exit code 0 on pass, 1 on fail.
@@ -148,22 +148,22 @@ Capture Core Web Vitals and performance data:
 
 ```bash
 # Key metrics (LCP, FCP, CLS, TTFB) with human-readable summary
-browsix perf https://example.com
+wavexis perf https://example.com
 
 # CPU trace
-browsix perf https://example.com -m trace -d 5000 -o trace.json
+wavexis perf https://example.com -m trace -d 5000 -o trace.json
 
 # CPU profile
-browsix perf https://example.com -m profile -o profile.json
+wavexis perf https://example.com -m profile -o profile.json
 
 # JS code coverage
-browsix perf https://example.com -m coverage -o coverage.json
+wavexis perf https://example.com -m coverage -o coverage.json
 
 # CSS coverage
-browsix perf https://example.com -m css-coverage -o css-coverage.json
+wavexis perf https://example.com -m css-coverage -o css-coverage.json
 
 # Heap snapshot
-browsix perf https://example.com -m heap-snapshot -o heap.json
+wavexis perf https://example.com -m heap-snapshot -o heap.json
 ```
 
 Metrics: `metrics` (default), `trace`, `profile`, `heap-snapshot`, `coverage`, `css-coverage`.
@@ -174,16 +174,16 @@ Store and use browser credentials for authenticated scraping:
 
 ```bash
 # Save credentials
-browsix auth save mysite --user admin --pass secret123
+wavexis auth save mysite --user admin --pass secret123
 
 # Use saved credentials
-browsix auth use mysite --url https://example.com/login
+wavexis auth use mysite --url https://example.com/login
 
 # List saved profiles
-browsix auth list
+wavexis auth list
 
 # Delete a profile
-browsix auth delete mysite
+wavexis auth delete mysite
 ```
 
 ## Record & Replay
@@ -192,13 +192,13 @@ Record a browser session and replay it later:
 
 ```bash
 # Record a session
-browsix record start https://example.com -o session.json
+wavexis record start https://example.com -o session.json
 
 # Replay a recorded session
-browsix record replay session.json
+wavexis record replay session.json
 
 # List recorded sessions
-browsix record list
+wavexis record list
 ```
 
 ## Serve mode
@@ -206,7 +206,7 @@ browsix record list
 HTTP API server powered by aiohttp with WebSocket streaming:
 
 ```bash
-browsix serve --host 0.0.0.0 --port 8080
+wavexis serve --host 0.0.0.0 --port 8080
 ```
 
 ```bash
@@ -252,7 +252,7 @@ actions:
 ```
 
 ```bash
-browsix multi actions.yml
+wavexis multi actions.yml
 ```
 
 ### Watch mode
@@ -260,7 +260,7 @@ browsix multi actions.yml
 Re-execute the config automatically when the file changes. Useful for iterative config development:
 
 ```bash
-browsix multi actions.yml --watch
+wavexis multi actions.yml --watch
 ```
 
 ### Dry run
@@ -268,7 +268,7 @@ browsix multi actions.yml --watch
 Validate the config and show the planned actions without launching a browser:
 
 ```bash
-browsix multi actions.yml --dry-run
+wavexis multi actions.yml --dry-run
 ```
 
 ### Supported action types
@@ -304,15 +304,15 @@ actions:
 
 ## Backends
 
-browsix supports two backends with **full feature parity**:
+wavexis supports two backends with **full feature parity**:
 
-- **CDP** (cdpwave) — default, Chrome DevTools Protocol. `pip install browsix[cdp]`
-- **BiDi** (bidiwave) — WebDriver BiDi protocol, uses BiDi native + JS workarounds + CDP bridge. `pip install browsix[bidi]`
+- **CDP** (cdpwave) — default, Chrome DevTools Protocol. `pip install wavexis[cdp]`
+- **BiDi** (bidiwave) — WebDriver BiDi protocol, uses BiDi native + JS workarounds + CDP bridge. `pip install wavexis[bidi]`
 
 Select with `--backend`:
 
 ```bash
-browsix --backend bidi screenshot https://example.com -o out.png
+wavexis --backend bidi screenshot https://example.com -o out.png
 ```
 
 ### Feature parity (v1.7.0)
@@ -354,7 +354,7 @@ Both backends implement **all** methods. BiDi uses native BiDi commands, JS work
 
 ## Commands
 
-browsix provides 100+ CLI commands organized into categories:
+wavexis provides 100+ CLI commands organized into categories:
 
 | Category | Commands |
 |----------|----------|
@@ -376,11 +376,11 @@ browsix provides 100+ CLI commands organized into categories:
 | Interactive | `repl` (live browser REPL), `init` (config wizard) |
 | Utility | `multi` (with `--watch`, `--dry-run`), `raw`, `backends`, `install_check`, `completions` |
 
-Run `browsix --help` for the full list.
+Run `wavexis --help` for the full list.
 
 ## Comparison
 
-| Feature | browsix | shot-scraper | Playwright |
+| Feature | wavexis | shot-scraper | Playwright |
 |---------|---------|--------------|------------|
 | Language | Python | Python | Multi |
 | Node.js required | No | Yes | Yes |
@@ -409,7 +409,7 @@ Run `browsix --help` for the full list.
 
 ## Documentation
 
-Full docs at [mathiaspaulenko.github.io/browsix](https://mathiaspaulenko.github.io/browsix/).
+Full docs at [mathiaspaulenko.github.io/wavexis](https://mathiaspaulenko.github.io/wavexis/).
 
 ## License
 

@@ -1,4 +1,4 @@
-"""Unit tests for browsix REPL module."""
+"""Unit tests for wavexis REPL module."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from browsix.repl import execute_repl_command, parse_command
+from wavexis.repl import execute_repl_command, parse_command
 
 
 @pytest.mark.unit

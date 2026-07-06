@@ -2,9 +2,9 @@
 
 import pytest
 
-from browsix.actions.har import HARAction
-from browsix.backend.manager import BackendManager
-from browsix.config import BrowserOptions, HarParams
+from wavexis.actions.har import HARAction
+from wavexis.backend.manager import BackendManager
+from wavexis.config import BrowserOptions, HarParams
 
 
 @pytest.mark.integration

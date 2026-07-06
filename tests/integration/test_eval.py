@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from browsix.actions.eval import EvalAction
-from browsix.backend.manager import BackendManager
-from browsix.config import BrowserOptions, EvalParams, WaitStrategy
+from wavexis.actions.eval import EvalAction
+from wavexis.backend.manager import BackendManager
+from wavexis.config import BrowserOptions, EvalParams, WaitStrategy
 
 
 @pytest.mark.integration

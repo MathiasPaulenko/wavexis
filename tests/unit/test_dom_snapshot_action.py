@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from browsix.actions.dom_snapshot import DOMSnapshotAction, DOMSnapshotParams
-from browsix.backend.base import AbstractBackend
+from wavexis.actions.dom_snapshot import DOMSnapshotAction, DOMSnapshotParams
+from wavexis.backend.base import AbstractBackend
 
 
 @pytest.mark.unit

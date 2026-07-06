@@ -1,11 +1,11 @@
 # Record & Replay
 
-browsix can record a browser session (clicks, navigation, input) and replay it later.
+wavexis can record a browser session (clicks, navigation, input) and replay it later.
 
 ## Record a session
 
 ```bash
-browsix record start https://example.com -o session.json
+wavexis record start https://example.com -o session.json
 ```
 
 This launches a browser, navigates to the URL, and records all interactions
@@ -14,7 +14,7 @@ until you close the browser or press Ctrl+C. The session is saved as JSON.
 ## Replay a session
 
 ```bash
-browsix record replay session.json
+wavexis record replay session.json
 ```
 
 This replays all recorded interactions in sequence. Useful for regression
@@ -23,7 +23,7 @@ testing or repeating complex workflows.
 ## List recorded sessions
 
 ```bash
-browsix record list
+wavexis record list
 ```
 
 ## Record with multi-action
@@ -39,7 +39,7 @@ actions:
 ```
 
 ```bash
-browsix multi record-flow.yml
+wavexis multi record-flow.yml
 ```
 
 ## CI/CD with replay
@@ -55,7 +55,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install browsix[cdp]
+      - run: pip install wavexis[cdp]
       - uses: browser-actions/setup-chrome@v1
-      - run: browsix record replay checkout-flow.json
+      - run: wavexis record replay checkout-flow.json
 ```

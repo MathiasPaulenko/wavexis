@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from browsix.actions.debug import DebugAction, DebugActionParams
-from browsix.backend.base import AbstractBackend
+from wavexis.actions.debug import DebugAction, DebugActionParams
+from wavexis.backend.base import AbstractBackend
 
 
 @pytest.mark.unit

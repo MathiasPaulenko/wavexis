@@ -2,8 +2,8 @@
 
 import pytest
 
-from browsix.backend.cdp import CDPBackend
-from browsix.config import BrowserOptions
+from wavexis.backend.cdp import CDPBackend
+from wavexis.config import BrowserOptions
 
 pytestmark = [pytest.mark.integration, pytest.mark.chrome]
 
@@ -72,7 +72,7 @@ async def test_raw_get_cookies(
 async def test_raw_bidi_command() -> None:
     """Test raw() with BiDi backend."""
     try:
-        from browsix.backend.bidi import BiDiBackend
+        from wavexis.backend.bidi import BiDiBackend
     except ImportError:
         pytest.skip("bidiwave not installed")
 

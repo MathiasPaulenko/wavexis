@@ -1,22 +1,22 @@
 """Unit tests for exceptions hierarchy."""
 
-from browsix.exceptions import (
+from wavexis.exceptions import (
     ActionError,
     BackendNotAvailableError,
     BackendNotSupportedError,
-    BrowsixError,
     ElementNotFoundError,
     MultiConfigError,
     NavigationError,
     WaitTimeoutError,
+    WavexisError,
 )
 
 
 class TestExceptions:
-    """Tests for browsix exception hierarchy."""
+    """Tests for wavexis exception hierarchy."""
 
-    def test_all_inherit_browsix_error(self):
-        """Test all inherit browsix error."""
+    def test_all_inherit_wavexis_error(self):
+        """Test all inherit wavexis error."""
         for exc_cls in [
             BackendNotAvailableError,
             BackendNotSupportedError,
@@ -26,7 +26,7 @@ class TestExceptions:
             ActionError,
             MultiConfigError,
         ]:
-            assert issubclass(exc_cls, BrowsixError)
+            assert issubclass(exc_cls, WavexisError)
 
     def test_backend_not_available_with_name(self):
         """Test backend not available with name."""

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from browsix.output import Output
+from wavexis.output import Output
 
 
 class TestOutput:

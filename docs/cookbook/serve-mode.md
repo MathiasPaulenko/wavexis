@@ -1,9 +1,9 @@
 # Serve Mode
 
-browsix includes an HTTP API server powered by aiohttp. Start it with:
+wavexis includes an HTTP API server powered by aiohttp. Start it with:
 
 ```bash
-browsix serve --host 0.0.0.0 --port 8080
+wavexis serve --host 0.0.0.0 --port 8080
 ```
 
 ## Endpoints
@@ -11,7 +11,7 @@ browsix serve --host 0.0.0.0 --port 8080
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/health` | Health check |
-| GET | `/version` | browsix version |
+| GET | `/version` | wavexis version |
 | GET | `/backends` | Available backends |
 | POST | `/screenshot` | Take a screenshot |
 | POST | `/pdf` | Generate a PDF |

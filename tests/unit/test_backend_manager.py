@@ -6,9 +6,9 @@ from typing import Any
 
 import pytest
 
-from browsix.backend.base import AbstractBackend
-from browsix.backend.manager import BackendManager
-from browsix.exceptions import BackendNotAvailableError, BackendNotSupportedError
+from wavexis.backend.base import AbstractBackend
+from wavexis.backend.manager import BackendManager
+from wavexis.exceptions import BackendNotAvailableError, BackendNotSupportedError
 
 
 class DummyBackend(AbstractBackend):

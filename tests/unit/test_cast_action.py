@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from browsix.actions.cast import CastAction, CastParams
+from wavexis.actions.cast import CastAction, CastParams
 
 
 @pytest.mark.unit

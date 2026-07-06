@@ -1,11 +1,11 @@
-"""Unit tests for browsix init module."""
+"""Unit tests for wavexis init module."""
 
 from __future__ import annotations
 
 import pytest
 import yaml
 
-from browsix.init import (
+from wavexis.init import (
     TEMPLATE_NAMES,
     TEMPLATES,
     generate_config,

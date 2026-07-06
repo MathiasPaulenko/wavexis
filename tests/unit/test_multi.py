@@ -1,4 +1,4 @@
-"""Unit tests for browsix.multi YAML parser and executor."""
+"""Unit tests for wavexis.multi YAML parser and executor."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from browsix.exceptions import MultiConfigError
-from browsix.multi import execute_actions, parse_yaml
+from wavexis.exceptions import MultiConfigError
+from wavexis.multi import execute_actions, parse_yaml
 
 
 @pytest.mark.unit

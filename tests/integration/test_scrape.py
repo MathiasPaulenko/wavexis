@@ -2,9 +2,9 @@
 
 import pytest
 
-from browsix.actions.scrape import ScrapeAction
-from browsix.backend.manager import BackendManager
-from browsix.config import BrowserOptions, ScrapeParams, WaitStrategy
+from wavexis.actions.scrape import ScrapeAction
+from wavexis.backend.manager import BackendManager
+from wavexis.config import BrowserOptions, ScrapeParams, WaitStrategy
 
 
 @pytest.mark.integration

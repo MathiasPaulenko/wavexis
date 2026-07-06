@@ -3,19 +3,19 @@
 ## pip
 
 ```bash
-pip install browsix[cdp]
+pip install wavexis[cdp]
 ```
 
 To use the WebDriver BiDi backend instead:
 
 ```bash
-pip install browsix[bidi]
+pip install wavexis[bidi]
 ```
 
 Both backends:
 
 ```bash
-pip install browsix[cdp,bidi]
+pip install wavexis[cdp,bidi]
 ```
 
 ## pipx
@@ -23,18 +23,18 @@ pip install browsix[cdp,bidi]
 For isolated installation:
 
 ```bash
-pipx install browsix[cdp]
+pipx install wavexis[cdp]
 ```
 
 ## Shell completions
 
-browsix uses Typer's built-in completion support. Install completions for your shell:
+wavexis uses Typer's built-in completion support. Install completions for your shell:
 
 ```bash
-browsix completions bash
-browsix completions zsh
-browsix completions fish
-browsix completions powershell
+wavexis completions bash
+wavexis completions zsh
+wavexis completions fish
+wavexis completions powershell
 ```
 
 ## Requirements
@@ -46,6 +46,6 @@ browsix completions powershell
 ## Verify installation
 
 ```bash
-browsix --version
-browsix install_check
+wavexis --version
+wavexis install_check
 ```
