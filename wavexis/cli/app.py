@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import contextvars
 import json
 import sys
@@ -2791,15 +2790,17 @@ def replay(
 
     config_path = Path(config)
     backend = _get_backend()
-    try:
-        asyncio.run(backend.launch(_browser_options()))
-        results = asyncio.run(replay_from_yaml(config_path, backend))
-    except WavexisError as e:
-        _handle_error(e)
+
+    async def _replay() -> list[Any]:
+        await backend.launch(_browser_options())
+        try:
+            return await replay_from_yaml(config_path, backend)
+        finally:
+            await backend.close()
+
+    results = _run_async(_replay())
+    if results is None:
         return
-    finally:
-        with contextlib.suppress(WavexisError):
-            asyncio.run(backend.close())
 
     _echo(f"Replayed {len(results)} actions")
     for i, result in enumerate(results):
