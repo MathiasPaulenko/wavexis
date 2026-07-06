@@ -273,7 +273,10 @@ def eval(
         "", "--expression", "-e", help="JavaScript expression to evaluate"
     ),
     output: str | None = typer.Option(
-        None, "--output", "-o", help="Output file path (JSON)"
+        None, "--output", "-o", help="Output file path"
+    ),
+    format: str = typer.Option(
+        "json", "--format", "-f", help="Output format: json, csv, yaml"
     ),
     await_promise: bool = typer.Option(
         False, "--await-promise", help="Await a returned Promise"
@@ -291,12 +294,11 @@ def eval(
         result = asyncio.run(_eval(url, expression, await_promise, file))
     except BrowsixError as e:
         _handle_error(e)
+        return
 
+    Output.write_formatted(result, format, output)
     if output:
-        Output.write_json(result, output)
         typer.echo(f"Result saved to {output}")
-    else:
-        typer.echo(json.dumps(result, indent=2, default=str))
 
 
 async def _eval(url: str, expression: str, await_promise: bool, file: str | None) -> Any:
@@ -602,7 +604,9 @@ def scrape(
     output: str | None = typer.Option(
         None, "--output", "-o", help="Output file path"
     ),
-    csv_out: bool = typer.Option(False, "--csv", help="Output as CSV"),
+    format: str = typer.Option(
+        "json", "--format", "-f", help="Output format: json, csv, yaml"
+    ),
     file: str | None = typer.Option(
         None, "--file", help="Read expression from file (prefix with @)"
     ),
@@ -619,16 +623,11 @@ def scrape(
         results = asyncio.run(_scrape(urls, expr, file, selector))
     except BrowsixError as e:
         _handle_error(e)
+        return
 
-    if csv_out:
-        Output.write_csv(results, output)
-        if output:
-            typer.echo(f"CSV saved to {output}")
-    elif output:
-        Output.write_json(results, output)
+    Output.write_formatted(results, format, output)
+    if output:
         typer.echo(f"Results saved to {output}")
-    else:
-        typer.echo(json.dumps(results, indent=2, default=str))
 
 
 async def _scrape(
@@ -2899,6 +2898,37 @@ def _basic_auth(username: str, password: str) -> str:
     """Encode basic auth credentials as base64."""
     import base64
     return base64.b64encode(f"{username}:{password}".encode()).decode()
+
+
+@app.command()
+def record(
+    url: str = typer.Argument(..., help="URL to navigate to for recording"),
+    output: str = typer.Option(
+        "browsix.yaml", "--output", "-o", help="Output YAML file path"
+    ),
+    duration: int = typer.Option(
+        60, "--duration", "-d", help="Maximum recording duration in seconds"
+    ),
+) -> None:
+    """Record browser interactions and generate a browsix.yaml config.
+
+    Launches a non-headless browser, injects event listeners, and
+    captures clicks, inputs, and navigations. Press Ctrl+C to stop early.
+    """
+    from browsix.actions.record import record_session
+    from pathlib import Path
+
+    backend = _get_backend()
+    try:
+        yaml_content = asyncio.run(record_session(backend, url, duration))
+    except BrowsixError as e:
+        _handle_error(e)
+        return
+
+    out_path = Path(output)
+    out_path.write_text(yaml_content, encoding="utf-8")
+    typer.echo(f"Recorded config saved to {output}")
+    typer.echo(f"Run with: browsix multi {output}")
 
 
 if __name__ == "__main__":

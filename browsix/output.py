@@ -10,6 +10,11 @@ from pathlib import Path
 from typing import Any
 
 try:
+    import yaml as _yaml
+except ImportError:
+    _yaml = None
+
+try:
     from rich.console import Console
 
     _console_err: Console | None = Console(stderr=True)
@@ -103,6 +108,49 @@ class Output:
             writer.writeheader()
             writer.writerows(data)
             print(buf.getvalue(), end="")
+
+    @staticmethod
+    def write_yaml(data: Any, path: str | None = None) -> None:
+        """Write data as YAML to a file or stdout.
+
+        Args:
+            data: The data to serialize as YAML.
+            path: File path. If None, prints to stdout.
+        """
+        if _yaml is None:
+            raise ImportError("PyYAML is required for YAML output. Run: pip install pyyaml")
+        text = _yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True)
+        if path:
+            Path(path).write_text(text, encoding="utf-8")
+        else:
+            print(text, end="")
+
+    @staticmethod
+    def write_formatted(
+        data: Any,
+        fmt: str,
+        path: str | None = None,
+    ) -> None:
+        """Write data in the specified format.
+
+        Args:
+            data: The data to write.
+            fmt: Output format — "json", "csv", or "yaml".
+            path: File path. If None, prints to stdout.
+
+        Raises:
+            ValueError: If the format is not supported.
+        """
+        if fmt == "json":
+            Output.write_json(data, path)
+        elif fmt == "csv":
+            if not isinstance(data, list):
+                data = [data] if isinstance(data, dict) else [{"value": data}]
+            Output.write_csv(data, path)
+        elif fmt == "yaml":
+            Output.write_yaml(data, path)
+        else:
+            raise ValueError(f"Unsupported format: {fmt}. Use json, csv, or yaml.")
 
     @staticmethod
     def error(msg: str) -> None:
