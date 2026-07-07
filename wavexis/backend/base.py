@@ -237,7 +237,11 @@ class AbstractBackend(ABC):
 
     @abstractmethod
     async def click(
-        self, selector: str, button: str = "left", click_count: int = 1
+        self,
+        selector: str,
+        button: str = "left",
+        click_count: int = 1,
+        auto_wait: bool = True,
     ) -> None:
         """Click an element matching a CSS selector."""
 
@@ -246,7 +250,9 @@ class AbstractBackend(ABC):
         """Type text into an element, optionally with delay between keystrokes."""
 
     @abstractmethod
-    async def fill(self, selector: str, value: str) -> None:
+    async def fill(
+        self, selector: str, value: str, auto_wait: bool = True
+    ) -> None:
         """Fill an input element with a value (replaces existing content)."""
 
     @abstractmethod
@@ -254,7 +260,7 @@ class AbstractBackend(ABC):
         """Select an option in a <select> element by value."""
 
     @abstractmethod
-    async def hover(self, selector: str) -> None:
+    async def hover(self, selector: str, auto_wait: bool = True) -> None:
         """Hover over an element matching a CSS selector."""
 
     @abstractmethod

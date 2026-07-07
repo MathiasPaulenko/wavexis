@@ -853,11 +853,23 @@ class BiDiBackend(AbstractBackend):
         await client.script.evaluate(self._context, js)
 
     async def click(
-        self, selector: str, button: str = "left", click_count: int = 1
+        self,
+        selector: str,
+        button: str = "left",
+        click_count: int = 1,
+        auto_wait: bool = True,
     ) -> None:
-        """Click an element via BiDi script.evaluate."""
+        """Click an element via BiDi script.evaluate.
+
+        Args:
+            selector: CSS selector for the target element.
+            button: Mouse button (unused in BiDi, for API compatibility).
+            click_count: Number of clicks to dispatch.
+            auto_wait: If True, wait for element to be visible before clicking.
+        """
         client = self._require_client()
-        await self._wait_for_element(selector)
+        if auto_wait:
+            await self._wait_for_element(selector)
         await self._scroll_into_view_if_needed(selector)
         escaped = selector.replace("'", "\\'")
         js = (
@@ -887,10 +899,19 @@ class BiDiBackend(AbstractBackend):
             if delay > 0:
                 await _asyncio.sleep(delay / 1000)
 
-    async def fill(self, selector: str, value: str) -> None:
-        """Fill an input element with a value via BiDi."""
+    async def fill(
+        self, selector: str, value: str, auto_wait: bool = True
+    ) -> None:
+        """Fill an input element with a value via BiDi.
+
+        Args:
+            selector: CSS selector for the target element.
+            value: Value to set in the input field.
+            auto_wait: If True, wait for element to be visible before filling.
+        """
         client = self._require_client()
-        await self._wait_for_element(selector)
+        if auto_wait:
+            await self._wait_for_element(selector)
         await self._scroll_into_view_if_needed(selector)
         escaped = selector.replace("'", "\\'")
         escaped_val = value.replace("\\", "\\\\").replace("'", "\\'")
@@ -906,10 +927,16 @@ class BiDiBackend(AbstractBackend):
         js = f"document.querySelector('{escaped}').value = '{escaped_val}'"
         await self._client.script.evaluate(self._context, js)
 
-    async def hover(self, selector: str) -> None:
-        """Hover over an element via BiDi script.evaluate."""
+    async def hover(self, selector: str, auto_wait: bool = True) -> None:
+        """Hover over an element via BiDi script.evaluate.
+
+        Args:
+            selector: CSS selector for the target element.
+            auto_wait: If True, wait for element to be visible before hovering.
+        """
         client = self._require_client()
-        await self._wait_for_element(selector)
+        if auto_wait:
+            await self._wait_for_element(selector)
         await self._scroll_into_view_if_needed(selector)
         escaped = selector.replace("'", "\\'")
         js = (

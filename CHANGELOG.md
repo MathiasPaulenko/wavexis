@@ -2,6 +2,13 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.3.1 — 2026-07-07
+
+### Added
+
+- `auto_wait: bool = True` parameter in `click`, `fill`, `hover` (both backends)
+- Pass `auto_wait=False` to skip element visibility polling for instant execution
+
 ## v2.3.0 — 2026-07-07
 
 ### Added

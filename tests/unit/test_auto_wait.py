@@ -68,6 +68,35 @@ class TestAutoWait:
         asyncio.run(backend.click("#btn"))
         assert call_order == ["wait", "scroll", "box"]
 
+    def test_cdp_click_auto_wait_false_skips_wait(self) -> None:
+        """Test that click with auto_wait=False skips _wait_for_element."""
+        from wavexis.backend.cdp import CDPBackend
+
+        backend = CDPBackend()
+        backend._session = MagicMock()
+        backend._session.input = MagicMock()
+        backend._session.input.dispatch_mouse_event = AsyncMock()
+
+        call_order: list[str] = []
+
+        async def _mock_wait(selector: str, timeout_ms: int = 30000) -> None:
+            call_order.append("wait")
+
+        async def _mock_scroll(selector: str) -> None:
+            call_order.append("scroll")
+
+        async def _mock_box(selector: str) -> tuple[float, float]:
+            call_order.append("box")
+            return 50.0, 25.0
+
+        backend._wait_for_element = _mock_wait  # type: ignore[assignment]
+        backend._scroll_into_view_if_needed = _mock_scroll  # type: ignore[assignment]
+        backend._get_box_center = _mock_box  # type: ignore[assignment]
+
+        asyncio.run(backend.click("#btn", auto_wait=False))
+        assert "wait" not in call_order
+        assert call_order == ["scroll", "box"]
+
     def test_bidi_wait_for_element_found(self) -> None:
         """Test BiDi _wait_for_element returns when element is visible."""
         from wavexis.backend.bidi import BiDiBackend

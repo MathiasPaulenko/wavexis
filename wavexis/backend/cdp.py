@@ -1072,7 +1072,11 @@ class CDPBackend(AbstractBackend):
         await session.runtime.evaluate(js)
 
     async def click(
-        self, selector: str, button: str = "left", click_count: int = 1
+        self,
+        selector: str,
+        button: str = "left",
+        click_count: int = 1,
+        auto_wait: bool = True,
     ) -> None:
         """Click an element matching a CSS selector.
 
@@ -1080,9 +1084,11 @@ class CDPBackend(AbstractBackend):
             selector: CSS selector for the target element.
             button: Mouse button — "left", "right", or "middle".
             click_count: Number of clicks to dispatch.
+            auto_wait: If True, wait for element to be visible before clicking.
         """
         session = self._require_session()
-        await self._wait_for_element(selector)
+        if auto_wait:
+            await self._wait_for_element(selector)
         await self._scroll_into_view_if_needed(selector)
         x, y = await self._get_box_center(selector)
         btn_map = {"left": "left", "right": "right", "middle": "middle"}
@@ -1113,15 +1119,19 @@ class CDPBackend(AbstractBackend):
             if delay > 0:
                 await asyncio.sleep(delay / 1000)
 
-    async def fill(self, selector: str, value: str) -> None:
+    async def fill(
+        self, selector: str, value: str, auto_wait: bool = True
+    ) -> None:
         """Fill an input element with a value (replaces existing content).
 
         Args:
             selector: CSS selector for the target element.
             value: Value to set in the input field.
+            auto_wait: If True, wait for element to be visible before filling.
         """
         session = self._require_session()
-        await self._wait_for_element(selector)
+        if auto_wait:
+            await self._wait_for_element(selector)
         await self._scroll_into_view_if_needed(selector)
         escaped = selector.replace("'", "\\'")
         js = (
@@ -1155,14 +1165,16 @@ class CDPBackend(AbstractBackend):
         if not result.get("result", {}).get("value"):
             raise ElementNotFoundError(selector)
 
-    async def hover(self, selector: str) -> None:
+    async def hover(self, selector: str, auto_wait: bool = True) -> None:
         """Hover over an element matching a CSS selector.
 
         Args:
             selector: CSS selector for the target element.
+            auto_wait: If True, wait for element to be visible before hovering.
         """
         session = self._require_session()
-        await self._wait_for_element(selector)
+        if auto_wait:
+            await self._wait_for_element(selector)
         await self._scroll_into_view_if_needed(selector)
         x, y = await self._get_box_center(selector)
         await session.input.dispatch_mouse_event(
