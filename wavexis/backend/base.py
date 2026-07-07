@@ -47,6 +47,27 @@ class AbstractBackend(ABC):
         """Take a screenshot of an element matching a CSS selector."""
 
     @abstractmethod
+    async def annotated_screenshot(
+        self,
+        selectors: list[str],
+        format: str = "png",
+    ) -> tuple[bytes, dict[str, str]]:
+        """Take a screenshot with numbered labels overlaid on elements.
+
+        Injects overlay divs with labels @e1, @e2, ... on each element
+        matching the selectors, captures a screenshot, removes the overlays,
+        and returns the image bytes plus a label-to-selector mapping.
+
+        Args:
+            selectors: List of CSS selectors to annotate.
+            format: Image format: "png" or "jpeg".
+
+        Returns:
+            Tuple of (image_bytes, label_map) where label_map is
+            {"e1": "selector1", "e2": "selector2", ...}.
+        """
+
+    @abstractmethod
     async def eval(self, expression: str, await_promise: bool = False) -> Any:
         """Evaluate a JavaScript expression and return the result."""
 

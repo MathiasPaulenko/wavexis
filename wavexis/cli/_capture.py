@@ -69,6 +69,55 @@ def screenshot(
     Output.write_bytes(image_bytes, output)
     typer.echo(f"Screenshot saved to {output}")
 
+
+@app.command()
+def annotate(
+    url: str = typer.Argument(..., help="URL to navigate to"),
+    selectors: str = typer.Option(
+        ...,
+        "--selectors",
+        "-s",
+        help='Comma-separated CSS selectors to annotate (e.g. "button,#email")',
+    ),
+    output: str = typer.Option(
+        "annotated.png", "--output", "-o", help="Output file path"
+    ),
+    format: str = typer.Option(
+        "png", "--format", help="Image format (png or jpeg)"
+    ),
+) -> None:
+    """Take a screenshot with numbered labels on elements.
+
+    \b
+    wavexis annotate https://example.com -s "button,#email,input" -o out.png
+    """
+    selector_list = [s.strip() for s in selectors.split(",") if s.strip()]
+    image_bytes, label_map = _run_async(
+        _take_annotated(url, selector_list, format)
+    )
+    Output.write_bytes(image_bytes, output)
+    typer.echo(f"Annotated screenshot saved to {output}")
+    typer.echo("Labels:")
+    for label, sel in label_map.items():
+        typer.echo(f"  @{label} → {sel}")
+
+
+async def _take_annotated(
+    url: str, selectors: list[str], format: str
+) -> tuple[bytes, dict[str, str]]:
+    """Async helper for annotated screenshot."""
+    backend = _get_backend()
+    try:
+        await backend.launch(_browser_options())
+        await backend.navigate(url, WaitStrategy(strategy="load"))
+        result: tuple[bytes, dict[str, str]] = (
+            await backend.annotated_screenshot(selectors, format=format)
+        )
+        return result
+    finally:
+        await backend.close()
+
+
 async def _take_screenshot(
     url: str,
     full_page: bool,

@@ -40,6 +40,12 @@ class DummyBackend(AbstractBackend):
         """Screenshot selector."""
         return b""
 
+    async def annotated_screenshot(
+        self, selectors: list[str], format: str = "png"
+    ) -> tuple[bytes, dict[str, str]]:
+        """Annotated screenshot."""
+        return b"", {}
+
     async def eval(self, expression: str, await_promise: bool = False) -> object:
         """Eval."""
         return None

@@ -2,6 +2,16 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.5.0 — 2026-07-07
+
+### Added
+
+- Annotated screenshots: `annotated_screenshot` method in both CDP and BiDi backends
+- `wavexis annotate <url> -s "button,#email" -o out.png` CLI command
+- Overlays numbered labels (@e1, @e2, ...) with red outlines on matched elements
+- Returns image bytes plus label-to-selector mapping
+- Automatic cleanup of overlay elements after screenshot capture
+
 ## v2.4.0 — 2026-07-07
 
 ### Added

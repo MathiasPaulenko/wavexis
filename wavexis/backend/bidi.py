@@ -191,6 +191,92 @@ class BiDiBackend(AbstractBackend):
         )
         return base64.b64decode(data)
 
+    @staticmethod
+    def _annotate_js(selectors: list[str]) -> str:
+        """Build JS that overlays numbered labels on elements."""
+        selectors_json = json.dumps(selectors)
+        return (
+            f"(function(){{"
+            f"var sels={selectors_json};"
+            f"var container=document.createElement('div');"
+            f"container.id='__wavexis_annotate';"
+            f"container.style.cssText="
+            f"'position:fixed;top:0;left:0;width:100%;height:100%;"
+            f"pointer-events:none;z-index:999999;';"
+            f"var labelMap={{}};"
+            f"for(var i=0;i<sels.length;i++){{"
+            f"var el=document.querySelector(sels[i]);"
+            f"if(!el)continue;"
+            f"var rect=el.getBoundingClientRect();"
+            f"var label=document.createElement('div');"
+            f"var num=i+1;"
+            f"label.textContent='@e'+num;"
+            f"label.style.cssText="
+            f"'position:fixed;left:'+(rect.left+4)+'px;'"
+            f"+'top:'+(rect.top+4)+'px;'"
+            f"+'background:#ff4444;color:#fff;'"
+            f"+'padding:2px 6px;border-radius:3px;'"
+            f"+'font:bold 12px monospace;'"
+            f"+'pointer-events:none;z-index:999999;';"
+            f"var outline=document.createElement('div');"
+            f"outline.style.cssText="
+            f"'position:fixed;left:'+rect.left+'px;'"
+            f"+'top:'+rect.top+'px;'"
+            f"+'width:'+rect.width+'px;'"
+            f"+'height:'+rect.height+'px;'"
+            f"+'border:2px solid #ff4444;'"
+            f"+'pointer-events:none;z-index:999998;';"
+            f"container.appendChild(outline);"
+            f"container.appendChild(label);"
+            f"labelMap['e'+num]=sels[i];"
+            f"}}"
+            f"document.body.appendChild(container);"
+            f"return JSON.stringify(labelMap);"
+            f"}})()"
+        )
+
+    @staticmethod
+    def _remove_annotate_js() -> str:
+        """Build JS that removes annotation overlays."""
+        return (
+            "(function(){var e=document.getElementById"
+            "('__wavexis_annotate');if(e)e.remove();})()"
+        )
+
+    async def annotated_screenshot(
+        self,
+        selectors: list[str],
+        format: str = "png",
+    ) -> tuple[bytes, dict[str, str]]:
+        """Take a screenshot with numbered labels overlaid on elements.
+
+        Args:
+            selectors: List of CSS selectors to annotate.
+            format: Image format: "png" or "jpeg".
+
+        Returns:
+            Tuple of (image_bytes, label_map).
+        """
+        client = self._require_client()
+        js = self._annotate_js(selectors)
+        result = await client.script.evaluate(self._context, js)
+        raw = getattr(result, "value", None)
+        label_map: dict[str, str] = (
+            json.loads(raw) if isinstance(raw, str) else {}
+        )
+        screenshot_result = await client.browsing.screenshot(
+            self._context, format=format
+        )
+        await client.script.evaluate(
+            self._context, self._remove_annotate_js()
+        )
+        data = (
+            screenshot_result.data
+            if hasattr(screenshot_result, "data")
+            else screenshot_result.get("data", "")
+        )
+        return base64.b64decode(data), label_map
+
     async def eval(self, expression: str, await_promise: bool = False) -> Any:
         """Evaluate a JavaScript expression via script.evaluate.
 

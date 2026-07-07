@@ -20,6 +20,9 @@ class FakeBackend(AbstractBackend):
         """Screenshot."""
     async def screenshot_selector(self, selector, format="png", quality=80):
         """Screenshot selector."""
+    async def annotated_screenshot(self, selectors, format="png"):
+        """Annotated screenshot."""
+        return b"", {}
     async def eval(self, expression, await_promise=False):
         """Eval."""
     async def raw(self, method, params=None):
