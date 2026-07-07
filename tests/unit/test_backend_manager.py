@@ -138,6 +138,22 @@ class DummyBackend(AbstractBackend):
         """Suggest locator."""
         return selector
 
+    async def find_by_text(
+        self, query: str, all: bool = False
+    ) -> list[str] | str:
+        """Find by text."""
+        return query
+
+    async def nl_click(self, query: str, auto_wait: bool = True) -> None:
+        """NL click."""
+        pass
+
+    async def nl_fill(
+        self, query: str, value: str, auto_wait: bool = True
+    ) -> None:
+        """NL fill."""
+        pass
+
     async def capture_har(self, params: object) -> dict:
         """Capture har."""
         return {}

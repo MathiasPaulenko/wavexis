@@ -2,6 +2,18 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.3.5 — 2026-07-07
+
+### Added
+
+- Natural language selector: `find_by_text`, `nl_click`, `nl_fill` in both CDP and BiDi backends
+- `wavexis nl click/fill/find` CLI command with natural language queries
+- Fuzzy text matching scoring: exact match (100), contains query (80), query contains text (60), word overlap (up to 50)
+- Searches textContent, aria-label, placeholder, title, alt, and value attributes
+- Returns best CSS selector for the matched element
+- `--all` flag on `nl find` returns all matches ranked by score
+- `--no-wait` flag to skip auto-waiting
+
 ## v2.3.4 — 2026-07-07
 
 ### Added

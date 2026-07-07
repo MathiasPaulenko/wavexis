@@ -166,6 +166,49 @@ class AbstractBackend(ABC):
             List of selector strings when all=True, single best selector when all=False.
         """
 
+    @abstractmethod
+    async def find_by_text(
+        self, query: str, all: bool = False
+    ) -> list[str] | str:
+        """Find elements by natural language text query.
+
+        Searches all visible elements by text content, aria-label,
+        placeholder, title, and alt text using fuzzy matching.
+
+        Args:
+            query: Natural language query (e.g. "the login button").
+            all: If True, return all matches; otherwise just the best one.
+
+        Returns:
+            List of CSS selector strings when all=True, single best when all=False.
+
+        Raises:
+            ElementNotFoundError: If no element matches the query.
+        """
+
+    @abstractmethod
+    async def nl_click(
+        self, query: str, auto_wait: bool = True
+    ) -> None:
+        """Click an element found by natural language text query.
+
+        Args:
+            query: Natural language query (e.g. "login button").
+            auto_wait: If True, wait for element to be visible before clicking.
+        """
+
+    @abstractmethod
+    async def nl_fill(
+        self, query: str, value: str, auto_wait: bool = True
+    ) -> None:
+        """Fill an input element found by natural language text query.
+
+        Args:
+            query: Natural language query (e.g. "email field").
+            value: Value to set in the input field.
+            auto_wait: If True, wait for element to be visible before filling.
+        """
+
     # ── Network ────────────────────────────────────────────
 
     @abstractmethod

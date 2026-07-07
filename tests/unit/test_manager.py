@@ -69,6 +69,13 @@ class FakeBackend(AbstractBackend):
     async def suggest_locator(self, selector, all=False):
         """Suggest locator."""
         return selector
+    async def find_by_text(self, query, all=False):
+        """Find by text."""
+        return query
+    async def nl_click(self, query, auto_wait=True):
+        """NL click."""
+    async def nl_fill(self, query, value, auto_wait=True):
+        """NL fill."""
     async def capture_har(self, params):
         """Capture har."""
     async def get_cookies(self):

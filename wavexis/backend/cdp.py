@@ -702,6 +702,114 @@ class CDPBackend(AbstractBackend):
             f"}})()"
         )
 
+    @staticmethod
+    def _find_by_text_js(query: str) -> str:
+        """Build JS that finds elements by natural language text query."""
+        escaped = query.replace("\\", "\\\\").replace("'", "\\'")
+        return (
+            f"(function(){{"
+            f"var q='{escaped}'.toLowerCase().trim();"
+            f"var words=q.split(/\\s+/);"
+            f"var els=Array.from(document.querySelectorAll('*'));"
+            f"var results=[];"
+            f"for(var i=0;i<els.length;i++){{"
+            f"var el=els[i];"
+            f"var rect=el.getBoundingClientRect();"
+            f"if(rect.width===0||rect.height===0)continue;"
+            f"var texts=["
+            f"(el.textContent||'').trim(),"
+            f"el.getAttribute('aria-label')||'',"
+            f"el.getAttribute('placeholder')||'',"
+            f"el.getAttribute('title')||'',"
+            f"el.getAttribute('alt')||'',"
+            f"el.getAttribute('value')||''"
+            f"].map(function(t){{return t.toLowerCase()}});"
+            f"var bestScore=0;"
+            f"for(var j=0;j<texts.length;j++){{"
+            f"var t=texts[j];if(!t)continue;"
+            f"if(t===q){{bestScore=100;break;}}"
+            f"if(t.indexOf(q)>=0){{bestScore=Math.max(bestScore,80);}}"
+            f"if(q.indexOf(t)>=0&&t.length>3){{bestScore=Math.max(bestScore,60);}}"
+            f"var matched=0;"
+            f"for(var k=0;k<words.length;k++){{"
+            f"if(t.indexOf(words[k])>=0)matched++;"
+            f"}}"
+            f"if(matched>0)bestScore=Math.max(bestScore,"
+            f"Math.round(matched/words.length*50));"
+            f"}}"
+            f"if(bestScore>0){{"
+            f"var tag=el.tagName.toLowerCase();"
+            f"var sel=tag;"
+            f"if(el.id)sel='#'+CSS.escape(el.id);"
+            f"else if(el.getAttribute('data-testid'))"
+            f"sel='[data-testid=\"'+el.getAttribute('data-testid')+'\"]';"
+            f"else if(el.getAttribute('aria-label'))"
+            f"sel=tag+'[aria-label=\"'+el.getAttribute('aria-label')+'\"]';"
+            f"else if(el.classList.length>0)"
+            f"sel=tag+'.'+Array.from(el.classList).join('.');"
+            f"results.push({{score:bestScore,sel:sel}});"
+            f"}}"
+            f"}}"
+            f"results.sort(function(a,b){{return b.score-a.score}});"
+            f"return JSON.stringify(results.map(function(r){{return r.sel}}));"
+            f"}})()"
+        )
+
+    async def find_by_text(
+        self, query: str, all: bool = False
+    ) -> list[str] | str:
+        """Find elements by natural language text query.
+
+        Args:
+            query: Natural language query (e.g. "the login button").
+            all: If True, return all matches; otherwise just the best one.
+
+        Returns:
+            List of CSS selector strings when all=True, single best when all=False.
+
+        Raises:
+            ElementNotFoundError: If no element matches the query.
+        """
+        session = self._require_session()
+        js = self._find_by_text_js(query)
+        result = await session.runtime.evaluate(js)
+        raw = result.get("result", {}).get("value")
+        if not raw:
+            raise ElementNotFoundError(query)
+        selectors: list[str] = json.loads(raw)
+        if not selectors:
+            raise ElementNotFoundError(query)
+        if all:
+            return selectors
+        return selectors[0]
+
+    async def nl_click(
+        self, query: str, auto_wait: bool = True
+    ) -> None:
+        """Click an element found by natural language text query.
+
+        Args:
+            query: Natural language query (e.g. "login button").
+            auto_wait: If True, wait for element to be visible before clicking.
+        """
+        selector = await self.find_by_text(query)
+        assert isinstance(selector, str)
+        await self.click(selector, auto_wait=auto_wait)
+
+    async def nl_fill(
+        self, query: str, value: str, auto_wait: bool = True
+    ) -> None:
+        """Fill an input element found by natural language text query.
+
+        Args:
+            query: Natural language query (e.g. "email field").
+            value: Value to set in the input field.
+            auto_wait: If True, wait for element to be visible before filling.
+        """
+        selector = await self.find_by_text(query)
+        assert isinstance(selector, str)
+        await self.fill(selector, value, auto_wait=auto_wait)
+
     # ── Network ────────────────────────────────────────────
 
     async def capture_har(self, params: HarParams) -> dict[str, Any]:
