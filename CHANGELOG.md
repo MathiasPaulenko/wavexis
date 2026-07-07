@@ -2,6 +2,23 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.9.0 — 2026-07-07
+
+### Added
+
+- Concurrent page operations via multi-tab support in a single browser process
+- `TabHandle` class in CDP backend — shares WebSocket connection, own CDP session per tab
+- `BiDiTabHandle` class in BiDi backend — shares BiDi client, own browsing context per tab
+- `new_tab_handle()` method on both backends — returns a tab handle for concurrent operations
+- `batch --mode tabs|processes` flag — `tabs` (default) uses 1 Chrome with N concurrent tabs, `processes` uses N Chrome processes
+- `scrape --concurrency N` flag — scrape multiple URLs in parallel using tabs
+- `multi --parallel` now uses separate tabs instead of broken single-session gather
+- 8 unit tests covering tab creation, semaphore limits, and sequential vs parallel modes
+
+### Fixed
+
+- `multi --parallel` no longer causes navigation conflicts — each action gets its own tab
+
 ## v2.8.0 — 2026-07-07
 
 ### Added

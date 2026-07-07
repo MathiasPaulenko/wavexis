@@ -100,7 +100,7 @@ async def execute_actions(
     Args:
         actions: List of action dicts from parse_yaml.
         backend: An launched AbstractBackend instance.
-        parallel: If True, execute all actions concurrently.
+        parallel: If True, execute all actions concurrently using separate tabs.
         cache: Optional ActionCache. If provided, cacheable actions
             (screenshot, dom, scrape, eval, cookies, headers) will
             be served from cache on repeated calls with same URL+params.
@@ -109,10 +109,17 @@ async def execute_actions(
         List of results from each action, in the same order as actions.
     """
     if parallel:
-        tasks = [
-            _dispatch(next(iter(ad)), ad[next(iter(ad))], backend, cache=cache)
-            for ad in actions
-        ]
+        async def _run_in_tab(action_dict: dict[str, Any]) -> Any:
+            action_type = next(iter(action_dict))
+            params = action_dict[action_type]
+            url = params.get("url", "about:blank")
+            tab = await backend.new_tab_handle(url)
+            try:
+                return await _dispatch(action_type, params, tab, cache=cache)
+            finally:
+                await tab.close()
+
+        tasks = [_run_in_tab(ad) for ad in actions]
         return await asyncio.gather(*tasks)
 
     results: list[Any] = []

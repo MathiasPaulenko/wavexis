@@ -117,6 +117,23 @@ class AbstractBackend(ABC):
     async def close_tab(self, tab_id: str) -> None:
         """Close a tab by its target ID."""
 
+    async def new_tab_handle(self, url: str = "about:blank") -> Any:
+        """Create a new tab with its own session for concurrent operations.
+
+        Default implementation raises NotImplementedError. CDPBackend
+        overrides this to return a TabHandle sharing the browser process.
+
+        Args:
+            url: Initial URL for the new tab.
+
+        Returns:
+            A backend-like object with its own session for the new tab.
+        """
+        raise NotImplementedError(
+            "new_tab_handle is not supported by this backend. "
+            "Use --mode processes for concurrency."
+        )
+
     @abstractmethod
     async def activate_tab(self, tab_id: str) -> None:
         """Activate (focus) a tab by its target ID."""

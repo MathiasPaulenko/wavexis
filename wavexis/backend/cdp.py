@@ -56,6 +56,25 @@ class CDPBackend(AbstractBackend):
         self._log_entries: list[dict[str, Any]] = []
         self._current_url: str = ""
 
+    async def new_tab_handle(self, url: str = "about:blank") -> TabHandle:
+        """Create a new tab with its own session, sharing the browser process.
+
+        Args:
+            url: Initial URL for the new tab.
+
+        Returns:
+            A TabHandle that can be used like a CDPBackend for concurrent operations.
+
+        Raises:
+            SessionNotInitializedError: If launch() has not been called.
+        """
+        if self._client is None:
+            raise SessionNotInitializedError(
+                "Backend not launched. Call launch() first."
+            )
+        session = await self._client.new_page(url)
+        return TabHandle(self._client, session)
+
     def _require_session(self) -> CDPSession:
         """Return the current session or raise if not initialized.
 
@@ -3350,3 +3369,36 @@ class CDPBackend(AbstractBackend):
             exc_tb: Traceback if raised, else None.
         """
         await self.close()
+
+
+class TabHandle(CDPBackend):
+    """A handle to a browser tab sharing the same Chrome process.
+
+    Created via ``CDPBackend.new_tab_handle()``. Shares the WebSocket
+    connection (``_client``) with the parent backend but has its own
+    CDP session (``_session``) for a specific tab.
+
+    All CDPBackend methods work as-is because they use ``_require_session()``
+    which returns this tab's session. Call ``close()`` to close the tab
+    (not the browser).
+    """
+
+    def __init__(self, client: Any, session: Any) -> None:
+        """Initialize the tab handle with a shared client and own session.
+
+        Args:
+            client: The CDPClient instance shared with the parent backend.
+            session: The CDPSession for this specific tab.
+        """
+        self._client = client
+        self._session = session
+        self._console_entries: list[dict[str, Any]] = []
+        self._log_entries: list[dict[str, Any]] = []
+        self._current_url: str = ""
+
+    async def close(self) -> None:
+        """Close the tab session without closing the browser."""
+        if self._session is not None:
+            await self._session.close()
+            self._session = None
+        self._client = None

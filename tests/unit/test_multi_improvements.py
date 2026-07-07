@@ -229,6 +229,9 @@ class TestParallelExecution:
 
     async def test_parallel_executes_all(self) -> None:
         backend = MagicMock()
+        tab_mock = AsyncMock()
+        tab_mock.close = AsyncMock()
+        backend.new_tab_handle = AsyncMock(return_value=tab_mock)
 
         async def fake_dispatch(
             action_type: str, params: dict, backend: Any, cache: Any = None

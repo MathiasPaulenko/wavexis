@@ -421,13 +421,16 @@ def scrape(
     selector: str | None = typer.Option(
         None, "--selector", "-s", help="CSS selector to wait for"
     ),
+    concurrency: int = typer.Option(
+        1, "--concurrency", "-c", help="Number of concurrent tabs (1 = sequential)"
+    ),
 ) -> None:
     """Scrape multiple URLs by evaluating a JS expression on each."""
     expr = expression
     if file:
         expr = f"@{file}"
 
-    results = _run_async(_scrape(urls, expr, file, selector))
+    results = _run_async(_scrape(urls, expr, file, selector, concurrency))
     if results is None:
         return
 
@@ -440,14 +443,55 @@ async def _scrape(
     expression: str,
     file: str | None,
     selector: str | None,
+    concurrency: int = 1,
 ) -> list[dict[str, Any]]:
-    """Async helper for scraping."""
+    """Async helper for scraping.
+
+    When concurrency > 1, uses tabs in a single Chrome process for parallel scraping.
+    """
+    import asyncio
+
     backend = _get_backend()
     total = len(urls)
     _echo(f"Scraping {total} URL(s)…")
     try:
         await backend.launch(_browser_options())
-        results: list[dict[str, Any]] = []
+
+        if concurrency > 1:
+            semaphore = asyncio.Semaphore(concurrency)
+            completed = 0
+            lock = asyncio.Lock()
+
+            async def _scrape_one(url: str) -> list[dict[str, Any]]:
+                nonlocal completed
+                async with semaphore:
+                    tab = None
+                    try:
+                        tab = await backend.new_tab_handle(url)
+                        params = ScrapeParams(
+                            urls=[url],
+                            expression=expression,
+                            file=file,
+                            output_format="json",
+                            selector=selector,
+                            wait=WaitStrategy(strategy="load"),
+                        )
+                        return await ScrapeAction(params).execute(tab)
+                    finally:
+                        if tab is not None:
+                            await tab.close()
+                        async with lock:
+                            completed += 1
+                            _progress(completed, total, url)
+
+            tasks = [_scrape_one(u) for u in urls]
+            gathered = await asyncio.gather(*tasks)
+            results: list[dict[str, Any]] = []
+            for batch in gathered:
+                results.extend(batch)
+            return results
+
+        results_seq: list[dict[str, Any]] = []
         for i, url in enumerate(urls):
             _progress(i + 1, total, url)
             params = ScrapeParams(
@@ -459,8 +503,8 @@ async def _scrape(
                 wait=WaitStrategy(strategy="load"),
             )
             result = await ScrapeAction(params).execute(backend)
-            results.extend(result)
-        return results
+            results_seq.extend(result)
+        return results_seq
     finally:
         await backend.close()
 

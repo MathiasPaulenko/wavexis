@@ -42,7 +42,7 @@ def multi(
     parallel: bool = typer.Option(
         False,
         "--parallel",
-        help="Execute all actions concurrently instead of sequentially",
+        help="Execute all actions concurrently using separate tabs",
     ),
     cache_ttl: int = typer.Option(
         0,
@@ -56,7 +56,7 @@ def multi(
     """Execute multiple actions from a YAML config file.
 
     Use --watch to re-run automatically when the config file changes.
-    Use --parallel to execute all actions concurrently on the same backend.
+    Use --parallel to execute all actions concurrently on separate tabs.
     Use --cache-ttl to cache results and skip re-execution on repeated runs.
     """
     config_path = Path(config)
@@ -127,7 +127,7 @@ async def _multi(
 
     Args:
         config_path: Path to the YAML config file.
-        parallel: If True, execute actions concurrently on the same backend.
+        parallel: If True, execute actions concurrently on separate tabs.
         cache_ttl: Cache TTL in seconds. 0 = no caching.
 
     Returns:
@@ -189,7 +189,13 @@ def batch(
         help="JS expression for scrape/eval",
     ),
     parallel: int = typer.Option(
-        4, "--parallel", "-p", help="Number of parallel browser instances"
+        4, "--parallel", "-p", help="Number of parallel workers (tabs or processes)"
+    ),
+    mode: str = typer.Option(
+        "tabs",
+        "--mode",
+        "-m",
+        help="Concurrency mode: 'tabs' (1 Chrome, N tabs) or 'processes' (N Chrome processes)",
     ),
     dry_run: bool = typer.Option(False, "--dry-run", help="Show plan without launching browser"),
 ) -> None:
@@ -213,7 +219,7 @@ def batch(
     out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    results = _run_async(_batch(urls, action, out_dir, expression, parallel))
+    results = _run_async(_batch(urls, action, out_dir, expression, parallel, mode))
     if results is None:
         return
 
@@ -235,6 +241,7 @@ async def _batch(
     out_dir: Any,
     expression: str,
     parallel: int,
+    mode: str = "tabs",
 ) -> list[Any]:
     """Run an action against multiple URLs with limited concurrency.
 
@@ -243,7 +250,82 @@ async def _batch(
         action: Action type — screenshot, pdf, scrape, or eval.
         out_dir: Output directory for saved files.
         expression: JS expression for scrape/eval.
-        parallel: Maximum number of concurrent browser instances.
+        parallel: Maximum number of concurrent workers.
+        mode: 'tabs' (1 Chrome, N tabs) or 'processes' (N Chrome processes).
+
+    Returns:
+        List of results (or exceptions) in the same order as urls.
+    """
+    if mode == "tabs":
+        return await _batch_tabs(urls, action, out_dir, expression, parallel)
+    return await _batch_processes(urls, action, out_dir, expression, parallel)
+
+
+async def _batch_tabs(
+    urls: list[str],
+    action: str,
+    out_dir: Any,
+    expression: str,
+    parallel: int,
+) -> list[Any]:
+    """Run actions using tabs in a single Chrome process.
+
+    Args:
+        urls: List of URLs to process.
+        action: Action type.
+        out_dir: Output directory.
+        expression: JS expression for scrape/eval.
+        parallel: Maximum concurrent tabs.
+
+    Returns:
+        List of results (or exceptions) in the same order as urls.
+    """
+    backend = _get_backend()
+    await backend.launch(_browser_options())
+    try:
+        semaphore = asyncio.Semaphore(parallel)
+        total = len(urls)
+        completed = 0
+        lock = asyncio.Lock()
+
+        async def _run_one(url: str) -> Any:
+            nonlocal completed
+            async with semaphore:
+                tab = None
+                try:
+                    tab = await backend.new_tab_handle(url)
+                    result = await _batch_single_on(url, action, out_dir, expression, tab)
+                    return result
+                except (WavexisError, OSError) as exc:
+                    return exc
+                finally:
+                    if tab is not None:
+                        await tab.close()
+                    async with lock:
+                        completed += 1
+                        _progress(completed, total, url)
+
+        tasks = [_run_one(u) for u in urls]
+        return await asyncio.gather(*tasks)
+    finally:
+        await backend.close()
+
+
+async def _batch_processes(
+    urls: list[str],
+    action: str,
+    out_dir: Any,
+    expression: str,
+    parallel: int,
+) -> list[Any]:
+    """Run actions using separate Chrome processes.
+
+    Args:
+        urls: List of URLs to process.
+        action: Action type.
+        out_dir: Output directory.
+        expression: JS expression for scrape/eval.
+        parallel: Maximum concurrent processes.
 
     Returns:
         List of results (or exceptions) in the same order as urls.
@@ -276,7 +358,7 @@ async def _batch_single(
     out_dir: Any,
     expression: str,
 ) -> Any:
-    """Execute a single action for one URL in batch mode.
+    """Execute a single action for one URL in batch mode (own process).
 
     Args:
         url: URL to process.
@@ -293,36 +375,60 @@ async def _batch_single(
     backend = _get_backend()
     try:
         await backend.launch(_browser_options())
-
-        if action == "screenshot":
-            sp = ScreenshotParams(url=url, full_page=True, wait=WaitStrategy(strategy="load"))
-            result = await ScreenshotAction(sp).execute(backend)
-            safe_url = url.replace("://", "_").replace("/", "_")[:80]
-            (out_dir / f"{safe_url}.png").write_bytes(result)
-            return result
-
-        if action == "pdf":
-            pp = PDFParams(url=url, wait=WaitStrategy(strategy="load"))
-            result = await PDFAction(pp).execute(backend)
-            safe_url = url.replace("://", "_").replace("/", "_")[:80]
-            (out_dir / f"{safe_url}.pdf").write_bytes(result)
-            return result
-
-        if action == "scrape":
-            scp = ScrapeParams(
-                urls=[url],
-                expression=expression,
-                wait=WaitStrategy(strategy="load"),
-            )
-            return await ScrapeAction(scp).execute(backend)
-
-        if action == "eval":
-            ep = EvalParams(url=url, expression=expression, wait=WaitStrategy(strategy="load"))
-            return await EvalAction(ep).execute(backend)
-
-        raise ValueError(f"Unknown batch action: {action}")
+        return await _batch_single_on(url, action, out_dir, expression, backend)
     finally:
         await backend.close()
+
+
+async def _batch_single_on(
+    url: str,
+    action: str,
+    out_dir: Any,
+    expression: str,
+    backend: Any,
+) -> Any:
+    """Execute a single action on a given backend (tab or process).
+
+    Args:
+        url: URL to process.
+        action: Action type — screenshot, pdf, scrape, or eval.
+        out_dir: Output directory for saved files.
+        expression: JS expression for scrape/eval.
+        backend: An already-launched backend or TabHandle.
+
+    Returns:
+        Result of the action.
+
+    Raises:
+        ValueError: If the action type is unknown.
+    """
+    if action == "screenshot":
+        sp = ScreenshotParams(url=url, full_page=True, wait=WaitStrategy(strategy="load"))
+        result = await ScreenshotAction(sp).execute(backend)
+        safe_url = url.replace("://", "_").replace("/", "_")[:80]
+        (out_dir / f"{safe_url}.png").write_bytes(result)
+        return result
+
+    if action == "pdf":
+        pp = PDFParams(url=url, wait=WaitStrategy(strategy="load"))
+        result = await PDFAction(pp).execute(backend)
+        safe_url = url.replace("://", "_").replace("/", "_")[:80]
+        (out_dir / f"{safe_url}.pdf").write_bytes(result)
+        return result
+
+    if action == "scrape":
+        scp = ScrapeParams(
+            urls=[url],
+            expression=expression,
+            wait=WaitStrategy(strategy="load"),
+        )
+        return await ScrapeAction(scp).execute(backend)
+
+    if action == "eval":
+        ep = EvalParams(url=url, expression=expression, wait=WaitStrategy(strategy="load"))
+        return await EvalAction(ep).execute(backend)
+
+    raise ValueError(f"Unknown batch action: {action}")
 
 
 @app.command()

@@ -87,6 +87,22 @@ class BiDiBackend(AbstractBackend):
         self._client: BiDiClient | None = None
         self._context: Any = None
 
+    async def new_tab_handle(self, url: str = "about:blank") -> BiDiTabHandle:
+        """Create a new browsing context with its own session for concurrent ops.
+
+        Args:
+            url: Initial URL for the new tab.
+
+        Returns:
+            A BiDiTabHandle sharing the browser process with its own context.
+        """
+        if self._client is None:
+            raise SessionNotInitializedError(
+                "Backend not launched. Call launch() first."
+            )
+        context = await self._client.browsing.create_context()
+        return BiDiTabHandle(self._client, context)
+
     def _require_client(self) -> BiDiClient:
         """Return the current client or raise if not initialized.
 
@@ -3238,3 +3254,32 @@ class BiDiBackend(AbstractBackend):
             "Browser.setPreference",
             {"name": key, "value": value},
         )
+
+
+class BiDiTabHandle(BiDiBackend):
+    """A handle to a browsing context sharing the same browser process.
+
+    Created via ``BiDiBackend.new_tab_handle()``. Shares the BiDiClient
+    with the parent backend but has its own browsing context.
+
+    All BiDiBackend methods work as-is because they use ``self._context``
+    for browsing operations. Call ``close()`` to close the context
+    (not the browser).
+    """
+
+    def __init__(self, client: Any, context: Any) -> None:
+        """Initialize the tab handle with a shared client and own context.
+
+        Args:
+            client: The BiDiClient instance shared with the parent backend.
+            context: The browsing context ID for this specific tab.
+        """
+        self._client = client
+        self._context = context
+
+    async def close(self) -> None:
+        """Close the browsing context without closing the browser."""
+        if self._client is not None and self._context is not None:
+            await self._client.browsing.close(self._context)
+            self._context = None
+        self._client = None
