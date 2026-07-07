@@ -1086,6 +1086,7 @@ class CDPBackend(AbstractBackend):
             headers: Dict of header name to value.
         """
         session = self._require_session()
+        await session.network.enable()
         await session.network.set_extra_request_headers(headers)
 
     async def set_user_agent(self, user_agent: str) -> None:
@@ -2617,6 +2618,7 @@ class CDPBackend(AbstractBackend):
             Dict mapping CSS property names to computed values.
         """
         session = self._require_session()
+        await session.send("DOM.enable", {})
         await session.send("CSS.enable", {})
         node_id = await self._find_node(selector)
         resolved = await session.send(
@@ -3228,6 +3230,101 @@ class CDPBackend(AbstractBackend):
         """Stop Bluetooth emulation via CDP BluetoothEmulation domain."""
         session = self._require_session()
         await session.send("BluetoothEmulation.disable", {})
+
+    # ── WebExtensions ──────────────────────────────────────
+
+    async def extension_install(self, path: str) -> str:
+        """Install a browser extension via CDP.
+
+        Args:
+            path: Path to the .crx file or unpacked extension directory.
+
+        Returns:
+            The extension ID.
+        """
+        import hashlib
+        import os
+
+        session = self._require_session()
+        if os.path.isdir(path):
+            ext_id = hashlib.sha256(
+                os.path.abspath(path).encode()
+            ).hexdigest()[:32]
+            await session.send(
+                "Extensions.loadUnpacked",
+                {"path": os.path.abspath(path)},
+            )
+        else:
+            ext_id = hashlib.sha256(path.encode()).hexdigest()[:32]
+            with open(path, "rb") as f:
+                data = f.read()
+            await session.send(
+                "Extensions.load",
+                {"data": data.hex(), "id": ext_id},
+            )
+        return ext_id
+
+    async def extension_uninstall(self, extension_id: str) -> None:
+        """Uninstall a browser extension by ID.
+
+        Args:
+            extension_id: The extension ID returned by extension_install.
+        """
+        session = self._require_session()
+        await session.send(
+            "Extensions.uninstall",
+            {"id": extension_id},
+        )
+
+    async def extension_list(self) -> list[dict[str, Any]]:
+        """List installed browser extensions.
+
+        Returns:
+            List of extension dicts (id, name, version, enabled).
+        """
+        session = self._require_session()
+        result = await session.send("Extensions.getInfo", {})
+        extensions = result.get("extensions", [])
+        return [
+            {
+                "id": ext.get("id", ""),
+                "name": ext.get("name", ""),
+                "version": ext.get("version", ""),
+                "enabled": ext.get("enabled", True),
+            }
+            for ext in extensions
+        ]
+
+    # ── Browser preferences ────────────────────────────────
+
+    async def get_pref(self, key: str) -> Any:
+        """Get a browser preference value by key.
+
+        Args:
+            key: The preference key (e.g. "download.default_directory").
+
+        Returns:
+            The preference value.
+        """
+        session = self._require_session()
+        result = await session.send(
+            "Browser.getPreference",
+            {"name": key},
+        )
+        return result.get("value")
+
+    async def set_pref(self, key: str, value: Any) -> None:
+        """Set a browser preference value.
+
+        Args:
+            key: The preference key.
+            value: The value to set.
+        """
+        session = self._require_session()
+        await session.send(
+            "Browser.setPreference",
+            {"name": key, "value": value},
+        )
 
     async def __aenter__(self) -> CDPBackend:
         """Enter async context manager, returning self.

@@ -313,6 +313,19 @@ class FakeBackend(AbstractBackend):
         return "sub-fake"
     async def unsubscribe_events(self, subscription_id):
         """Unsubscribe events."""
+    async def extension_install(self, path):
+        """Install extension."""
+        return "ext-fake"
+    async def extension_uninstall(self, extension_id):
+        """Uninstall extension."""
+    async def extension_list(self):
+        """List extensions."""
+        return []
+    async def get_pref(self, key):
+        """Get preference."""
+        return None
+    async def set_pref(self, key, value):
+        """Set preference."""
 
 
 class TestBackendManager:

@@ -1106,3 +1106,54 @@ class AbstractBackend(ABC):
     @abstractmethod
     async def bluetooth_stop(self) -> None:
         """Stop Bluetooth emulation."""
+
+    # ── WebExtensions ──────────────────────────────────────
+
+    @abstractmethod
+    async def extension_install(self, path: str) -> str:
+        """Install a browser extension from a .crx or unpacked directory.
+
+        Args:
+            path: Path to the .crx file or unpacked extension directory.
+
+        Returns:
+            The extension ID.
+        """
+
+    @abstractmethod
+    async def extension_uninstall(self, extension_id: str) -> None:
+        """Uninstall a browser extension by ID.
+
+        Args:
+            extension_id: The extension ID returned by extension_install.
+        """
+
+    @abstractmethod
+    async def extension_list(self) -> list[dict[str, Any]]:
+        """List installed browser extensions.
+
+        Returns:
+            List of extension dicts (id, name, version, enabled).
+        """
+
+    # ── Browser preferences ────────────────────────────────
+
+    @abstractmethod
+    async def get_pref(self, key: str) -> Any:
+        """Get a browser preference value by key.
+
+        Args:
+            key: The preference key (e.g. "download.default_directory").
+
+        Returns:
+            The preference value.
+        """
+
+    @abstractmethod
+    async def set_pref(self, key: str, value: Any) -> None:
+        """Set a browser preference value.
+
+        Args:
+            key: The preference key.
+            value: The value to set.
+        """

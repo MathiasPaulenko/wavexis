@@ -655,6 +655,26 @@ class DummyBackend(AbstractBackend):
         """Unsubscribe events."""
         pass
 
+    async def extension_install(self, path: str) -> str:
+        """Install extension."""
+        return "ext-dummy"
+
+    async def extension_uninstall(self, extension_id: str) -> None:
+        """Uninstall extension."""
+        pass
+
+    async def extension_list(self) -> list[dict[str, Any]]:
+        """List extensions."""
+        return []
+
+    async def get_pref(self, key: str) -> Any:
+        """Get preference."""
+        return None
+
+    async def set_pref(self, key: str, value: Any) -> None:
+        """Set preference."""
+        pass
+
 
 @pytest.mark.unit
 class TestBackendManager:

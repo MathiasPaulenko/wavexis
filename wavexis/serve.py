@@ -467,6 +467,68 @@ async def _stream_navigation(
         await asyncio.sleep(interval)
 
 
+async def _stream_dom_mutations(
+    ws: Any, backend: AbstractBackend, interval: float,
+) -> None:
+    """Poll DOM mutations and stream new ones."""
+    seen: set[int] = set()
+    while True:
+        try:
+            mutations = await backend.eval(
+                "Array.from(document.querySelectorAll('*'))"
+                ".map(e => e.outerHTML.slice(0, 200)).join('\\n')"
+            )
+            if mutations:
+                key = hash(str(mutations))
+                if key not in seen:
+                    seen.add(key)
+                    await ws.send_json({
+                        "type": "dom_mutation",
+                        "data": {"summary": str(mutations)[:500]},
+                        "timestamp": time.time(),
+                    })
+        except WavexisError as exc:
+            await ws.send_json({
+                "type": "error",
+                "source": "dom_mutation",
+                "message": str(exc),
+            })
+        except (ConnectionError, OSError) as exc:
+            await ws.send_json({
+                "type": "error",
+                "source": "dom_mutation",
+                "message": str(exc),
+            })
+        await asyncio.sleep(interval)
+
+
+async def _stream_perf_metrics(
+    ws: Any, backend: AbstractBackend, interval: float,
+) -> None:
+    """Poll performance metrics and stream them."""
+    while True:
+        try:
+            metrics = await backend.perf_metrics()
+            await ws.send_json({
+                "type": "perf_metrics",
+                "data": metrics,
+                "timestamp": time.time(),
+            })
+        except WavexisError as exc:
+            await ws.send_json({
+                "type": "error",
+                "source": "perf_metrics",
+                "message": str(exc),
+            })
+        except (ConnectionError, OSError) as exc:
+            await ws.send_json({
+                "type": "error",
+                "source": "perf_metrics",
+                "message": str(exc),
+            })
+        await asyncio.sleep(interval)
+
+
 async def handle_websocket(request: Any) -> Any:
     """Handle GET /ws — WebSocket endpoint for real-time streaming.
 
@@ -525,6 +587,14 @@ async def handle_websocket(request: Any) -> Any:
     if "navigation" in events:
         tasks.append(asyncio.create_task(
             _stream_navigation(ws, backend, max(interval, 0.5)),
+        ))
+    if "dom_mutation" in events:
+        tasks.append(asyncio.create_task(
+            _stream_dom_mutations(ws, backend, max(interval, 0.5)),
+        ))
+    if "perf_metrics" in events:
+        tasks.append(asyncio.create_task(
+            _stream_perf_metrics(ws, backend, max(interval, 1.0)),
         ))
 
     subscribe_types = [
