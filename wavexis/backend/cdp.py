@@ -2646,10 +2646,39 @@ class CDPBackend(AbstractBackend):
         """
         session = self._require_session()
         await session.dom.enable()
-        await session.css.enable()
+        await session.send("CSS.enable")
         node_id = await self._find_node(selector)
-        inline = await session.css.get_inline_styles(node_id)
-        computed = await session.css.get_computed_style_for_node(node_id)
+        try:
+            inline = await session.send("CSS.getInlineStyles", {"nodeId": node_id})
+        except Exception:
+            inline = await session.runtime.evaluate(
+                expression=(
+                    "(() => {const el = document.querySelector('"
+                    + selector
+                    + "'); const s = getComputedStyle(el); "
+                    + "const result = {}; for (let i = 0; i < s.length; i++) "
+                    + "{result[s[i]] = s.getPropertyValue(s[i]);} return result;})()"
+                ),
+                return_by_value=True,
+            )
+            inline = inline.get("result", {}).get("value", {})
+        try:
+            computed = await session.send(
+                "CSS.getComputedStyleForNode", {"nodeId": node_id}
+            )
+        except Exception:
+            computed = await session.runtime.evaluate(
+                expression=(
+                    "(() => {const el = document.querySelector('"
+                    + selector
+                    + "'); const s = getComputedStyle(el); "
+                    + "const result = []; for (let i = 0; i < s.length; i++) "
+                    + "{result.push({name: s[i], value: s.getPropertyValue(s[i])});} "
+                    + "return result;})()"
+                ),
+                return_by_value=True,
+            )
+            computed = computed.get("result", {}).get("value", {})
         return {"inlineStyles": inline, "computedStyles": computed}
 
     async def css_get_stylesheets(self) -> list[dict[str, Any]]:
@@ -2660,10 +2689,24 @@ class CDPBackend(AbstractBackend):
         """
         session = self._require_session()
         await session.dom.enable()
-        await session.css.enable()
-        result = await session.css.get_layout_tree_and_styles()
-        stylesheets = result.get("stylesheets", [])
-        return [dict(s) for s in stylesheets] if stylesheets else []
+        await session.send("CSS.enable")
+        try:
+            result = await session.send("CSS.getLayoutTreeAndStyles", {})
+            stylesheets = result.get("stylesheets", [])
+            return [dict(s) for s in stylesheets] if stylesheets else []
+        except Exception:
+            js = (
+                "Array.from(document.styleSheets).map((s, i) => ({"
+                "styleSheetId: String(i), "
+                "sourceURL: s.href || '', "
+                "disabled: s.disabled, "
+                "isInline: !s.href}))"
+            )
+            result = await session.runtime.evaluate(
+                expression=js, return_by_value=True
+            )
+            value = result.get("result", {}).get("value", [])
+            return [dict(v) for v in value] if value else []
 
     async def css_get_rules(self, stylesheet_id: str) -> list[dict[str, Any]]:
         """Get CSS rules from a specific stylesheet.
