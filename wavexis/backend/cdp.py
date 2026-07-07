@@ -1026,6 +1026,34 @@ class CDPBackend(AbstractBackend):
         cy = (min(ys) + max(ys)) / 2
         return cx, cy
 
+    async def _wait_for_element(self, selector: str, timeout_ms: int = 30000) -> None:
+        """Wait for an element to exist and be visible in the DOM.
+
+        Polls until the element matches, is attached, and has non-zero size.
+
+        Args:
+            selector: CSS selector for the target element.
+            timeout_ms: Maximum wait time in milliseconds.
+
+        Raises:
+            WaitTimeoutError: If the element is not found within the timeout.
+        """
+        session = self._require_session()
+        escaped = selector.replace("'", "\\'")
+        js = (
+            f"(function(){{var el=document.querySelector('{escaped}');"
+            f"if(!el)return false;"
+            f"var rect=el.getBoundingClientRect();"
+            f"return rect.width>0&&rect.height>0;}})()"
+        )
+        deadline = time.monotonic() + timeout_ms / 1000
+        while time.monotonic() < deadline:
+            result = await session.runtime.evaluate(js)
+            if result.get("result", {}).get("value") is True:
+                return
+            await asyncio.sleep(0.1)
+        raise WaitTimeoutError("selector", timeout_ms)
+
     async def _scroll_into_view_if_needed(self, selector: str) -> None:
         """Scroll element into view if it's not visible in the viewport.
 
@@ -1054,6 +1082,7 @@ class CDPBackend(AbstractBackend):
             click_count: Number of clicks to dispatch.
         """
         session = self._require_session()
+        await self._wait_for_element(selector)
         await self._scroll_into_view_if_needed(selector)
         x, y = await self._get_box_center(selector)
         btn_map = {"left": "left", "right": "right", "middle": "middle"}
@@ -1092,6 +1121,7 @@ class CDPBackend(AbstractBackend):
             value: Value to set in the input field.
         """
         session = self._require_session()
+        await self._wait_for_element(selector)
         await self._scroll_into_view_if_needed(selector)
         escaped = selector.replace("'", "\\'")
         js = (
@@ -1132,6 +1162,7 @@ class CDPBackend(AbstractBackend):
             selector: CSS selector for the target element.
         """
         session = self._require_session()
+        await self._wait_for_element(selector)
         await self._scroll_into_view_if_needed(selector)
         x, y = await self._get_box_center(selector)
         await session.input.dispatch_mouse_event(

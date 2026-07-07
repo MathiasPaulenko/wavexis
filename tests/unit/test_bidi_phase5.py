@@ -20,7 +20,9 @@ class TestBiDiBackendPhase5:
         backend._client = MagicMock()
         backend._context = MagicMock()
         backend._client.script = MagicMock()
-        backend._client.script.evaluate = AsyncMock()
+        result = MagicMock()
+        result.value = True
+        backend._client.script.evaluate = AsyncMock(return_value=result)
         backend._client._connection = MagicMock()
         backend._client._connection.send_command = AsyncMock()
         return backend

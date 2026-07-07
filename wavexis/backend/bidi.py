@@ -26,7 +26,7 @@ from wavexis.config import (
     ThrottleParams,
     WaitStrategy,
 )
-from wavexis.exceptions import SessionNotInitializedError
+from wavexis.exceptions import SessionNotInitializedError, WaitTimeoutError
 
 try:
     from bidiwave import BiDiClient
@@ -807,6 +807,38 @@ class BiDiBackend(AbstractBackend):
 
     # ── Input ──────────────────────────────────────────────
 
+    async def _wait_for_element(self, selector: str, timeout_ms: int = 30000) -> None:
+        """Wait for an element to exist and be visible in the DOM.
+
+        Polls until the element matches, is attached, and has non-zero size.
+
+        Args:
+            selector: CSS selector for the target element.
+            timeout_ms: Maximum wait time in milliseconds.
+
+        Raises:
+            WaitTimeoutError: If the element is not found within the timeout.
+        """
+        import asyncio as _asyncio
+        import time as _time
+
+        client = self._require_client()
+        escaped = selector.replace("'", "\\'")
+        js = (
+            f"(function(){{var el=document.querySelector('{escaped}');"
+            f"if(!el)return false;"
+            f"var rect=el.getBoundingClientRect();"
+            f"return rect.width>0&&rect.height>0;}})()"
+        )
+        deadline = _time.monotonic() + timeout_ms / 1000
+        while _time.monotonic() < deadline:
+            result = await client.script.evaluate(self._context, js)
+            value = getattr(result, "value", None)
+            if value is True or value == "true":
+                return
+            await _asyncio.sleep(0.1)
+        raise WaitTimeoutError("selector", timeout_ms)
+
     async def _scroll_into_view_if_needed(self, selector: str) -> None:
         """Scroll element into view if it's not visible in the viewport."""
         client = self._require_client()
@@ -825,6 +857,7 @@ class BiDiBackend(AbstractBackend):
     ) -> None:
         """Click an element via BiDi script.evaluate."""
         client = self._require_client()
+        await self._wait_for_element(selector)
         await self._scroll_into_view_if_needed(selector)
         escaped = selector.replace("'", "\\'")
         js = (
@@ -857,6 +890,7 @@ class BiDiBackend(AbstractBackend):
     async def fill(self, selector: str, value: str) -> None:
         """Fill an input element with a value via BiDi."""
         client = self._require_client()
+        await self._wait_for_element(selector)
         await self._scroll_into_view_if_needed(selector)
         escaped = selector.replace("'", "\\'")
         escaped_val = value.replace("\\", "\\\\").replace("'", "\\'")
@@ -875,6 +909,7 @@ class BiDiBackend(AbstractBackend):
     async def hover(self, selector: str) -> None:
         """Hover over an element via BiDi script.evaluate."""
         client = self._require_client()
+        await self._wait_for_element(selector)
         await self._scroll_into_view_if_needed(selector)
         escaped = selector.replace("'", "\\'")
         js = (

@@ -2,6 +2,15 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.3.0 — 2026-07-07
+
+### Added
+
+- Auto-waiting before `click`, `fill`, and `hover` in both CDP and BiDi backends
+- `_wait_for_element` helper polls every 100ms until element exists and is visible (non-zero size)
+- Configurable timeout (default 30s) via `WaitTimeoutError` with actionable hint
+- Prevents `ElementNotFoundError` on dynamically loaded content
+
 ## v2.2.6 — 2026-07-07
 
 ### Added
