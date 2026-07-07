@@ -48,7 +48,7 @@
 ::: wavexis.actions.har.HARAction
 ::: wavexis.actions.har_replay.HARReplayAction
 ::: wavexis.actions.modify_request.ModifyRequestAction
-::: wavexis.actions.websocket.WebSocketAction
+::: wavexis.actions.websocket.WebSocketInterceptAction
 
 ## Storage
 
@@ -135,29 +135,18 @@
 
 ::: wavexis.actions.combined_trace.CombinedTraceAction
 
-## Record & Replay
+## Accessibility Audit
 
-::: wavexis.actions.record.RecordAction
-
-## Stealth
-
-::: wavexis.actions.stealth.StealthAction
-
-## Wait
-
-::: wavexis.actions.wait.WaitAction
+::: wavexis.actions.axe_audit.AxeAuditAction
 
 ## Browser
 
 ::: wavexis.actions.browser.BrowserAction
 
-## Cache
-
-::: wavexis.actions.cache.CacheAction
-
 ## Session
 
-::: wavexis.actions.session.SessionAction
+::: wavexis.actions.session.SessionSaveAction
+::: wavexis.actions.session.SessionLoadAction
 
 ## Extract
 
