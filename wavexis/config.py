@@ -146,6 +146,7 @@ class BrowserOptions:
         extra_headers: Extra HTTP headers to send with every request.
         proxy: Proxy server URL (e.g. http://proxy:8080 or socks5://proxy:1080).
         timeout: Default navigation timeout in milliseconds.
+        user_data_dir: Path to a persistent user data directory for browser profiles.
     """
 
     headless: bool = True
@@ -155,6 +156,7 @@ class BrowserOptions:
     extra_headers: dict[str, str] = field(default_factory=dict)
     proxy: str | None = None
     timeout: int = 30000
+    user_data_dir: str | None = None
 
 
 @dataclass

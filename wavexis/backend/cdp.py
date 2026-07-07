@@ -85,6 +85,7 @@ class CDPBackend(AbstractBackend):
 
         self._client = await CDPClient.launch(
             headless=options.headless,
+            user_data_dir=options.user_data_dir,  # type: ignore[call-arg]
             extra_args=extra_args if extra_args else None,
         )
         self._session = await self._client.new_page()

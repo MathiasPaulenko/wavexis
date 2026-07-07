@@ -30,6 +30,11 @@ class TestBrowserOptions:
         assert opts.headless is True
         assert opts.proxy is None
         assert opts.timeout == 30000
+        assert opts.user_data_dir is None
+
+    def test_with_user_data_dir(self) -> None:
+        opts = BrowserOptions(user_data_dir="/tmp/wavexis-profile")
+        assert opts.user_data_dir == "/tmp/wavexis-profile"
 
     def test_with_proxy(self) -> None:
         opts = BrowserOptions(proxy="http://proxy:8080")
@@ -57,6 +62,13 @@ class TestBrowserOptionsHelper:
         assert opts.headless is True
         assert opts.timeout == 30000
         assert opts.proxy is None
+        assert opts.user_data_dir is None
+
+    def test_user_data_dir_options(self) -> None:
+        ctx = _fresh_ctx()
+        ctx.user_data_dir = "/tmp/wavexis-profile"
+        opts = _cli._browser_options()
+        assert opts.user_data_dir == "/tmp/wavexis-profile"
 
     def test_headed_options(self) -> None:
         ctx = _fresh_ctx()
@@ -88,13 +100,18 @@ class TestLoadGlobalConfig:
         assert ctx.headless is True
         assert ctx.timeout == 30000
         assert ctx.proxy is None
+        assert ctx.user_data_dir is None
 
     def test_loads_config(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         config_dir = tmp_path / ".wavexis"
         config_dir.mkdir()
         config_file = config_dir / "config.yml"
         config_file.write_text(
-            "backend: bidi\nheadless: false\ntimeout: 60000\nproxy: http://proxy:9090\n",
+            "backend: bidi\n"
+            "headless: false\n"
+            "timeout: 60000\n"
+            "proxy: http://proxy:9090\n"
+            "user_data_dir: /tmp/profile\n",
             encoding="utf-8",
         )
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
@@ -106,6 +123,7 @@ class TestLoadGlobalConfig:
         assert ctx.headless is False
         assert ctx.timeout == 60000
         assert ctx.proxy == "http://proxy:9090"
+        assert ctx.user_data_dir == "/tmp/profile"
 
     def test_cli_overrides_config(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch

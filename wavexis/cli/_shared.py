@@ -75,6 +75,7 @@ class CLIContext:
     headless: bool = True
     timeout: int = 30000
     proxy: str | None = None
+    user_data_dir: str | None = None
 
 
 _ctx: contextvars.ContextVar[CLIContext | None] = contextvars.ContextVar(
@@ -113,6 +114,8 @@ def _load_global_config() -> None:
             ctx.timeout = int(raw["timeout"])
         if "proxy" in raw:
             ctx.proxy = str(raw["proxy"])
+        if "user_data_dir" in raw:
+            ctx.user_data_dir = str(raw["user_data_dir"])
     except (OSError, ValueError, TypeError, yaml.YAMLError) as exc:
         if ctx.verbose:
             _echo(f"Warning: failed to load config from {config_path}: {exc}")
@@ -138,6 +141,9 @@ def main_callback(
     proxy: str | None = typer.Option(
         None, "--proxy", help="Proxy server URL (e.g. http://proxy:8080)"
     ),
+    user_data_dir: str | None = typer.Option(
+        None, "--user-data-dir", help="Path to persistent browser profile directory"
+    ),
     version: bool = typer.Option(
         False, "--version", help="Print wavexis version and exit"
     ),
@@ -154,6 +160,8 @@ def main_callback(
         ctx.timeout = timeout
     if proxy:
         ctx.proxy = proxy
+    if user_data_dir:
+        ctx.user_data_dir = user_data_dir
     if version:
         from wavexis import __version__
 
@@ -227,6 +235,7 @@ def _browser_options() -> BrowserOptions:
         headless=ctx.headless,
         timeout=ctx.timeout,
         proxy=ctx.proxy,
+        user_data_dir=ctx.user_data_dir,
     )
 
 

@@ -2,6 +2,15 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.2.0 — 2026-07-07
+
+### Added
+
+- `--user-data-dir` global flag for persistent browser profiles (cookies, login, extensions)
+- `user_data_dir` field in `BrowserOptions` dataclass
+- `user_data_dir` support in `config.yml` (`user_data_dir: /path/to/profile`)
+- `user_data_dir` passed to `CDPClient.launch()` for CDP backend
+
 ## v2.1.3 — 2026-07-07
 
 ### Improved
