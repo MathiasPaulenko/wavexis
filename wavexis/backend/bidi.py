@@ -8,6 +8,7 @@ NotImplementedError — use --backend cdp for those features.
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 from typing import Any
@@ -3150,18 +3151,19 @@ class BiDiBackend(AbstractBackend):
 
         if self._client is None:
             raise RuntimeError("BiDiBackend not launched. Call launch() first.")
-        if os.path.isdir(path):
-            ext_id = hashlib.sha256(
-                os.path.abspath(path).encode()
-            ).hexdigest()[:32]
+        is_dir = await asyncio.to_thread(os.path.isdir, path)
+        if is_dir:
+            abs_path = await asyncio.to_thread(os.path.abspath, path)
+            ext_id = hashlib.sha256(abs_path.encode()).hexdigest()[:32]
             await self._client.cdp.send_command(
                 "Extensions.loadUnpacked",
-                {"path": os.path.abspath(path)},
+                {"path": abs_path},
             )
         else:
             ext_id = hashlib.sha256(path.encode()).hexdigest()[:32]
-            with open(path, "rb") as f:
-                data = f.read()
+            data = await asyncio.to_thread(
+                lambda: open(path, "rb").read()  # noqa: SIM115
+            )
             await self._client.cdp.send_command(
                 "Extensions.load",
                 {"data": data.hex(), "id": ext_id},

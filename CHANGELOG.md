@@ -2,6 +2,19 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.7.0 — 2026-07-07
+
+### Added
+
+- Live event streaming: `dom_mutation` and `perf_metrics` event types in WebSocket `/ws`
+- `_stream_dom_mutations` and `_stream_perf_metrics` streaming functions in serve.py
+- WebExtension support: `extension_install`, `extension_uninstall`, `extension_list` in both backends
+- CLI commands: `wavexis extension-install`, `wavexis extension-uninstall`, `wavexis extension-list`
+- Browser prefs management: `get_pref`, `set_pref` in both backends
+- CLI commands: `wavexis pref-get`, `wavexis pref-set`
+- Abstract methods for extensions and prefs in `AbstractBackend`
+- 16 unit tests covering extensions, prefs, and live event streaming
+
 ## v2.6.0 — 2026-07-07
 
 ### Added

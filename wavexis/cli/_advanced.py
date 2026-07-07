@@ -9,6 +9,7 @@ import typer
 
 from wavexis.cli._shared import (
     Output,
+    _browser_options,
     _get_backend,
     _run_async,
     app,
@@ -309,3 +310,100 @@ def lighthouse(
         typer.echo(f"Audit complete ({score_str}){budget_str}, saved to {output}")
     else:
         typer.echo(f"Audit complete ({score_str}){budget_str}")
+
+
+@app.command()
+def extension_install(
+    path: str = typer.Argument(..., help="Path to .crx file or unpacked extension directory"),
+) -> None:
+    """Install a browser extension."""
+    async def _run() -> str:
+        backend = _get_backend()
+        await backend.launch(_browser_options())
+        try:
+            result: str = await backend.extension_install(path)
+            return result
+        finally:
+            await backend.close()
+
+    ext_id: Any = _run_async(_run())
+    if ext_id is not None:
+        typer.echo(f"Installed extension: {ext_id}")
+
+
+@app.command()
+def extension_uninstall(
+    extension_id: str = typer.Argument(..., help="Extension ID to uninstall"),
+) -> None:
+    """Uninstall a browser extension by ID."""
+    async def _run() -> None:
+        backend = _get_backend()
+        await backend.launch(_browser_options())
+        try:
+            await backend.extension_uninstall(extension_id)
+        finally:
+            await backend.close()
+
+    _run_async(_run())
+    typer.echo(f"Uninstalled extension: {extension_id}")
+
+
+@app.command()
+def extension_list() -> None:
+    """List installed browser extensions."""
+    async def _run() -> list[dict[str, Any]]:
+        backend = _get_backend()
+        await backend.launch(_browser_options())
+        try:
+            result: list[dict[str, Any]] = await backend.extension_list()
+            return result
+        finally:
+            await backend.close()
+
+    extensions: Any = _run_async(_run())
+    if extensions is None:
+        return
+    if not extensions:
+        typer.echo("No extensions installed.")
+        return
+    for ext in extensions:
+        status = "enabled" if ext.get("enabled") else "disabled"
+        typer.echo(
+            f"  {ext['id']}  {ext['name']} v{ext['version']}  ({status})"
+        )
+
+
+@app.command()
+def pref_get(
+    key: str = typer.Argument(..., help="Preference key (e.g. download.default_directory)"),
+) -> None:
+    """Get a browser preference value."""
+    async def _run() -> Any:
+        backend = _get_backend()
+        await backend.launch(_browser_options())
+        try:
+            return await backend.get_pref(key)
+        finally:
+            await backend.close()
+
+    value: Any = _run_async(_run())
+    if value is not None:
+        typer.echo(f"{key} = {value}")
+
+
+@app.command()
+def pref_set(
+    key: str = typer.Argument(..., help="Preference key"),
+    value: str = typer.Argument(..., help="Preference value"),
+) -> None:
+    """Set a browser preference value."""
+    async def _run() -> None:
+        backend = _get_backend()
+        await backend.launch(_browser_options())
+        try:
+            await backend.set_pref(key, value)
+        finally:
+            await backend.close()
+
+    _run_async(_run())
+    typer.echo(f"Set {key} = {value}")
