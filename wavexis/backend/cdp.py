@@ -89,9 +89,9 @@ class CDPBackend(AbstractBackend):
             parsed = urlparse(options.browser_url)
             host = parsed.hostname or "localhost"
             port = parsed.port or 9222
-            self._client = await CDPClient.connect(host=host, port=port)  # type: ignore[attr-defined]
+            self._client = await CDPClient.connect(host=host, port=port)
         elif options.remote_url:
-            self._client = await CDPClient.connect(  # type: ignore[attr-defined]
+            self._client = await CDPClient.connect(
                 ws_url=options.remote_url
             )
         else:
