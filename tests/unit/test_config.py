@@ -36,6 +36,17 @@ class TestBrowserOptions:
         assert opts.width == 1920
         assert opts.height == 1080
 
+    def test_remote_url(self):
+        """Test remote_url field for cloud browser connections."""
+        opts = BrowserOptions(remote_url="wss://chrome.browserless.io?token=abc123")
+        assert opts.remote_url == "wss://chrome.browserless.io?token=abc123"
+        assert opts.browser_url is None
+
+    def test_remote_url_default_none(self):
+        """Test remote_url defaults to None."""
+        opts = BrowserOptions()
+        assert opts.remote_url is None
+
 
 class TestWaitStrategy:
     """Tests for WaitStrategy dataclass."""

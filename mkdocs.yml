@@ -60,6 +60,7 @@ nav:
       - CSS: cookbook/css.md
       - Debug: cookbook/debug.md
       - Record & Replay: cookbook/record-replay.md
+      - Cloud Browsers: cookbook/cloud-browsers.md
   - API Reference:
       - CLI: api/cli.md
       - Backends: api/backends.md

@@ -82,6 +82,7 @@ class CLIContext:
     proxy: str | None = None
     user_data_dir: str | None = None
     browser_url: str | None = None
+    remote_url: str | None = None
     stealth: bool = False
 
 
@@ -125,6 +126,8 @@ def _load_global_config() -> None:
             ctx.user_data_dir = str(raw["user_data_dir"])
         if "browser_url" in raw:
             ctx.browser_url = str(raw["browser_url"])
+        if "remote_url" in raw:
+            ctx.remote_url = str(raw["remote_url"])
         if "stealth" in raw:
             ctx.stealth = bool(raw["stealth"])
     except (OSError, ValueError, TypeError, yaml.YAMLError) as exc:
@@ -158,6 +161,11 @@ def main_callback(
     browser_url: str | None = typer.Option(
         None, "--browser-url", help="Connect to existing browser (e.g. ws://localhost:9222)"
     ),
+    remote_url: str | None = typer.Option(
+        None,
+        "--remote-url",
+        help="Cloud browser WebSocket URL (e.g. wss://chrome.browserless.io?token=XXX)",
+    ),
     stealth: bool = typer.Option(
         False,
         "--stealth",
@@ -183,6 +191,8 @@ def main_callback(
         ctx.user_data_dir = user_data_dir
     if browser_url:
         ctx.browser_url = browser_url
+    if remote_url:
+        ctx.remote_url = remote_url
     if stealth:
         ctx.stealth = True
     if version:
@@ -288,6 +298,7 @@ def _browser_options() -> BrowserOptions:
         proxy=ctx.proxy,
         user_data_dir=ctx.user_data_dir,
         browser_url=ctx.browser_url,
+        remote_url=ctx.remote_url,
         stealth=ctx.stealth,
     )
 

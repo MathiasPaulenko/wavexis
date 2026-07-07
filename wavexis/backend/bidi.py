@@ -110,7 +110,10 @@ class BiDiBackend(AbstractBackend):
         """
         if self._client is not None:
             return
-        ws_url = options.extra_headers.get("ws_url", "ws://localhost:9222/session")
+        if options.remote_url:
+            ws_url = options.remote_url
+        else:
+            ws_url = options.extra_headers.get("ws_url", "ws://localhost:9222/session")
         self._client = await BiDiClient.connect(ws_url)
         await self._client.session.new()
         self._context = await self._client.browsing.create_context()

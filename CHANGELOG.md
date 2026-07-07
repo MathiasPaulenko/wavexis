@@ -2,6 +2,17 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.8.0 — 2026-07-07
+
+### Added
+
+- Cloud browser support: `--remote-url` flag to connect to Browserbase, Browserless, and other CDP-over-WebSocket cloud services
+- `remote_url` field in `BrowserOptions` for programmatic cloud browser connections
+- `CDPClient.connect(ws_url=...)` support in CDP backend for full WebSocket URLs with tokens
+- `BiDiClient.connect(ws_url)` support in BiDi backend for cloud browser connections
+- `remote_url` in `~/.wavexis/config.yml` global config
+- Cookbook: Cloud Browsers guide with Browserbase and Browserless examples
+
 ## v2.7.0 — 2026-07-07
 
 ### Added

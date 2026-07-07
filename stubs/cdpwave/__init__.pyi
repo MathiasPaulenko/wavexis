@@ -42,6 +42,14 @@ class CDPClient:
         extra_args: list[str] | None = ...,
     ) -> CDPClient: ...
 
+    @classmethod
+    async def connect(
+        cls,
+        host: str = ...,
+        port: int = ...,
+        ws_url: str | None = ...,
+    ) -> CDPClient: ...
+
     async def new_page(self) -> CDPSession: ...
     async def close(self) -> None: ...
 
