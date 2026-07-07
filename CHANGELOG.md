@@ -2,6 +2,19 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.1.2 — 2026-07-07
+
+### Refactored
+
+- Split `cli/_workflow.py` (1238 lines) into 5 domain modules:
+  - `_workflow.py` — multi, batch, record, replay (~340 lines)
+  - `_config.py` — config, init, auth, completions, repl (~260 lines)
+  - `_session.py` — session, extract, form (~220 lines)
+  - `_advanced.py` — a11y, download, dialog, permissions, security, lighthouse (~280 lines)
+  - `_serve.py` — serve, ws, plugins, backends, install_check (~140 lines)
+- Moved `from pathlib import Path` to module-level imports (removed 7 inline duplicates)
+- Fixed latent bug: `_multi()` now uses `execute_actions()` from `wavexis.multi` instead of non-existent `parse_yaml_config`
+
 ## v2.1.1 — 2026-07-07
 
 ### Refactored
