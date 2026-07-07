@@ -1,3 +1,3 @@
 """wavexis — CLI de automatización de navegador."""
 
-__version__ = "2.2.1"
+__version__ = "2.2.2"

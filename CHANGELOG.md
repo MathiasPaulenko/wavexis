@@ -2,6 +2,13 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.2.2 — 2026-07-07
+
+### Added
+
+- Auto scroll-into-view before `click`, `fill`, and `hover` in both CDP and BiDi backends
+- `_scroll_into_view_if_needed` helper checks if element is in viewport and scrolls if needed
+
 ## v2.2.1 — 2026-07-07
 
 ### Added

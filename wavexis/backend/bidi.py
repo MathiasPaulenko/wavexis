@@ -807,19 +807,32 @@ class BiDiBackend(AbstractBackend):
 
     # ── Input ──────────────────────────────────────────────
 
+    async def _scroll_into_view_if_needed(self, selector: str) -> None:
+        """Scroll element into view if it's not visible in the viewport."""
+        client = self._require_client()
+        escaped = selector.replace("'", "\\'")
+        js = (
+            f"(function(){{var el=document.querySelector('{escaped}');"
+            f"if(!el)return;var rect=el.getBoundingClientRect();"
+            f"if(rect.top<0||rect.bottom>window.innerHeight||"
+            f"rect.left<0||rect.right>window.innerWidth)"
+            f"el.scrollIntoView({{block:'center',behavior:'instant'}});}})()"
+        )
+        await client.script.evaluate(self._context, js)
+
     async def click(
         self, selector: str, button: str = "left", click_count: int = 1
     ) -> None:
         """Click an element via BiDi script.evaluate."""
-        if self._client is None or self._context is None:
-            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        client = self._require_client()
+        await self._scroll_into_view_if_needed(selector)
         escaped = selector.replace("'", "\\'")
         js = (
             f"document.querySelector('{escaped}')"
             f".dispatchEvent(new MouseEvent('click',{{bubbles:true}}))"
         )
         for _ in range(click_count):
-            await self._client.script.evaluate(self._context, js)
+            await client.script.evaluate(self._context, js)
 
     async def type_text(self, selector: str, text: str, delay: int = 0) -> None:
         """Type text into an element via BiDi."""
@@ -843,12 +856,12 @@ class BiDiBackend(AbstractBackend):
 
     async def fill(self, selector: str, value: str) -> None:
         """Fill an input element with a value via BiDi."""
-        if self._client is None or self._context is None:
-            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        client = self._require_client()
+        await self._scroll_into_view_if_needed(selector)
         escaped = selector.replace("'", "\\'")
         escaped_val = value.replace("\\", "\\\\").replace("'", "\\'")
         js = f"document.querySelector('{escaped}').value = '{escaped_val}'"
-        await self._client.script.evaluate(self._context, js)
+        await client.script.evaluate(self._context, js)
 
     async def select_option(self, selector: str, value: str) -> None:
         """Select an option in a <select> element by value via BiDi."""
@@ -861,15 +874,15 @@ class BiDiBackend(AbstractBackend):
 
     async def hover(self, selector: str) -> None:
         """Hover over an element via BiDi script.evaluate."""
-        if self._client is None or self._context is None:
-            raise RuntimeError("BiDiBackend not launched. Call launch() first.")
+        client = self._require_client()
+        await self._scroll_into_view_if_needed(selector)
         escaped = selector.replace("'", "\\'")
         js = (
             f"var el=document.querySelector('{escaped}');"
             f"el.dispatchEvent(new MouseEvent('mouseover',{{bubbles:true}}));"
             f"el.dispatchEvent(new MouseEvent('mousemove',{{bubbles:true}}))"
         )
-        await self._client.script.evaluate(self._context, js)
+        await client.script.evaluate(self._context, js)
 
     async def key_press(self, key: str) -> None:
         """Press a keyboard key via BiDi script.evaluate."""

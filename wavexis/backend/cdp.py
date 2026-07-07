@@ -1026,6 +1026,23 @@ class CDPBackend(AbstractBackend):
         cy = (min(ys) + max(ys)) / 2
         return cx, cy
 
+    async def _scroll_into_view_if_needed(self, selector: str) -> None:
+        """Scroll element into view if it's not visible in the viewport.
+
+        Args:
+            selector: CSS selector for the target element.
+        """
+        session = self._require_session()
+        escaped = selector.replace("'", "\\'")
+        js = (
+            f"(function(){{var el=document.querySelector('{escaped}');"
+            f"if(!el)return;var rect=el.getBoundingClientRect();"
+            f"if(rect.top<0||rect.bottom>window.innerHeight||"
+            f"rect.left<0||rect.right>window.innerWidth)"
+            f"el.scrollIntoView({{block:'center',behavior:'instant'}});}})()"
+        )
+        await session.runtime.evaluate(js)
+
     async def click(
         self, selector: str, button: str = "left", click_count: int = 1
     ) -> None:
@@ -1037,6 +1054,7 @@ class CDPBackend(AbstractBackend):
             click_count: Number of clicks to dispatch.
         """
         session = self._require_session()
+        await self._scroll_into_view_if_needed(selector)
         x, y = await self._get_box_center(selector)
         btn_map = {"left": "left", "right": "right", "middle": "middle"}
         btn = btn_map.get(button, "left")
@@ -1074,6 +1092,7 @@ class CDPBackend(AbstractBackend):
             value: Value to set in the input field.
         """
         session = self._require_session()
+        await self._scroll_into_view_if_needed(selector)
         escaped = selector.replace("'", "\\'")
         js = (
             f"(function(){{var el=document.querySelector('{escaped}');"
@@ -1113,6 +1132,7 @@ class CDPBackend(AbstractBackend):
             selector: CSS selector for the target element.
         """
         session = self._require_session()
+        await self._scroll_into_view_if_needed(selector)
         x, y = await self._get_box_center(selector)
         await session.input.dispatch_mouse_event(
             type_="mouseMoved", x=x, y=y
