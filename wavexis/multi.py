@@ -6,7 +6,7 @@ import asyncio
 import os
 import re
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, TypeAlias
 
 import yaml
 
@@ -173,7 +173,7 @@ async def _dispatch(
     return result
 
 
-type ActionFactory = Callable[[dict[str, Any]], BaseAction[Any, Any]]
+ActionFactory: TypeAlias = Callable[[dict[str, Any]], BaseAction[Any, Any]]
 
 
 def _screenshot_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
