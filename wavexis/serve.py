@@ -347,6 +347,50 @@ async def handle_device(request: Any) -> Any:
     return web.json_response({"status": "ok", "device": device})
 
 
+async def handle_modify_request(request: Any) -> Any:
+    """Handle POST /modify-request — intercept and modify requests in-flight.
+
+    Body: {"url": "...", "pattern": "*/api/*",
+        "modifications": {"headers": [...], "method": "...", "post_data": "..."}}
+    """
+    web = _import_aiohttp()
+    data = await request.json()
+    url = data.get("url", "")
+    pattern = data.get("pattern", "*")
+    modifications = data.get("modifications", {})
+    backend = await _get_backend(request)
+    await backend.launch(BrowserOptions())
+    try:
+        await backend.modify_request({"urlPattern": pattern}, modifications)
+        if url:
+            await backend.navigate(url, WaitStrategy(strategy="load"))
+    finally:
+        await backend.close()
+    return web.json_response({"status": "ok", "pattern": pattern})
+
+
+async def handle_modify_response(request: Any) -> Any:
+    """Handle POST /modify-response — intercept and modify responses in-flight.
+
+    Body: {"url": "...", "pattern": "*/api/*",
+        "modifications": {"status": 200, "body": "...", "content_type": "application/json"}}
+    """
+    web = _import_aiohttp()
+    data = await request.json()
+    url = data.get("url", "")
+    pattern = data.get("pattern", "*")
+    modifications = data.get("modifications", {})
+    backend = await _get_backend(request)
+    await backend.launch(BrowserOptions())
+    try:
+        await backend.modify_response({"urlPattern": pattern}, modifications)
+        if url:
+            await backend.navigate(url, WaitStrategy(strategy="load"))
+    finally:
+        await backend.close()
+    return web.json_response({"status": "ok", "pattern": pattern})
+
+
 async def handle_multi(request: Any) -> Any:
     """Handle POST /multi — execute multiple actions from YAML."""
     web = _import_aiohttp()
@@ -715,6 +759,8 @@ def create_app(backend_name: str | None = None) -> Any:
     app.router.add_post("/user-agent", handle_user_agent)
     app.router.add_post("/headers", handle_headers)
     app.router.add_post("/device", handle_device)
+    app.router.add_post("/modify-request", handle_modify_request)
+    app.router.add_post("/modify-response", handle_modify_response)
     app.router.add_post("/multi", handle_multi)
     app.router.add_get("/health", handle_health)
     app.router.add_get("/backends", handle_backends)

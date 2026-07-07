@@ -624,6 +624,12 @@ class DummyBackend(AbstractBackend):
         """Modify request."""
         pass
 
+    async def modify_response(
+        self, pattern: dict[str, Any], modifications: dict[str, Any]
+    ) -> None:
+        """Modify response."""
+        pass
+
     async def replay_har(self, har_path: str, url_filter: str = "") -> None:
         """Replay har."""
         pass

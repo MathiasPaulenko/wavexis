@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-__all__ = ["axe", "events", "har_replay", "inspect", "modify", "trace"]
+__all__ = ["axe", "events", "har_replay", "inspect", "modify", "modify_response", "trace"]
 
 import json
 from typing import Any
@@ -77,11 +77,18 @@ def modify(
     method: str = typer.Option(
         "", "--method", "-m", help="Override HTTP method"
     ),
+    post_data: str = typer.Option(
+        "", "--post-data", "-d", help="Override request body (POST data)"
+    ),
+    wait: float = typer.Option(
+        5.0, "--wait", "-w", help="Seconds to keep interception active (0 = no wait)"
+    ),
 ) -> None:
     """Intercept and modify network requests matching a pattern.
 
     \b
     wavexis modify https://example.com -p "*/api/*" -h "X-Custom: value"
+    wavexis modify https://example.com -p "*/api/*" -m POST -d '{"key":"val"}'
     """
     modifications: dict[str, Any] = {}
     if header:
@@ -89,22 +96,100 @@ def modify(
         modifications["headers"] = [{key.strip(): val.strip()}]
     if method:
         modifications["method"] = method
+    if post_data:
+        modifications["post_data"] = post_data
 
-    _run_async(_modify(url, pattern, modifications))
+    _run_async(_modify(url, pattern, modifications, wait))
     typer.echo(f"Request interception active for pattern: {pattern}")
 
 
 async def _modify(
-    url: str, pattern: str, modifications: dict[str, Any]
+    url: str, pattern: str, modifications: dict[str, Any], wait: float = 5.0
 ) -> None:
-    """Async helper for request modification."""
+    """Async helper for request modification.
+
+    Args:
+        url: URL to navigate to.
+        pattern: URL pattern to intercept.
+        modifications: Dict with optional keys: headers, url, method, post_data.
+        wait: Seconds to keep interception active after navigation.
+    """
+    import asyncio
+
     backend = _get_backend()
     try:
         await backend.launch(_browser_options())
-        await backend.navigate(url, WaitStrategy(strategy="load"))
         await backend.modify_request(
             {"urlPattern": pattern}, modifications
         )
+        await backend.navigate(url, WaitStrategy(strategy="load"))
+        if wait > 0:
+            await asyncio.sleep(wait)
+    finally:
+        await backend.close()
+
+
+@app.command()
+def modify_response(
+    url: str = typer.Argument(..., help="URL to navigate to"),
+    pattern: str = typer.Option(
+        ...,
+        "--pattern",
+        "-p",
+        help='URL pattern to match (e.g. "*/api/*")',
+    ),
+    body: str = typer.Option(
+        "", "--body", "-b", help="Replacement response body (string or JSON)"
+    ),
+    status: int = typer.Option(
+        200, "--status", "-s", help="Override HTTP status code"
+    ),
+    content_type: str = typer.Option(
+        "application/json", "--content-type", "-c", help="Content-Type header"
+    ),
+    wait: float = typer.Option(
+        5.0, "--wait", "-w", help="Seconds to keep interception active (0 = no wait)"
+    ),
+) -> None:
+    """Intercept and modify network responses matching a pattern.
+
+    \b
+    wavexis modify-response https://example.com -p "*/api/*" -b '{"modified":true}'
+    wavexis modify-response https://example.com -p "*/api/*" -s 404
+    """
+    modifications: dict[str, Any] = {
+        "status": status,
+        "content_type": content_type,
+    }
+    if body:
+        modifications["body"] = body
+
+    _run_async(_modify_response(url, pattern, modifications, wait))
+    typer.echo(f"Response interception active for pattern: {pattern}")
+
+
+async def _modify_response(
+    url: str, pattern: str, modifications: dict[str, Any], wait: float = 5.0
+) -> None:
+    """Async helper for response modification.
+
+    Args:
+        url: URL to navigate to.
+        pattern: URL pattern to intercept.
+        modifications: Dict with optional keys: status, headers, body.
+        wait: Seconds to keep interception active after navigation.
+    """
+    import asyncio
+
+    backend = _get_backend()
+    try:
+        await backend.launch(_browser_options())
+        await backend.modify_response(
+            {"urlPattern": pattern}, modifications
+        )
+        await backend.navigate(url, WaitStrategy(strategy="load"))
+        if wait > 0:
+            await asyncio.sleep(wait)
     finally:
         await backend.close()
 

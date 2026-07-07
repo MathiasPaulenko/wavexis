@@ -295,6 +295,8 @@ class FakeBackend(AbstractBackend):
         """Get response body."""
     async def modify_request(self, pattern, modifications):
         """Modify request."""
+    async def modify_response(self, pattern, modifications):
+        """Modify response."""
     async def replay_har(self, har_path, url_filter=""):
         """Replay har."""
     async def start_combined_trace(

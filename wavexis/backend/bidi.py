@@ -1681,6 +1681,56 @@ class BiDiBackend(AbstractBackend):
         client.cdp.on("Fetch.requestPaused", on_request_paused)
         await client.cdp.send_command("Fetch.enable", {"patterns": [pattern]})
 
+    async def modify_response(
+        self,
+        pattern: dict[str, Any],
+        modifications: dict[str, Any],
+    ) -> None:
+        """Intercept responses matching a pattern and modify them in-flight.
+
+        Uses CDP Fetch domain via bridge to pause responses and fulfill
+        with modifications.
+
+        Args:
+            pattern: Pattern dict with optional keys: urlPattern, resourceType,
+                requestStage (defaults to "Response").
+            modifications: Dict with optional keys: status, headers, body.
+        """
+        client = self._require_client()
+
+        response_pattern = dict(pattern)
+        response_pattern.setdefault("requestStage", "Response")
+
+        body = modifications.get("body", "")
+        if isinstance(body, (dict, list)):
+            body = json.dumps(body)
+        body_b64 = base64.b64encode(body.encode("utf-8")).decode("ascii")
+
+        async def on_request_paused(event_params: dict[str, Any]) -> None:
+            """Handle Fetch.requestPaused and fulfill with modified response."""
+            request_id = event_params.get("requestId", "")
+            response_headers = modifications.get(
+                "headers",
+                [
+                    {
+                        "name": "Content-Type",
+                        "value": modifications.get("content_type", "application/json"),
+                    }
+                ],
+            )
+            await client.cdp.send_command(
+                "Fetch.fulfillRequest",
+                {
+                    "requestId": request_id,
+                    "responseCode": modifications.get("status", 200),
+                    "responseHeaders": response_headers,
+                    "body": body_b64,
+                },
+            )
+
+        client.cdp.on("Fetch.requestPaused", on_request_paused)
+        await client.cdp.send_command("Fetch.enable", {"patterns": [response_pattern]})
+
     async def replay_har(self, har_path: str, url_filter: str = "") -> None:
         """Replay network requests from a HAR file.
 

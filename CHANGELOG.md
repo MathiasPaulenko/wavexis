@@ -2,6 +2,22 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.9.1 — 2026-07-07
+
+### Added
+
+- `modify_response()` method on both backends — intercept and modify response body, status, and headers in-flight via CDP Fetch domain
+- `modify-response` CLI command — `wavexis modify-response <url> -p "*/api/*" -b '{"modified":true}' -s 200`
+- `--wait` flag on `modify` CLI command — keeps browser open for N seconds to allow interception
+- `--post-data` flag on `modify` CLI command — override request body
+- `POST /modify-request` and `POST /modify-response` endpoints in serve.py
+- 11 unit tests covering modify_request, modify_response, CLI commands, and serve endpoints
+
+### Fixed
+
+- `modify` CLI command now sets up interception before navigation and stays open with `--wait`
+- `modify` CLI command now supports `--post-data` for overriding request body
+
 ## v2.9.0 — 2026-07-07
 
 ### Added

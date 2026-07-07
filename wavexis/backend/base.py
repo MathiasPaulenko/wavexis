@@ -521,6 +521,20 @@ class AbstractBackend(ABC):
         """
 
     @abstractmethod
+    async def modify_response(
+        self,
+        pattern: dict[str, Any],
+        modifications: dict[str, Any],
+    ) -> None:
+        """Intercept responses matching a pattern and modify them in-flight.
+
+        Args:
+            pattern: Pattern dict with optional keys: urlPattern, resourceType,
+                requestStage (should be "Response").
+            modifications: Dict with optional keys: status, headers, body.
+        """
+
+    @abstractmethod
     async def replay_har(self, har_path: str, url_filter: str = "") -> None:
         """Replay network requests from a HAR file.
 
