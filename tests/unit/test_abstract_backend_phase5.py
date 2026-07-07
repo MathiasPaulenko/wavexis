@@ -11,12 +11,8 @@ from wavexis.backend.base import AbstractBackend
 class TestAbstractBackendPhase5:
     """Test suite for abstractbackendphase5."""
     def _get_abstract_methods(self) -> list[str]:
-        """ get abstract methods."""
-        return [
-            name
-            for name, val in vars(AbstractBackend).items()
-            if getattr(val, "__isabstractmethod__", False)
-        ]
+        """Get abstract methods."""
+        return list(AbstractBackend.__abstractmethods__)
 
     def test_input_methods_exist(self) -> None:
         """Test input methods exist."""
