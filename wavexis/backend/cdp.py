@@ -1370,10 +1370,10 @@ class CDPBackend(AbstractBackend):
         btn = btn_map.get(button, "left")
         for _ in range(click_count):
             await session.input.dispatch_mouse_event(
-                type_="mousePressed", x=x, y=y, button=btn, click_count=1
+                **{"type": "mousePressed"}, x=x, y=y, button=btn, click_count=1
             )
             await session.input.dispatch_mouse_event(
-                type_="mouseReleased", x=x, y=y, button=btn, click_count=1
+                **{"type": "mouseReleased"}, x=x, y=y, button=btn, click_count=1
             )
 
     async def type_text(self, selector: str, text: str, delay: int = 0) -> None:
@@ -1389,7 +1389,7 @@ class CDPBackend(AbstractBackend):
         await session.dom.focus(node_id)
         for char in text:
             await session.input.dispatch_key_event(
-                type_="char", text=char
+                **{"type": "char"}, text=char
             )
             if delay > 0:
                 await asyncio.sleep(delay / 1000)
@@ -1453,7 +1453,7 @@ class CDPBackend(AbstractBackend):
         await self._scroll_into_view_if_needed(selector)
         x, y = await self._get_box_center(selector)
         await session.input.dispatch_mouse_event(
-            type_="mouseMoved", x=x, y=y
+            **{"type": "mouseMoved"}, x=x, y=y
         )
 
     async def key_press(self, key: str) -> None:
@@ -1472,10 +1472,10 @@ class CDPBackend(AbstractBackend):
         }
         key_info = key_map.get(key, {"key": key, "code": key})
         await session.input.dispatch_key_event(
-            type_="keyDown", **key_info
+            **{"type": "keyDown"}, **key_info
         )
         await session.input.dispatch_key_event(
-            type_="keyUp", **key_info
+            **{"type": "keyUp"}, **key_info
         )
 
     async def drag(self, source: str, target: str) -> None:
@@ -1489,13 +1489,13 @@ class CDPBackend(AbstractBackend):
         sx, sy = await self._get_box_center(source)
         tx, ty = await self._get_box_center(target)
         await session.input.dispatch_mouse_event(
-            type_="mousePressed", x=sx, y=sy, button="left", click_count=1
+            **{"type": "mousePressed"}, x=sx, y=sy, button="left", click_count=1
         )
         await session.input.dispatch_mouse_event(
-            type_="mouseMoved", x=tx, y=ty
+            **{"type": "mouseMoved"}, x=tx, y=ty
         )
         await session.input.dispatch_mouse_event(
-            type_="mouseReleased", x=tx, y=ty, button="left", click_count=1
+            **{"type": "mouseReleased"}, x=tx, y=ty, button="left", click_count=1
         )
 
     async def tap(self, selector: str) -> None:
@@ -1507,10 +1507,10 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         x, y = await self._get_box_center(selector)
         await session.input.dispatch_touch_event(
-            type_="touchStart", touch_points=[{"x": x, "y": y}]
+            **{"type": "touchStart"}, touch_points=[{"x": x, "y": y}]
         )
         await session.input.dispatch_touch_event(
-            type_="touchEnd", touch_points=[]
+            **{"type": "touchEnd"}, touch_points=[]
         )
 
     async def set_files(self, selector: str, files: list[str]) -> None:
@@ -2614,6 +2614,7 @@ class CDPBackend(AbstractBackend):
             Dict with 'result' key containing a list of CSS coverage entries.
         """
         session = self._require_session()
+        await session.dom.enable()
         await session.send("CSS.enable", {})
         await session.send("CSS.startRuleUsageTracking", {})
         await asyncio.sleep(1)
@@ -2837,21 +2838,21 @@ class CDPBackend(AbstractBackend):
             color: RGBA color string for the highlight overlay.
         """
         session = self._require_session()
-        await session.send("Overlay.enable", {})
+        await session.dom.enable()
+        await session.overlay.enable()
         node_id = await self._find_node(selector)
         highlight_config: dict[str, Any] = {
             "contentColor": color,
             "contentOutlineColor": "rgba(0,0,0,0)",
         }
-        await session.send(
-            "Overlay.highlightNode",
-            {"highlightConfig": highlight_config, "nodeId": node_id},
+        await session.overlay.highlight_node(
+            highlight_config=highlight_config, node_id=node_id,
         )
 
     async def overlay_clear(self) -> None:
         """Clear all highlight overlays from the page."""
         session = self._require_session()
-        await session.send("Overlay.clearHighlight", {})
+        await session.overlay.hide_highlight()
 
     # ── Storage ────────────────────────────────────────────
 
@@ -2921,10 +2922,10 @@ class CDPBackend(AbstractBackend):
             storage_type: "local" or "session".
         """
         session = self._require_session()
-        await session.send("DOMStorage.enable", {})
-        storage_id = await self._get_storage_id(storage_type)
-        await session.send(
-            "DOMStorage.clearDOMStorageItems", {"storageId": storage_id}
+        origin = self._get_origin()
+        storage_types = "local_storage" if storage_type == "local" else "session_storage"
+        await session.storage.clear_data_for_origin(
+            origin=origin, storage_types=storage_types,
         )
 
     async def storage_list(self, storage_type: str = "local") -> dict[str, str]:
@@ -3072,16 +3073,15 @@ class CDPBackend(AbstractBackend):
         """List registered service workers.
 
         Returns:
-            List of service worker registration dicts.
+            List of service worker target dicts.
         """
         session = self._require_session()
         await session.send("ServiceWorker.enable", {})
-        result = await session.send(
-            "ServiceWorker.getRegistrations", {}
-        )
+        result = await session.send("Target.getTargets", {})
         registrations: list[dict[str, Any]] = []
-        for reg in result.get("registrations", []):
-            registrations.append(dict(reg))
+        for target in result.get("targetInfos", []):
+            if target.get("type") == "service_worker":
+                registrations.append(dict(target))
         return registrations
 
     async def sw_unregister(self, registration_id: str) -> None:
@@ -3169,20 +3169,18 @@ class CDPBackend(AbstractBackend):
     ) -> str:
         """Add a virtual authenticator via CDP WebAuthn domain."""
         session = self._require_session()
-        await session.send("WebAuthn.enable", {})
-        result = await session.send(
-            "WebAuthn.addVirtualAuthenticator",
-            {"protocol": protocol, "transport": transport},
+        await session.web_authn.enable()
+        result = await session.web_authn.add_virtual_authenticator(
+            options={"protocol": protocol, "transport": transport},
         )
         return str(result.get("authenticatorId", ""))
 
     async def webauthn_remove_authenticator(self, authenticator_id: str) -> None:
         """Remove a virtual authenticator via CDP WebAuthn domain."""
         session = self._require_session()
-        await session.send("WebAuthn.enable", {})
-        await session.send(
-            "WebAuthn.removeVirtualAuthenticator",
-            {"authenticatorId": authenticator_id},
+        await session.web_authn.enable()
+        await session.web_authn.remove_virtual_authenticator(
+            authenticator_id=authenticator_id,
         )
 
     async def webauthn_add_credential(
@@ -3190,10 +3188,9 @@ class CDPBackend(AbstractBackend):
     ) -> None:
         """Add a credential to a virtual authenticator via CDP WebAuthn domain."""
         session = self._require_session()
-        await session.send("WebAuthn.enable", {})
-        await session.send(
-            "WebAuthn.addCredential",
-            {"authenticatorId": authenticator_id, "credential": credential},
+        await session.web_authn.enable()
+        await session.web_authn.add_credential(
+            authenticator_id=authenticator_id, credential=credential,
         )
 
     async def webauthn_get_credentials(
@@ -3201,10 +3198,9 @@ class CDPBackend(AbstractBackend):
     ) -> list[dict[str, Any]]:
         """Get credentials from a virtual authenticator via CDP WebAuthn domain."""
         session = self._require_session()
-        await session.send("WebAuthn.enable", {})
-        result = await session.send(
-            "WebAuthn.getCredentials",
-            {"authenticatorId": authenticator_id},
+        await session.web_authn.enable()
+        result = await session.web_authn.get_credentials(
+            authenticator_id=authenticator_id,
         )
         return list(result.get("credentials", []))
 
@@ -3214,8 +3210,16 @@ class CDPBackend(AbstractBackend):
         """Get all WebAudio contexts via CDP WebAudio domain."""
         session = self._require_session()
         await session.send("WebAudio.enable", {})
-        result = await session.send("WebAudio.getRealtimeData", {})
-        return list(result.get("contexts", []))
+        contexts: list[dict[str, Any]] = []
+        try:
+            event = await asyncio.wait_for(
+                session.wait_for_event("WebAudio.contextCreated"),
+                timeout=1.0,
+            )
+            contexts.append(dict(event.get("context", event)))
+        except TimeoutError:
+            pass
+        return contexts
 
     async def webaudio_get_context(self, context_id: str) -> dict[str, Any]:
         """Get a specific WebAudio context by ID via CDP WebAudio domain."""
@@ -3232,33 +3236,14 @@ class CDPBackend(AbstractBackend):
     async def media_get_players(self) -> list[dict[str, Any]]:
         """Get all media players via CDP Media domain."""
         session = self._require_session()
-        await session.send("Media.enable", {})
-        players: list[dict[str, Any]] = []
-        try:
-            events = await session.collect_events(
-                "Media.playerCreated", timeout=1000
-            )
-            for ev in events:
-                players.append(dict(ev.get("player", ev)))
-        except (TimeoutError, KeyError, TypeError):
-            pass
-        return players
+        result = await session.media.get_players()
+        return list(result.get("players", []))
 
     async def media_get_messages(self, player_id: str) -> list[dict[str, Any]]:
         """Get messages for a specific media player via CDP Media domain."""
         session = self._require_session()
-        await session.send("Media.enable", {})
-        messages: list[dict[str, Any]] = []
-        try:
-            events = await session.collect_events(
-                "Media.playerMessage", timeout=1000
-            )
-            for ev in events:
-                if ev.get("playerId") == player_id:
-                    messages.append(dict(ev))
-        except (TimeoutError, KeyError, TypeError):
-            pass
-        return messages
+        result = await session.media.get_player_properties(player_id)
+        return list(result.get("messages", []))
 
     # ── Cast (experimental) ────────────────────────────────
 

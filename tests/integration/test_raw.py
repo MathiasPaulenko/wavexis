@@ -26,7 +26,8 @@ async def test_raw_cdp_command(
     """Test raw cdp command."""
     await backend.launch(browser_opts)
     try:
-        result = await backend.raw("SystemInfo.getInfo", {})
+        await backend.navigate("https://example.com")
+        result = await backend.raw("Page.getNavigationHistory", {})
         assert isinstance(result, dict)
     finally:
         await backend.close()
@@ -78,7 +79,10 @@ async def test_raw_bidi_command() -> None:
 
     backend = BiDiBackend()
     opts = BrowserOptions(headless=True)
-    await backend.launch(opts)
+    try:
+        await backend.launch(opts)
+    except ImportError:
+        pytest.skip("bidiwave not installed")
     try:
         result = await backend.raw("session.status", {})
         assert isinstance(result, dict)

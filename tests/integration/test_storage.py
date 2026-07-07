@@ -2,9 +2,8 @@
 
 import pytest
 
-from wavexis.actions.storage import StorageAction
 from wavexis.backend.cdp import CDPBackend
-from wavexis.config import BrowserOptions, StorageParams, WaitStrategy
+from wavexis.config import BrowserOptions, WaitStrategy
 
 pytestmark = [pytest.mark.integration, pytest.mark.chrome]
 
@@ -24,107 +23,56 @@ def browser_opts() -> BrowserOptions:
 async def test_storage_set_and_get(
     backend: CDPBackend, browser_opts: BrowserOptions
 ) -> None:
-    """Test storage set and get."""
-    params = StorageParams(
-        url="https://example.com",
-        action="set",
-        key="test_key",
-        value="test_value",
-        wait=WaitStrategy(strategy="load"),
-        browser=browser_opts,
-    )
-    await StorageAction(params).execute(backend)
-
-    params_get = StorageParams(
-        url="https://example.com",
-        action="get",
-        key="test_key",
-        wait=WaitStrategy(strategy="load"),
-        browser=browser_opts,
-    )
-    result = await StorageAction(params_get).execute(backend)
-    assert result == "test_value"
+    """Test storage set and get in a single browser session."""
+    await backend.launch(browser_opts)
+    try:
+        await backend.navigate("https://example.com", WaitStrategy(strategy="load"))
+        await backend.storage_set("test_key", "test_value")
+        result = await backend.storage_get("test_key")
+        assert result == "test_value"
+    finally:
+        await backend.close()
 
 
 async def test_storage_list(
     backend: CDPBackend, browser_opts: BrowserOptions
 ) -> None:
-    """Test storage list."""
-    params = StorageParams(
-        url="https://example.com",
-        action="set",
-        key="list_key",
-        value="list_value",
-        wait=WaitStrategy(strategy="load"),
-        browser=browser_opts,
-    )
-    await StorageAction(params).execute(backend)
-
-    params_list = StorageParams(
-        url="https://example.com",
-        action="list",
-        wait=WaitStrategy(strategy="load"),
-        browser=browser_opts,
-    )
-    result = await StorageAction(params_list).execute(backend)
-    assert "list_key" in result
-    assert result["list_key"] == "list_value"
+    """Test storage list in a single browser session."""
+    await backend.launch(browser_opts)
+    try:
+        await backend.navigate("https://example.com", WaitStrategy(strategy="load"))
+        await backend.storage_set("list_key", "list_value")
+        result = await backend.storage_list()
+        assert "list_key" in result
+        assert result["list_key"] == "list_value"
+    finally:
+        await backend.close()
 
 
 async def test_storage_clear(
     backend: CDPBackend, browser_opts: BrowserOptions
 ) -> None:
-    """Test storage clear."""
-    params_set = StorageParams(
-        url="https://example.com",
-        action="set",
-        key="clear_key",
-        value="clear_value",
-        wait=WaitStrategy(strategy="load"),
-        browser=browser_opts,
-    )
-    await StorageAction(params_set).execute(backend)
-
-    params_clear = StorageParams(
-        url="https://example.com",
-        action="clear",
-        wait=WaitStrategy(strategy="load"),
-        browser=browser_opts,
-    )
-    await StorageAction(params_clear).execute(backend)
-
-    params_list = StorageParams(
-        url="https://example.com",
-        action="list",
-        wait=WaitStrategy(strategy="load"),
-        browser=browser_opts,
-    )
-    result = await StorageAction(params_list).execute(backend)
-    assert "clear_key" not in result
+    """Test storage clear in a single browser session."""
+    await backend.launch(browser_opts)
+    try:
+        await backend.navigate("https://example.com", WaitStrategy(strategy="load"))
+        await backend.storage_set("clear_key", "clear_value")
+        await backend.storage_clear()
+        result = await backend.storage_list()
+        assert "clear_key" not in result
+    finally:
+        await backend.close()
 
 
 async def test_storage_session_set_and_get(
     backend: CDPBackend, browser_opts: BrowserOptions
 ) -> None:
-    """Test storage session set and get."""
-    params = StorageParams(
-        url="https://example.com",
-        action="set",
-        key="session_key",
-        value="session_value",
-        storage_type="session",
-        wait=WaitStrategy(strategy="load"),
-        browser=browser_opts,
-    )
-    await StorageAction(params).execute(backend)
-
-    params_get = StorageParams(
-        url="https://example.com",
-        action="get",
-        key="session_key",
-        storage_type="session",
-        wait=WaitStrategy(strategy="load"),
-        browser=browser_opts,
-    )
-    result = await StorageAction(params_get).execute(backend)
-    assert result == "session_value"
+    """Test storage session set and get in a single browser session."""
+    await backend.launch(browser_opts)
+    try:
+        await backend.navigate("https://example.com", WaitStrategy(strategy="load"))
+        await backend.storage_set("session_key", "session_value", "session")
+        result = await backend.storage_get("session_key", "session")
+        assert result == "session_value"
+    finally:
+        await backend.close()
