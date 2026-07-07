@@ -132,10 +132,7 @@ def set_allowed_base_dir(path: str | None) -> None:
             any path (default, not recommended for production).
     """
     global _ALLOWED_BASE_DIR
-    if path:
-        _ALLOWED_BASE_DIR = Path(path).resolve()
-    else:
-        _ALLOWED_BASE_DIR = None
+    _ALLOWED_BASE_DIR = Path(path).resolve() if path else None
 
 
 def _validate_path(raw_path: str) -> Path:
@@ -271,7 +268,7 @@ _backend_pool: BackendPool | None = None
 
 def _get_pool(request: Any) -> BackendPool:
     """Get the backend pool from the app, or return a default."""
-    pool = request.app.get("backend_pool")
+    pool: BackendPool | None = request.app.get("backend_pool")
     if pool is not None:
         return pool
     global _backend_pool
@@ -1028,7 +1025,6 @@ async def handle_websocket(request: Any) -> Any:
             await _release_backend(request, backend)
             await ws.close()
     finally:
-        global _ws_connections
         _ws_connections -= 1
 
     return ws
