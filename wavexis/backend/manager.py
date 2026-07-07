@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+import logging
+
 from wavexis.backend.base import AbstractBackend
+from wavexis.config import BrowserOptions
 from wavexis.exceptions import BackendNotAvailableError, BackendNotSupportedError
+
+logger = logging.getLogger(__name__)
 
 _manager: BackendManager | None = None
 
@@ -91,6 +96,51 @@ class BackendManager:
             raise BackendNotAvailableError(preferred)
 
         return self.create(available[0])
+
+    async def select_with_fallback(
+        self,
+        preferred: str | None = None,
+        options: BrowserOptions | None = None,
+    ) -> AbstractBackend:
+        """Select a backend, falling back if the preferred one cannot be created.
+
+        Tries the preferred backend first. If its constructor raises
+        (e.g. dependency import fails), tries each remaining available
+        backend until one is created successfully.
+
+        Args:
+            preferred: Preferred backend name. If None, tries all in order.
+            options: Unused (kept for API compatibility). Launch is left to callers.
+
+        Returns:
+            A backend instance (not yet launched).
+
+        Raises:
+            BackendNotAvailableError: If no backend can be created.
+        """
+        available = self.list_available()
+        if not available:
+            raise BackendNotAvailableError()
+
+        ordered: list[str] = []
+        if preferred and preferred in available:
+            ordered.append(preferred)
+        ordered.extend(b for b in available if b not in ordered)
+
+        last_error: Exception | None = None
+        for name in ordered:
+            try:
+                backend = self.create(name)
+                logger.info("Backend '%s' created successfully", name)
+                return backend
+            except Exception as exc:
+                last_error = exc
+                logger.warning("Backend '%s' could not be created: %s", name, exc)
+                continue
+
+        raise BackendNotAvailableError(
+            f"All backends failed to initialize. Last error: {last_error}"
+        )
 
     def create(self, name: str) -> AbstractBackend:
         """Create an instance of a specific backend by name.

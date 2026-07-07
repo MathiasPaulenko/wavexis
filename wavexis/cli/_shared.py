@@ -280,8 +280,21 @@ def _get_backend() -> Any:
     """Select a backend using the preferred backend if set.
 
     Registers the backend for automatic cleanup on crash or signal.
+    Falls back to another backend if the preferred one fails to launch.
     """
-    backend = get_manager().select(_get_ctx().preferred_backend)
+    import asyncio
+
+    manager = get_manager()
+    preferred = _get_ctx().preferred_backend
+    try:
+        asyncio.get_running_loop()
+        backend = asyncio.get_event_loop().run_until_complete(
+            manager.select_with_fallback(preferred, _browser_options())
+        )
+    except RuntimeError:
+        backend = asyncio.run(
+            manager.select_with_fallback(preferred, _browser_options())
+        )
     register_backend(backend)
     return backend
 

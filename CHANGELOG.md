@@ -2,6 +2,25 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.10.0 — 2026-07-07
+
+### Added
+
+- Graceful backend degradation — `select_with_fallback()` in `BackendManager` tries preferred backend, falls back to next if constructor fails (cdp→bidi or bidi→cdp)
+- Core Web Vitals scoring — `wavexis cwv <url>` CLI command measures LCP, CLS, INP, FCP, TTFB, TBT with good/needs-improvement/poor ratings and 0-100 score
+- `--budget` flag on `cwv` command for CI pass/fail thresholds (e.g. `--budget '{"lcp_ms":2500}'`)
+- `POST /cwv` endpoint in serve.py for Core Web Vitals measurement via HTTP API
+- Rate limiting middleware in serve.py — token bucket algorithm with `--rate-limit N` flag (requests per minute)
+- `429 Too Many Requests` response with `Retry-After` header when rate limit exceeded
+- `CoreWebVitalsAction` in `wavexis.actions.core_web_vitals` with THRESHOLDS and budget checking
+- 19 unit tests covering backend degradation, CWV scoring, and rate limiting
+
+### Changed
+
+- `_get_backend()` in CLI and serve.py now uses `select_with_fallback()` for automatic backend degradation
+- `create_app()` and `serve()` accept `rate_limit` parameter for HTTP API protection
+- `serve` CLI command accepts `--rate-limit` flag
+
 ## v2.9.1 — 2026-07-07
 
 ### Added

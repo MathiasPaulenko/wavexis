@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-__all__ = ["_perf", "_print_perf_summary"]
+__all__ = ["_perf", "_print_perf_summary", "cwv"]
 
 from typing import Any
 
@@ -226,4 +226,86 @@ async def _perf(url: str, metric: str, duration: int) -> Any:
         return {}
     finally:
         await backend.close()
+
+
+@app.command()
+def cwv(
+    url: str = typer.Argument(..., help="URL to navigate to"),
+    output: str = typer.Option("-", "--output", "-o", help="Output file (- for stdout)"),
+    format: str = typer.Option("json", "--format", "-f", help="Output format (json)"),
+    observe: int = typer.Option(
+        5000, "--observe", help="Milliseconds to observe PerformanceObserver entries"
+    ),
+    budget: str = typer.Option(
+        "",
+        "--budget",
+        help='JSON budgets, e.g. \'{"lcp_ms":2500,"cls":0.1,"inp_ms":200}\'',
+    ),
+) -> None:
+    """Measure Core Web Vitals (LCP, CLS, INP) with scoring and ratings.
+
+    \b
+    wavexis cwv https://example.com
+    wavexis cwv https://example.com --budget '{"lcp_ms":2500,"cls":0.1}'
+    """
+    import json
+
+    budgets: dict[str, float] = {}
+    if budget:
+        try:
+            budgets = json.loads(budget)
+        except json.JSONDecodeError as e:
+            typer.echo(f"Error: invalid JSON budget: {e}", err=True)
+            raise typer.Exit(1) from e
+
+    async def _cwv() -> dict[str, Any]:
+        from wavexis.actions.core_web_vitals import (
+            CoreWebVitalsAction,
+            CoreWebVitalsParams,
+        )
+
+        params = CoreWebVitalsParams(
+            url=url,
+            wait=WaitStrategy(strategy="load"),
+            browser=_browser_options(),
+            budgets=budgets,
+            observe_ms=observe,
+        )
+        action = CoreWebVitalsAction(params)
+        backend = _get_backend()
+        return await action.execute(backend)
+
+    result = _run_async(_cwv())
+    if result is None:
+        return
+
+    if isinstance(result, dict):
+        score = result.get("score", 0)
+        ratings = result.get("ratings", {})
+        metrics = result.get("metrics", {})
+        typer.echo("\nCore Web Vitals:")
+        typer.echo("-" * 50)
+        typer.echo(f"  Score: {score}/100")
+        for key in ("lcp_ms", "cls", "inp_ms", "fcp_ms", "ttfb_ms", "tbt_ms", "load_ms"):
+            val = metrics.get(key, 0)
+            rating = ratings.get(key, "n/a")
+            if key == "cls":
+                typer.echo(f"  {key:10s} {val:.3f}    [{rating}]")
+            else:
+                typer.echo(f"  {key:10s} {val:.0f} ms  [{rating}]")
+        budgets_result = result.get("budgets")
+        if budgets_result:
+            typer.echo("-" * 50)
+            all_pass = budgets_result.get("all_pass", False)
+            typer.echo(f"  Budgets: {'PASS' if all_pass else 'FAIL'}")
+            for bk, bv in budgets_result.items():
+                if bk == "all_pass":
+                    continue
+                status = "PASS" if bv["pass"] else "FAIL"
+                typer.echo(f"    {bk}: {bv['value']} / {bv['budget']} [{status}]")
+        typer.echo("-" * 50)
+
+    Output.write_formatted(result, format, output)
+    if output and output != "-":
+        typer.echo(f"Results saved to {output}")
 

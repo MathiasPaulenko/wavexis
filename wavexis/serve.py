@@ -30,6 +30,79 @@ from wavexis.config import (
 from wavexis.exceptions import WavexisError
 
 
+class TokenBucket:
+    """Token bucket rate limiter for the HTTP API.
+
+    Allows up to `capacity` requests per `refill_period` seconds.
+    Tokens refill continuously at a rate of capacity/refill_period per second.
+    """
+
+    def __init__(self, capacity: int, refill_period: float) -> None:
+        """Initialize the token bucket.
+
+        Args:
+            capacity: Maximum number of tokens (burst size).
+            refill_period: Seconds to fully refill from empty.
+        """
+        self._capacity = capacity
+        self._tokens = float(capacity)
+        self._refill_rate = capacity / refill_period if refill_period > 0 else 0
+        self._last_refill = time.monotonic()
+        self._lock = asyncio.Lock()
+
+    async def acquire(self) -> bool:
+        """Try to acquire a token.
+
+        Returns:
+            True if a token was acquired, False if rate limited.
+        """
+        async with self._lock:
+            now = time.monotonic()
+            elapsed = now - self._last_refill
+            self._tokens = min(
+                self._capacity, self._tokens + elapsed * self._refill_rate
+            )
+            self._last_refill = now
+            if self._tokens >= 1:
+                self._tokens -= 1
+                return True
+            return False
+
+    def retry_after(self) -> float:
+        """Return seconds until the next token is available."""
+        if self._tokens >= 1:
+            return 0.0
+        if self._refill_rate <= 0:
+            return 1.0
+        return (1 - self._tokens) / self._refill_rate
+
+
+def _rate_limit_middleware(bucket: TokenBucket) -> Any:
+    """Create an aiohttp middleware for rate limiting.
+
+    Args:
+        bucket: The TokenBucket to use for rate limiting.
+
+    Returns:
+        A middleware factory function for aiohttp.
+    """
+    async def middleware(request: Any, handler: Any) -> Any:
+        allowed = await bucket.acquire()
+        if not allowed:
+            web = _import_aiohttp()
+            retry_after = bucket.retry_after()
+            return web.Response(
+                status=429,
+                headers={"Retry-After": f"{retry_after:.1f}"},
+                text='{"error": "rate limited", "retry_after": '
+                     f'"{retry_after:.1f}s"}}',
+                content_type="application/json",
+            )
+        return await handler(request)
+
+    return middleware
+
+
 def _import_aiohttp() -> Any:
     """Lazily import aiohttp and raise WavexisError if not installed."""
     try:
@@ -49,10 +122,11 @@ async def _get_backend(request: Any) -> AbstractBackend:
     """Create a fresh backend instance for this request.
 
     Actions call launch() and close() internally, so we cannot share
-    a single backend across requests.
+    a single backend across requests. Falls back to another backend
+    if the preferred one fails to launch.
     """
     preferred = request.app.get("backend_name")
-    return get_manager().select(preferred=preferred)
+    return await get_manager().select_with_fallback(preferred, BrowserOptions())
 
 
 async def _run_action(request: Any, action: Any) -> Any:
@@ -66,7 +140,6 @@ async def _run_action(request: Any, action: Any) -> Any:
         The result of action.execute().
     """
     backend = await _get_backend(request)
-    await backend.launch(BrowserOptions())
     try:
         return await action.execute(backend)
     finally:
@@ -279,6 +352,32 @@ async def handle_version(request: Any) -> Any:
     """Handle GET /version — return wavexis version."""
     web = _import_aiohttp()
     return web.json_response({"version": __version__})
+
+
+async def handle_cwv(request: Any) -> Any:
+    """Handle POST /cwv — measure Core Web Vitals with scoring.
+
+    Body: {"url": "...", "observe_ms": 5000, "budgets": {"lcp_ms": 2500}}
+    """
+    web = _import_aiohttp()
+    from wavexis.actions.core_web_vitals import (
+        CoreWebVitalsAction,
+        CoreWebVitalsParams,
+    )
+
+    data = await request.json()
+    url = data.get("url", "")
+    observe_ms = int(data.get("observe_ms", 5000))
+    budgets = data.get("budgets", {})
+    params = CoreWebVitalsParams(
+        url=url,
+        wait=WaitStrategy(strategy="load"),
+        budgets=budgets,
+        observe_ms=observe_ms,
+    )
+    action = CoreWebVitalsAction(params)
+    result = await _run_action(request, action)
+    return web.json_response(result)
 
 
 async def handle_auth(request: Any) -> Any:
@@ -717,12 +816,16 @@ async def handle_plugins(request: Any) -> Any:
 # ── App factory ─────────────────────────────────────────────
 
 
-def create_app(backend_name: str | None = None) -> Any:
+def create_app(
+    backend_name: str | None = None,
+    rate_limit: int | None = None,
+) -> Any:
     """Create and configure the aiohttp web application.
 
     Args:
         backend_name: Preferred backend name (e.g. "cdp", "bidi").
             If None, auto-detects the first available backend.
+        rate_limit: Max requests per minute (0 or None = no limit).
 
     Returns:
         aiohttp.web.Application with all routes registered.
@@ -735,7 +838,12 @@ def create_app(backend_name: str | None = None) -> Any:
     from wavexis.plugins import get_registry
 
     registry = get_registry()
-    middlewares = [m.factory(web) for m in registry.middleware]
+    middlewares: list[Any] = [m.factory(web) for m in registry.middleware]
+
+    if rate_limit and rate_limit > 0:
+        bucket = TokenBucket(capacity=rate_limit, refill_period=60.0)
+        middlewares.append(_rate_limit_middleware(bucket))
+
     app = web.Application(middlewares=middlewares)
     manager = get_manager()
     app["backend_name"] = backend_name
@@ -755,6 +863,7 @@ def create_app(backend_name: str | None = None) -> Any:
     app.router.add_post("/input/type", handle_input_type)
     app.router.add_post("/perf/metrics", handle_perf_metrics)
     app.router.add_post("/perf/trace", handle_perf_trace)
+    app.router.add_post("/cwv", handle_cwv)
     app.router.add_post("/auth", handle_auth)
     app.router.add_post("/user-agent", handle_user_agent)
     app.router.add_post("/headers", handle_headers)
@@ -774,6 +883,7 @@ def serve(
     port: int = 8080,
     host: str = "localhost",
     backend: str | None = None,
+    rate_limit: int | None = None,
 ) -> None:
     """Start the wavexis HTTP server.
 
@@ -781,11 +891,12 @@ def serve(
         port: Port to listen on (default 8080).
         host: Host to bind to (default "localhost").
         backend: Preferred backend name (default auto-detect).
+        rate_limit: Max requests per minute (0 or None = no limit).
 
     Raises:
         WavexisError: If aiohttp is not installed.
         BackendNotAvailableError: If no backend is available.
     """
     web = _import_aiohttp()
-    app = create_app(backend)
+    app = create_app(backend, rate_limit=rate_limit)
     web.run_app(app, host=host, port=port)

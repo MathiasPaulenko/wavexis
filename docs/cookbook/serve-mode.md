@@ -27,6 +27,44 @@ wavexis serve --host 0.0.0.0 --port 8080
 | POST | `/input/type` | Type text into an element |
 | POST | `/perf/metrics` | Get performance metrics |
 | POST | `/perf/trace` | Capture performance trace |
+| POST | `/cwv` | Core Web Vitals scoring (LCP, CLS, INP) |
+| POST | `/modify-request` | Modify requests in-flight |
+| POST | `/modify-response` | Modify responses in-flight |
+| POST | `/multi` | Run multiple actions |
+| GET | `/plugins` | List discovered plugins |
+
+## Rate limiting
+
+Protect the HTTP API from abuse with `--rate-limit`:
+
+```bash
+wavexis serve --rate-limit 60
+```
+
+This allows up to 60 requests per minute using a token bucket algorithm.
+When the limit is exceeded, the server responds with `429 Too Many Requests`
+and a `Retry-After` header indicating when to retry.
+
+## Backend degradation
+
+wavexis automatically falls back from the preferred backend to an alternative
+if it cannot be created (e.g. cdpwave not installed). Use `--backend` to set
+a preference:
+
+```bash
+wavexis serve --backend cdp    # prefers cdp, falls back to bidi
+wavexis serve --backend bidi   # prefers bidi, falls back to cdp
+```
+
+## Core Web Vitals
+
+Measure LCP, CLS, INP with scoring via the `/cwv` endpoint:
+
+```bash
+curl -X POST http://localhost:8080/cwv \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com", "budgets": {"lcp_ms": 2500}}'
+```
 
 ## Examples
 
@@ -57,7 +95,7 @@ curl -X POST http://localhost:8080/navigate \
 
 ## Architecture
 
-Each request creates a fresh backend instance via `BackendManager.select()`. The `_run_action` helper wraps `launch()` + `action.execute()` + `close()` in a try/finally block, ensuring the browser is always cleaned up.
+Each request creates a fresh backend instance via `BackendManager.select_with_fallback()`. If the preferred backend fails to initialize, wavexis automatically tries the next available backend. The `_run_action` helper wraps `action.execute()` + `close()` in a try/finally block, ensuring the browser is always cleaned up.
 
 ## WebSocket streaming
 

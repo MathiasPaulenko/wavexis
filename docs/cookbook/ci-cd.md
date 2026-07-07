@@ -40,6 +40,36 @@ actions:
 - run: wavexis multi actions.yml
 ```
 
+## Core Web Vitals budgets in CI
+
+Fail CI when Core Web Vitals exceed thresholds:
+
+```yaml
+name: Performance
+on: push
+jobs:
+  cwv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install wavexis[cdp]
+      - uses: browser-actions/setup-chrome@v1
+      - run: |
+          wavexis cwv https://example.com \
+            --budget '{"lcp_ms":2500,"cls":0.1,"inp_ms":200}' \
+            -o cwv-report.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cwv-report
+          path: cwv-report.json
+```
+
+The `--budget` flag checks each metric against a max threshold. The report
+includes `budgets.all_pass` (true/false) for programmatic CI gating.
+
 ## Docker
 
 wavexis ships with a multi-stage Dockerfile for serve mode. The image is published to GHCR on every release tag.

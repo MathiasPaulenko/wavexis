@@ -48,12 +48,20 @@ def serve(
     backend: str = typer.Option(
         None, "--backend", help="Preferred backend (cdp or bidi)"
     ),
+    rate_limit: int = typer.Option(
+        0, "--rate-limit", help="Max requests per minute (0 = no limit)"
+    ),
 ) -> None:
     """Start the wavexis HTTP server."""
     from wavexis.serve import serve as _serve
 
     try:
-        _serve(port=port, host=host, backend=backend or _get_ctx().preferred_backend)
+        _serve(
+            port=port,
+            host=host,
+            backend=backend or _get_ctx().preferred_backend,
+            rate_limit=rate_limit or None,
+        )
     except WavexisError as e:
         _handle_error(e)
 
