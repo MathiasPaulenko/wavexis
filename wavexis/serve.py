@@ -302,6 +302,7 @@ async def _run_action(request: Any, action: Any) -> Any:
     pool = _get_pool(request)
     backend = await _get_backend(request)
     try:
+        await backend.launch(BrowserOptions())
         return await action.execute(backend)
     finally:
         await backend.close()
