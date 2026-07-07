@@ -162,7 +162,11 @@ class TestServeHandlerMocks:
         server = TestServer(app)
         client = TestClient(server)
         await client.start_server()
-        with patch("wavexis.backend.manager.BackendManager.select_with_fallback", new_callable=AsyncMock, return_value=mock_backend):
+        with patch(
+            "wavexis.backend.manager.BackendManager.select_with_fallback",
+            new_callable=AsyncMock,
+            return_value=mock_backend,
+        ):
             resp = await client.post(
                 "/screenshot",
                 json={"url": "https://example.com"},
@@ -186,7 +190,11 @@ class TestServeHandlerMocks:
         server = TestServer(app)
         client = TestClient(server)
         await client.start_server()
-        with patch("wavexis.backend.manager.BackendManager.select_with_fallback", new_callable=AsyncMock, return_value=mock_backend):
+        with patch(
+            "wavexis.backend.manager.BackendManager.select_with_fallback",
+            new_callable=AsyncMock,
+            return_value=mock_backend,
+        ):
             resp = await client.post(
                 "/pdf",
                 json={"url": "https://example.com"},
@@ -210,7 +218,11 @@ class TestServeHandlerMocks:
         server = TestServer(app)
         client = TestClient(server)
         await client.start_server()
-        with patch("wavexis.backend.manager.BackendManager.select_with_fallback", new_callable=AsyncMock, return_value=mock_backend):
+        with patch(
+            "wavexis.backend.manager.BackendManager.select_with_fallback",
+            new_callable=AsyncMock,
+            return_value=mock_backend,
+        ):
             resp = await client.post(
                 "/eval",
                 json={"url": "https://example.com", "expression": "1+1"},
@@ -233,7 +245,11 @@ class TestServeHandlerMocks:
         server = TestServer(app)
         client = TestClient(server)
         await client.start_server()
-        with patch("wavexis.backend.manager.BackendManager.select_with_fallback", new_callable=AsyncMock, return_value=mock_backend):
+        with patch(
+            "wavexis.backend.manager.BackendManager.select_with_fallback",
+            new_callable=AsyncMock,
+            return_value=mock_backend,
+        ):
             resp = await client.post(
                 "/perf/metrics",
                 json={"url": "https://example.com"},
@@ -256,7 +272,11 @@ class TestServeHandlerMocks:
         server = TestServer(app)
         client = TestClient(server)
         await client.start_server()
-        with patch("wavexis.backend.manager.BackendManager.select_with_fallback", new_callable=AsyncMock, return_value=mock_backend):
+        with patch(
+            "wavexis.backend.manager.BackendManager.select_with_fallback",
+            new_callable=AsyncMock,
+            return_value=mock_backend,
+        ):
             resp = await client.post(
                 "/perf/trace",
                 json={"url": "https://example.com", "duration_ms": 1000},
@@ -279,7 +299,11 @@ class TestServeHandlerMocks:
         server = TestServer(app)
         client = TestClient(server)
         await client.start_server()
-        with patch("wavexis.backend.manager.BackendManager.select_with_fallback", new_callable=AsyncMock, return_value=mock_backend):
+        with patch(
+            "wavexis.backend.manager.BackendManager.select_with_fallback",
+            new_callable=AsyncMock,
+            return_value=mock_backend,
+        ):
             resp = await client.post(
                 "/navigate",
                 json={"url": "https://example.com"},
@@ -302,7 +326,11 @@ class TestServeHandlerMocks:
         server = TestServer(app)
         client = TestClient(server)
         await client.start_server()
-        with patch("wavexis.backend.manager.BackendManager.select_with_fallback", new_callable=AsyncMock, return_value=mock_backend):
+        with patch(
+            "wavexis.backend.manager.BackendManager.select_with_fallback",
+            new_callable=AsyncMock,
+            return_value=mock_backend,
+        ):
             resp = await client.post(
                 "/cookies/get",
                 json={"url": "https://example.com"},
@@ -325,7 +353,11 @@ class TestServeHandlerMocks:
         server = TestServer(app)
         client = TestClient(server)
         await client.start_server()
-        with patch("wavexis.backend.manager.BackendManager.select_with_fallback", new_callable=AsyncMock, return_value=mock_backend):
+        with patch(
+            "wavexis.backend.manager.BackendManager.select_with_fallback",
+            new_callable=AsyncMock,
+            return_value=mock_backend,
+        ):
             resp = await client.post(
                 "/cookies/set",
                 json={
@@ -353,7 +385,11 @@ class TestServeHandlerMocks:
         server = TestServer(app)
         client = TestClient(server)
         await client.start_server()
-        with patch("wavexis.backend.manager.BackendManager.select_with_fallback", new_callable=AsyncMock, return_value=mock_backend):
+        with patch(
+            "wavexis.backend.manager.BackendManager.select_with_fallback",
+            new_callable=AsyncMock,
+            return_value=mock_backend,
+        ):
             ws = await client.ws_connect("/ws")
             await ws.send_json({
                 "url": "https://example.com",
@@ -383,7 +419,11 @@ class TestServeHandlerMocks:
         server = TestServer(app)
         client = TestClient(server)
         await client.start_server()
-        with patch("wavexis.backend.manager.BackendManager.select_with_fallback", new_callable=AsyncMock, return_value=mock_backend):
+        with patch(
+            "wavexis.backend.manager.BackendManager.select_with_fallback",
+            new_callable=AsyncMock,
+            return_value=mock_backend,
+        ):
             ws = await client.ws_connect("/ws")
             await ws.send_json({
                 "url": "https://example.com",
