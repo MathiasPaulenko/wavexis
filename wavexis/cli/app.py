@@ -6,6 +6,7 @@ from wavexis.cli._config import *  # noqa: F401, F403
 from wavexis.cli._debug import *  # noqa: F401, F403
 from wavexis.cli._emulation import *  # noqa: F401, F403
 from wavexis.cli._experimental import *  # noqa: F401, F403
+from wavexis.cli._iframe import *  # noqa: F401, F403
 from wavexis.cli._input import *  # noqa: F401, F403
 from wavexis.cli._navigation import *  # noqa: F401, F403
 from wavexis.cli._network import *  # noqa: F401, F403

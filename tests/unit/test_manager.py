@@ -102,15 +102,15 @@ class FakeBackend(AbstractBackend):
         """Set timezone."""
     async def set_dark_mode(self, enabled):
         """Set dark mode."""
-    async def click(self, selector, button="left", click_count=1):
+    async def click(self, selector, button="left", click_count=1, auto_wait=True):
         """Click."""
     async def type_text(self, selector, text, delay=0):
         """Type text."""
-    async def fill(self, selector, value):
+    async def fill(self, selector, value, auto_wait=True):
         """Fill."""
     async def select_option(self, selector, value):
         """Select option."""
-    async def hover(self, selector):
+    async def hover(self, selector, auto_wait=True):
         """Hover."""
     async def key_press(self, key):
         """Key press."""
@@ -262,6 +262,13 @@ class FakeBackend(AbstractBackend):
         """Bluetooth stop."""
     async def set_files(self, selector, files):
         """Set files."""
+    async def iframe_eval(self, iframe_selector, expression, await_promise=False):
+        """Iframe eval."""
+        return None
+    async def iframe_click(self, iframe_selector, selector, auto_wait=True):
+        """Iframe click."""
+    async def iframe_fill(self, iframe_selector, selector, value, auto_wait=True):
+        """Iframe fill."""
 
 
 class TestBackendManager:

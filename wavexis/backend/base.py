@@ -284,6 +284,45 @@ class AbstractBackend(ABC):
             files: List of absolute file paths to upload.
         """
 
+    # ── iframe ─────────────────────────────────────────────
+
+    @abstractmethod
+    async def iframe_eval(
+        self, iframe_selector: str, expression: str, await_promise: bool = False
+    ) -> Any:
+        """Evaluate a JavaScript expression inside an iframe.
+
+        Args:
+            iframe_selector: CSS selector for the <iframe> element.
+            expression: JavaScript expression to evaluate in the iframe context.
+            await_promise: Whether to await a returned Promise.
+        """
+
+    @abstractmethod
+    async def iframe_click(
+        self, iframe_selector: str, selector: str, auto_wait: bool = True
+    ) -> None:
+        """Click an element inside an iframe.
+
+        Args:
+            iframe_selector: CSS selector for the <iframe> element.
+            selector: CSS selector inside the iframe for the target element.
+            auto_wait: If True, wait for element to be visible before clicking.
+        """
+
+    @abstractmethod
+    async def iframe_fill(
+        self, iframe_selector: str, selector: str, value: str, auto_wait: bool = True
+    ) -> None:
+        """Fill an input element inside an iframe.
+
+        Args:
+            iframe_selector: CSS selector for the <iframe> element.
+            selector: CSS selector inside the iframe for the target element.
+            value: Value to set in the input field.
+            auto_wait: If True, wait for element to be visible before filling.
+        """
+
     # ── Network advanced ───────────────────────────────────
 
     @abstractmethod

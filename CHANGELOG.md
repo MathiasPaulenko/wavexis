@@ -2,6 +2,16 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.3.2 — 2026-07-07
+
+### Added
+
+- iframe support: `iframe_click`, `iframe_fill`, `iframe_eval` in both CDP and BiDi backends
+- `wavexis iframe click/fill/eval` CLI command with `--iframe`, `--selector`, `--value`, `--expression` options
+- Auto-waiting inside iframes via `_wait_for_element_in_iframe` with polling and configurable timeout
+- `--no-wait` flag to skip auto-waiting for iframe interactions
+- Same-origin iframe support via `contentDocument` access
+
 ## v2.3.1 — 2026-07-07
 
 ### Added

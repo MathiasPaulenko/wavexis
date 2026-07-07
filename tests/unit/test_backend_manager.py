@@ -206,7 +206,13 @@ class DummyBackend(AbstractBackend):
         """Set dark mode."""
         pass
 
-    async def click(self, selector: str, button: str = "left", click_count: int = 1) -> None:
+    async def click(
+        self,
+        selector: str,
+        button: str = "left",
+        click_count: int = 1,
+        auto_wait: bool = True,
+    ) -> None:
         """Click."""
         pass
 
@@ -214,7 +220,9 @@ class DummyBackend(AbstractBackend):
         """Type text."""
         pass
 
-    async def fill(self, selector: str, value: str) -> None:
+    async def fill(
+        self, selector: str, value: str, auto_wait: bool = True
+    ) -> None:
         """Fill."""
         pass
 
@@ -222,7 +230,7 @@ class DummyBackend(AbstractBackend):
         """Select option."""
         pass
 
-    async def hover(self, selector: str) -> None:
+    async def hover(self, selector: str, auto_wait: bool = True) -> None:
         """Hover."""
         pass
 
@@ -240,6 +248,24 @@ class DummyBackend(AbstractBackend):
 
     async def set_files(self, selector: str, files: list[str]) -> None:
         """Set files."""
+        pass
+
+    async def iframe_eval(
+        self, iframe_selector: str, expression: str, await_promise: bool = False
+    ) -> object:
+        """Iframe eval."""
+        return None
+
+    async def iframe_click(
+        self, iframe_selector: str, selector: str, auto_wait: bool = True
+    ) -> None:
+        """Iframe click."""
+        pass
+
+    async def iframe_fill(
+        self, iframe_selector: str, selector: str, value: str, auto_wait: bool = True
+    ) -> None:
+        """Iframe fill."""
         pass
 
     async def throttle_network(self, params: object) -> None:

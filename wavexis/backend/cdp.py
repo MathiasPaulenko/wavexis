@@ -1252,6 +1252,123 @@ class CDPBackend(AbstractBackend):
             {"files": files, "nodeId": node_id},
         )
 
+    # ── iframe ─────────────────────────────────────────────
+
+    async def iframe_eval(
+        self, iframe_selector: str, expression: str, await_promise: bool = False
+    ) -> Any:
+        """Evaluate a JavaScript expression inside an iframe.
+
+        Args:
+            iframe_selector: CSS selector for the <iframe> element.
+            expression: JavaScript expression to evaluate in the iframe context.
+            await_promise: Whether to await a returned Promise.
+
+        Returns:
+            The evaluation result value.
+        """
+        session = self._require_session()
+        escaped_iframe = iframe_selector.replace("'", "\\'")
+        escaped_expr = expression.replace("\\", "\\\\").replace("'", "\\'")
+        js = (
+            f"(function(){{var f=document.querySelector('{escaped_iframe}');"
+            f"if(!f||!f.contentDocument)return null;"
+            f"return (function(){{{escaped_expr}}}).call(f.contentDocument);}})()"
+        )
+        result = await session.runtime.evaluate(js, await_promise=await_promise)
+        return result.get("result", {}).get("value")
+
+    async def _wait_for_element_in_iframe(
+        self, iframe_selector: str, selector: str, timeout_ms: int = 30000
+    ) -> None:
+        """Wait for an element inside an iframe to exist and be visible.
+
+        Args:
+            iframe_selector: CSS selector for the <iframe> element.
+            selector: CSS selector inside the iframe.
+            timeout_ms: Maximum wait time in milliseconds.
+
+        Raises:
+            WaitTimeoutError: If the element is not found within the timeout.
+        """
+        session = self._require_session()
+        escaped_iframe = iframe_selector.replace("'", "\\'")
+        escaped_sel = selector.replace("'", "\\'")
+        js = (
+            f"(function(){{var f=document.querySelector('{escaped_iframe}');"
+            f"if(!f||!f.contentDocument)return false;"
+            f"var el=f.contentDocument.querySelector('{escaped_sel}');"
+            f"if(!el)return false;"
+            f"var rect=el.getBoundingClientRect();"
+            f"return rect.width>0&&rect.height>0;}})()"
+        )
+        deadline = time.monotonic() + timeout_ms / 1000
+        while time.monotonic() < deadline:
+            result = await session.runtime.evaluate(js)
+            if result.get("result", {}).get("value") is True:
+                return
+            await asyncio.sleep(0.1)
+        raise WaitTimeoutError("selector", timeout_ms)
+
+    async def iframe_click(
+        self, iframe_selector: str, selector: str, auto_wait: bool = True
+    ) -> None:
+        """Click an element inside an iframe.
+
+        Args:
+            iframe_selector: CSS selector for the <iframe> element.
+            selector: CSS selector inside the iframe for the target element.
+            auto_wait: If True, wait for element to be visible before clicking.
+        """
+        session = self._require_session()
+        if auto_wait:
+            await self._wait_for_element_in_iframe(iframe_selector, selector)
+        escaped_iframe = iframe_selector.replace("'", "\\'")
+        escaped_sel = selector.replace("'", "\\'")
+        js = (
+            f"(function(){{var f=document.querySelector('{escaped_iframe}');"
+            f"if(!f||!f.contentDocument)return false;"
+            f"var el=f.contentDocument.querySelector('{escaped_sel}');"
+            f"if(!el)return false;"
+            f"el.scrollIntoView({{block:'center',behavior:'instant'}});"
+            f"el.dispatchEvent(new MouseEvent('click',{{bubbles:true}}));"
+            f"return true;}})()"
+        )
+        result = await session.runtime.evaluate(js)
+        if not result.get("result", {}).get("value"):
+            raise ElementNotFoundError(selector)
+
+    async def iframe_fill(
+        self, iframe_selector: str, selector: str, value: str, auto_wait: bool = True
+    ) -> None:
+        """Fill an input element inside an iframe.
+
+        Args:
+            iframe_selector: CSS selector for the <iframe> element.
+            selector: CSS selector inside the iframe for the target element.
+            value: Value to set in the input field.
+            auto_wait: If True, wait for element to be visible before filling.
+        """
+        session = self._require_session()
+        if auto_wait:
+            await self._wait_for_element_in_iframe(iframe_selector, selector)
+        escaped_iframe = iframe_selector.replace("'", "\\'")
+        escaped_sel = selector.replace("'", "\\'")
+        escaped_val = value.replace("\\", "\\\\").replace("'", "\\'")
+        js = (
+            f"(function(){{var f=document.querySelector('{escaped_iframe}');"
+            f"if(!f||!f.contentDocument)return false;"
+            f"var el=f.contentDocument.querySelector('{escaped_sel}');"
+            f"if(!el)return false;"
+            f"el.focus();el.value='{escaped_val}';"
+            f"el.dispatchEvent(new Event('input',{{bubbles:true}}));"
+            f"el.dispatchEvent(new Event('change',{{bubbles:true}}));"
+            f"return true;}})()"
+        )
+        result = await session.runtime.evaluate(js)
+        if not result.get("result", {}).get("value"):
+            raise ElementNotFoundError(selector)
+
     # ── Network advanced ───────────────────────────────────
 
     async def block_requests(self, patterns: list[str]) -> None:
