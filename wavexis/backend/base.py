@@ -149,6 +149,23 @@ class AbstractBackend(ABC):
     ) -> None:
         """Scroll to an element or by offset."""
 
+    @abstractmethod
+    async def suggest_locator(
+        self, selector: str, all: bool = False
+    ) -> list[str] | str:
+        """Suggest the best CSS selector for an element.
+
+        Analyzes the element and generates optimal selectors in priority order:
+        id > data-testid > aria-label > text > tag.classes > nth-of-type chain.
+
+        Args:
+            selector: CSS selector for the target element.
+            all: If True, return multiple suggestions; otherwise just the best one.
+
+        Returns:
+            List of selector strings when all=True, single best selector when all=False.
+        """
+
     # ── Network ────────────────────────────────────────────
 
     @abstractmethod

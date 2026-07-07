@@ -2,6 +2,16 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.3.4 — 2026-07-07
+
+### Added
+
+- Generate locator: `suggest_locator` method in both CDP and BiDi backends
+- `wavexis dom <url> --action suggest_locator -s <selector>` CLI command
+- `--all` flag to return all suggestions ranked by specificity
+- Priority order: `#id` > `[data-testid]` > `[aria-label]` > `[role]` > `:has-text()` > `tag.classes` > `parent > tag` > `:nth-of-type()` > `tag`
+- Uses `CSS.escape()` for safe selector generation
+
 ## v2.3.3 — 2026-07-07
 
 ### Added

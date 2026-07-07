@@ -132,6 +132,12 @@ class DummyBackend(AbstractBackend):
         """Dom scroll."""
         pass
 
+    async def suggest_locator(
+        self, selector: str, all: bool = False
+    ) -> list[str] | str:
+        """Suggest locator."""
+        return selector
+
     async def capture_har(self, params: object) -> dict:
         """Capture har."""
         return {}

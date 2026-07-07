@@ -66,6 +66,9 @@ class FakeBackend(AbstractBackend):
         """Dom focus."""
     async def dom_scroll(self, selector=None, x=0, y=0):
         """Dom scroll."""
+    async def suggest_locator(self, selector, all=False):
+        """Suggest locator."""
+        return selector
     async def capture_har(self, params):
         """Capture har."""
     async def get_cookies(self):

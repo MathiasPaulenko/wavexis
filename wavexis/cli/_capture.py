@@ -274,14 +274,20 @@ def dom(
         "get",
         "--action",
         "-a",
-        help="DOM action: get, query, attr, remove_attr, remove, focus, scroll",
+        help=(
+            "DOM action: get, query, attr, remove_attr, remove, focus, scroll, "
+            "suggest_locator"
+        ),
     ),
     selector: str = typer.Option("", "--selector", "-s", help="CSS selector"),
     output: str | None = typer.Option(
         None, "--output", "-o", help="Output file path"
     ),
     outer: bool = typer.Option(True, "--outer/--inner", help="Outer or inner HTML"),
-    all: bool = typer.Option(False, "--all", help="Query all matching elements"),
+    all: bool = typer.Option(
+        False, "--all",
+        help="Query all matching elements or all locator suggestions",
+    ),
     attribute: str | None = typer.Option(
         None, "--attribute", help="Attribute name for get/set/remove"
     ),
@@ -302,6 +308,13 @@ def dom(
             typer.echo(f"Output saved to {output}")
         else:
             typer.echo(result)
+    elif isinstance(result, list):
+        if output:
+            Output.write_json(result, output)
+            typer.echo(f"Output saved to {output}")
+        else:
+            for item in result:
+                typer.echo(item)
     elif result is not None:
         if output:
             Output.write_json(result, output)
@@ -324,6 +337,9 @@ async def _dom(
     backend = _get_backend()
     try:
         await backend.launch(_browser_options())
+        if action == "suggest_locator":
+            await backend.navigate(url, WaitStrategy(strategy="load"))
+            return await backend.suggest_locator(selector, all=all)
         params = DOMParams(
             url=url,
             action=action,

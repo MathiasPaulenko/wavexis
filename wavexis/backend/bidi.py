@@ -537,6 +537,64 @@ class BiDiBackend(AbstractBackend):
             js = f"window.scrollTo({x},{y})"
         await self._client.script.evaluate(self._context, js)
 
+    async def suggest_locator(
+        self, selector: str, all: bool = False
+    ) -> list[str] | str:
+        """Suggest the best CSS selector for an element.
+
+        Args:
+            selector: CSS selector for the target element.
+            all: If True, return multiple suggestions; otherwise just the best one.
+
+        Returns:
+            List of selector strings when all=True, single best selector when all=False.
+        """
+        client = self._require_client()
+        escaped = selector.replace("'", "\\'")
+        js = self._suggest_locator_js(escaped)
+        result = await client.script.evaluate(self._context, js)
+        raw = getattr(result, "value", None)
+        if not raw:
+            raise ElementNotFoundError(selector)
+        suggestions: list[str] = json.loads(raw)
+        if all:
+            return suggestions
+        return suggestions[0] if suggestions else selector
+
+    @staticmethod
+    def _suggest_locator_js(escaped: str) -> str:
+        """Build JS that generates CSS selector suggestions for an element."""
+        return (
+            f"(function(){{"
+            f"var el=document.querySelector('{escaped}');"
+            f"if(!el)return null;"
+            f"var s=[];var t=el.tagName.toLowerCase();"
+            f"var id=el.id;"
+            f"var tid=el.getAttribute('data-testid')"
+            f"||el.getAttribute('data-test-id')"
+            f"||el.getAttribute('data-cy');"
+            f"var aria=el.getAttribute('aria-label');"
+            f"var role=el.getAttribute('role');"
+            f"var txt=(el.textContent||'').trim().substring(0,50);"
+            f"var cls=Array.from(el.classList);"
+            f"if(id)s.push('#'+CSS.escape(id));"
+            f"if(tid)s.push('[data-testid=\"'+tid+'\"]');"
+            f"if(aria)s.push(t+'[aria-label=\"'+aria+'\"]');"
+            f"if(role)s.push(t+'[role=\"'+role+'\"]');"
+            f"if(txt&&txt.length<30)s.push(t+':has-text(\"'+txt+'\"]');"
+            f"if(cls.length>0)s.push(t+'.'+cls.join('.'));"
+            f"var p=el.parentElement;"
+            f"if(p&&p.id)s.push('#'+CSS.escape(p.id)+' > '+t);"
+            f"var sib=p?Array.from(p.children)"
+            f".filter(function(c){{return c.tagName===el.tagName}}):[];"
+            f"if(sib.length>1){{"
+            f"var i=sib.indexOf(el)+1;"
+            f"s.push(t+':nth-of-type('+i+')');}}"
+            f"s.push(t);"
+            f"return JSON.stringify(s);"
+            f"}})()"
+        )
+
     async def capture_har(self, params: HarParams) -> dict[str, Any]:
         """Capture HAR data via CDP Network domain.
 
