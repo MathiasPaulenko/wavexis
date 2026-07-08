@@ -5,8 +5,9 @@ from __future__ import annotations
 import asyncio
 import os
 import re
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, TypeAlias
+from typing import Any, TypeAlias
 
 import yaml
 
