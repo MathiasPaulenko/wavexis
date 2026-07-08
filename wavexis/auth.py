@@ -150,7 +150,9 @@ async def apply_auth_context(
         ).decode()
         await backend.set_headers({"Authorization": f"Basic {cred}"})
     await backend.navigate(url, wait)
+    cookies_set = False
     for cookie in ctx.cookies:
+        cookies_set = True
         cp = CookieParams(
             name=cookie.get("name", ""),
             value=cookie.get("value", ""),
@@ -158,4 +160,5 @@ async def apply_auth_context(
             path=cookie.get("path", "/"),
         )
         await backend.set_cookie(cp)
-    await backend.navigate(url, wait)
+    if cookies_set:
+        await backend.navigate(url, wait)

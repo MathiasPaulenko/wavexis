@@ -69,8 +69,14 @@ def _cleanup_sync() -> None:
             with contextlib.suppress(Exception):
                 await backend.close()
 
-    with contextlib.suppress(Exception):
-        asyncio.run(_close_all())
+    try:
+        loop = asyncio.get_running_loop()
+        with contextlib.suppress(Exception):
+            asyncio.run_coroutine_threadsafe(_close_all(), loop).result()
+    except RuntimeError:
+        # No running loop, use asyncio.run()
+        with contextlib.suppress(Exception):
+            asyncio.run(_close_all())
 
     _registered_backends.clear()
 

@@ -59,6 +59,7 @@ TEMPLATES: dict[str, dict[str, Any]] = {
         "description": "Capture network traffic as HAR",
         "actions": [
             {"navigate": {"url": "https://example.com"}},
+            {"har": {"wait": {"strategy": "load"}}},
         ],
     },
 }
@@ -149,7 +150,7 @@ def interactive_init(
     for i, (name, desc) in enumerate(list_templates(), 1):
         output_fn(f"  {i}. {name} — {desc}")
 
-    choice = input_fn("\nSelect template (1-7) or name: ").strip()
+    choice = input_fn(f"\nSelect template (1-{len(TEMPLATE_NAMES)}) or name: ").strip()
     if choice.isdigit():
         idx = int(choice) - 1
         if idx < 0 or idx >= len(TEMPLATE_NAMES):

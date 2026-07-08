@@ -63,7 +63,13 @@ class Recorder:
         """Delegate attribute access to the wrapped backend.
 
         For async methods, record the call before delegating.
+        Skips recording for lifecycle methods (launch, close) and internal methods.
         """
+        # Skip recording for lifecycle and internal methods
+        if name in ("launch", "close", "_get_origin", "_get_session", "_send"):
+            attr = getattr(self._backend, name)
+            return attr
+
         attr = getattr(self._backend, name)
         if callable(attr):
             def wrapper(*args: Any, **kwargs: Any) -> Any:

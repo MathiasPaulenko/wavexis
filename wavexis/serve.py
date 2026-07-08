@@ -166,7 +166,8 @@ async def _json_error_middleware(request: Any, handler: Any) -> Any:
             content_type="application/json",
         )
     except Exception as exc:
-        if "ContentTypeError" in type(exc).__name__ or "400" in str(exc):
+        web = _import_aiohttp()
+        if isinstance(exc, web.ContentTypeError):
             return web.Response(
                 status=400,
                 text='{"error": "invalid or missing JSON content-type"}',
@@ -263,6 +264,7 @@ def _auth_middleware(api_key: str) -> Any:
 
         token = (
             request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
+            or request.headers.get("X-API-Key", "")
             or request.query.get("api_key", "")
         )
         if not hmac.compare_digest(token.encode(), api_key.encode()):
@@ -361,9 +363,9 @@ class BackendPool:
         Returns:
             A backend instance (may or may not be launched yet).
         """
-        if not self._pool.empty():
-            return self._pool.get_nowait()
         async with self._lock:
+            if not self._pool.empty():
+                return self._pool.get_nowait()
             self._created += 1
         return await get_manager().select_with_fallback(preferred)
 
@@ -373,6 +375,8 @@ class BackendPool:
         Args:
             backend: The backend instance to return.
         """
+        with contextlib.suppress(Exception):
+            await backend.close()
         await self._pool.put(backend)
 
     async def close_all(self) -> None:
@@ -765,9 +769,16 @@ async def handle_modify_request(request: Any, backend: AbstractBackend) -> Any:
     web = _import_aiohttp()
     data = await request.json()
     url = data.get("url", "")
-    pattern = data.get("pattern", "*")
+    pattern_input = data.get("pattern", "*")
     modifications = data.get("modifications", {})
-    await backend.modify_request({"urlPattern": pattern}, modifications)
+    
+    # Build pattern dict - accept either string or dict
+    if isinstance(pattern_input, str):
+        pattern = {"urlPattern": pattern_input}
+    else:
+        pattern = pattern_input
+    
+    await backend.modify_request(pattern, modifications)
     if url:
         await backend.navigate(url, WaitStrategy(strategy="load"))
     return web.json_response({"status": "ok", "pattern": pattern})
@@ -833,12 +844,8 @@ async def _stream_screenshots(
                 "source": "screenshot",
                 "message": str(exc),
             })
-        except (ConnectionError, OSError) as exc:
-            await ws.send_json({
-                "type": "error",
-                "source": "screenshot",
-                "message": str(exc),
-            })
+        except (ConnectionError, OSError):
+            break
         await asyncio.sleep(interval)
 
 
@@ -865,12 +872,8 @@ async def _stream_console(
                 "source": "console",
                 "message": str(exc),
             })
-        except (ConnectionError, OSError) as exc:
-            await ws.send_json({
-                "type": "error",
-                "source": "console",
-                "message": str(exc),
-            })
+        except (ConnectionError, OSError):
+            break
         await asyncio.sleep(interval)
 
 
@@ -896,12 +899,8 @@ async def _stream_navigation(
                 "source": "navigation",
                 "message": str(exc),
             })
-        except (ConnectionError, OSError) as exc:
-            await ws.send_json({
-                "type": "error",
-                "source": "navigation",
-                "message": str(exc),
-            })
+        except (ConnectionError, OSError):
+            break
         await asyncio.sleep(interval)
 
 
@@ -960,12 +959,8 @@ async def _stream_dom_mutations(
                 "source": "dom_mutation",
                 "message": str(exc),
             })
-        except (ConnectionError, OSError) as exc:
-            await ws.send_json({
-                "type": "error",
-                "source": "dom_mutation",
-                "message": str(exc),
-            })
+        except (ConnectionError, OSError):
+            break
         await asyncio.sleep(interval)
 
 
@@ -1060,8 +1055,12 @@ async def handle_websocket(request: Any) -> Any:
         quality = int(config.get("quality", 80))
 
         backend = await _get_backend(request)
-        await backend.launch(BrowserOptions())
-        await backend.navigate(url, WaitStrategy(strategy="load"))
+        try:
+            await backend.launch(BrowserOptions())
+            await backend.navigate(url, WaitStrategy(strategy="load"))
+        except Exception:
+            await _release_backend(request, backend)
+            raise
 
         await ws.send_json({
             "type": "ready",

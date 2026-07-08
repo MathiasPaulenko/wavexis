@@ -89,8 +89,6 @@ class Output:
             path: File path. If None, writes to stdout.
         """
         if not data:
-            if path:
-                Path(path).write_text("", encoding="utf-8")
             return
 
         fieldnames: list[str] = []
