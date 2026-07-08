@@ -256,7 +256,8 @@ class TestServeModifyEndpoints:
         backend.modify_request = AsyncMock()
 
         with patch("wavexis.serve._import_aiohttp"), \
-             patch("wavexis.serve._get_backend", return_value=backend):
+             patch("wavexis.serve._get_backend", new_callable=AsyncMock, return_value=backend), \
+             patch("wavexis.serve._release_backend", new_callable=AsyncMock):
 
             await handle_modify_request(request)
 
@@ -282,7 +283,8 @@ class TestServeModifyEndpoints:
         backend.modify_response = AsyncMock()
 
         with patch("wavexis.serve._import_aiohttp"), \
-             patch("wavexis.serve._get_backend", return_value=backend):
+             patch("wavexis.serve._get_backend", new_callable=AsyncMock, return_value=backend), \
+             patch("wavexis.serve._release_backend", new_callable=AsyncMock):
 
             await handle_modify_response(request)
 

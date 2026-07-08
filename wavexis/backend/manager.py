@@ -9,7 +9,6 @@ from wavexis.config import BrowserOptions
 from wavexis.exceptions import (
     BackendNotAvailableError,
     BackendNotSupportedError,
-    WavexisError,
 )
 
 logger = logging.getLogger(__name__)
@@ -161,7 +160,7 @@ class BackendManager:
                 logger.warning("Backend '%s' could not be created: %s", name, exc)
                 continue
 
-        raise WavexisError(
+        raise BackendNotAvailableError(
             f"All backends failed to initialize. Last error: {last_error}"
         )
 

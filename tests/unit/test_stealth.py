@@ -159,8 +159,11 @@ class TestStealthBiDiLaunch:
         mock_client.browsing.create_context = AsyncMock(
             return_value="ctx-123"
         )
+        mock_client.browsing.set_viewport = AsyncMock()
         mock_client.script = MagicMock()
         mock_client.script.evaluate = AsyncMock()
+        mock_client.cdp = MagicMock()
+        mock_client.cdp.send_command = AsyncMock()
 
         with patch(
             "wavexis.backend.bidi.BiDiClient.connect",

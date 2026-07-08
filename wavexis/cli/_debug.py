@@ -7,7 +7,6 @@ from typing import Any
 import typer
 
 from wavexis.cli._shared import (
-    _close_backend,
     _echo,
     _get_backend,
     _run_async,

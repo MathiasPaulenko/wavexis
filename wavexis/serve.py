@@ -8,12 +8,14 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import contextlib
 import dataclasses
 import hmac
 import json
 import logging
 import time
 import uuid
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -148,7 +150,7 @@ async def _request_logging_middleware(request: Any, handler: Any) -> Any:
         raise
 
 
-def _json_error_middleware(request: Any, handler: Any) -> Any:
+async def _json_error_middleware(request: Any, handler: Any) -> Any:
     """Middleware that catches JSON decode errors and returns 400.
 
     Catches json.JSONDecodeError and aiohttp.ContentTypeError raised when
@@ -377,10 +379,8 @@ class BackendPool:
         """Close all pooled backends and clear the pool."""
         while not self._pool.empty():
             backend = self._pool.get_nowait()
-            try:
+            with contextlib.suppress(Exception):
                 await backend.close()
-            except Exception:
-                pass
         async with self._lock:
             self._created = 0
 
@@ -445,7 +445,7 @@ async def _release_backend(request: Any, backend: AbstractBackend) -> None:
 
 def with_backend(
     launch_options: BrowserOptions | None = None,
-) -> Any:
+) -> Callable[[Callable[..., Any]], Callable[[Any], Any]]:
     """Decorator that manages backend lifecycle for serve handlers.
 
     Acquires a backend from the pool, launches it, calls the handler
@@ -1219,8 +1219,8 @@ def create_app(
 
     registry = get_registry()
     middlewares: list[Any] = [m.factory(web) for m in registry.middleware]
-    middlewares.append(_request_logging_middleware)
-    middlewares.append(_json_error_middleware)
+    middlewares.append(web.middleware(_request_logging_middleware))
+    middlewares.append(web.middleware(_json_error_middleware))
 
     if cors_origins:
         if "*" in cors_origins and api_key:

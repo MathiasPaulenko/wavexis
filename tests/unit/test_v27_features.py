@@ -8,6 +8,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from wavexis.exceptions import SessionNotInitializedError
+
 
 @pytest.mark.unit
 class TestExtensionInstall:
@@ -60,6 +62,7 @@ class TestExtensionInstall:
         mock_client.cdp = MagicMock()
         mock_client.cdp.send_command = AsyncMock(return_value={})
         backend._client = mock_client
+        backend._context = "ctx-123"
 
         ext_id = asyncio.run(backend.extension_install(str(ext_dir)))
         assert len(ext_id) == 32
@@ -71,7 +74,7 @@ class TestExtensionInstall:
         from wavexis.backend.bidi import BiDiBackend
 
         backend = BiDiBackend()
-        with pytest.raises(RuntimeError, match="not launched"):
+        with pytest.raises(SessionNotInitializedError, match="not launched"):
             asyncio.run(backend.extension_install("/fake/path"))
 
 
@@ -102,6 +105,7 @@ class TestExtensionUninstall:
         mock_client.cdp = MagicMock()
         mock_client.cdp.send_command = AsyncMock(return_value={})
         backend._client = mock_client
+        backend._context = "ctx-123"
 
         asyncio.run(backend.extension_uninstall("ext-456"))
         call_args = mock_client.cdp.send_command.call_args
@@ -189,6 +193,7 @@ class TestBrowserPrefs:
         mock_client.cdp = MagicMock()
         mock_client.cdp.send_command = AsyncMock(return_value={"value": True})
         backend._client = mock_client
+        backend._context = "ctx-123"
 
         result = asyncio.run(backend.get_pref("safebrowsing.enabled"))
         assert result is True
@@ -202,6 +207,7 @@ class TestBrowserPrefs:
         mock_client.cdp = MagicMock()
         mock_client.cdp.send_command = AsyncMock(return_value={})
         backend._client = mock_client
+        backend._context = "ctx-123"
 
         asyncio.run(backend.set_pref("safebrowsing.enabled", False))
         call_args = mock_client.cdp.send_command.call_args
@@ -212,7 +218,7 @@ class TestBrowserPrefs:
         from wavexis.backend.bidi import BiDiBackend
 
         backend = BiDiBackend()
-        with pytest.raises(RuntimeError, match="not launched"):
+        with pytest.raises(SessionNotInitializedError, match="not launched"):
             asyncio.run(backend.get_pref("any.key"))
 
 

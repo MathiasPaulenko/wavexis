@@ -204,21 +204,23 @@ class TestTokenBucket:
         await asyncio.sleep(0.15)
         assert await bucket.acquire() is True
 
-    def test_retry_after_when_empty(self) -> None:
+    @pytest.mark.asyncio
+    async def test_retry_after_when_empty(self) -> None:
         """retry_after should return positive value when empty."""
         from wavexis.serve import TokenBucket
 
         bucket = TokenBucket(capacity=1, refill_period=60.0)
-        asyncio.run(bucket.acquire())
-        retry = bucket.retry_after()
+        await bucket.acquire()
+        retry = await bucket.retry_after()
         assert retry > 0
 
-    def test_retry_after_when_has_tokens(self) -> None:
+    @pytest.mark.asyncio
+    async def test_retry_after_when_has_tokens(self) -> None:
         """retry_after should return 0 when tokens available."""
         from wavexis.serve import TokenBucket
 
         bucket = TokenBucket(capacity=5, refill_period=60.0)
-        assert bucket.retry_after() == 0.0
+        assert await bucket.retry_after() == 0.0
 
 
 class TestRateLimitMiddleware:

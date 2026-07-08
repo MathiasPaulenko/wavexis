@@ -13,7 +13,7 @@ import logging
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from wavexis.backend.base import AbstractBackend
@@ -96,7 +96,7 @@ def load_auth(path: str | Path) -> list[dict[str, str]]:
     if isinstance(data, list):
         return data
     if isinstance(data, dict):
-        return data.get("cookies", [])
+        return list(data.get("cookies", []))
     return []
 
 
