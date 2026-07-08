@@ -266,6 +266,8 @@ def trace(
                 not no_console,
             )
         )
+        if trace_id_result is None:
+            return
         typer.echo(f"Trace started: {trace_id_result}")
 
     elif action == "stop":
@@ -335,6 +337,8 @@ def axe(
     wavexis axe https://example.com -o audit.json
     """
     result = _run_async(_axe(url))
+    if result is None:
+        return
     if output:
         from wavexis.output import Output
 

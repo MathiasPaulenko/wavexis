@@ -58,7 +58,10 @@ async def _a11y(url: str, action: str, node_id: str) -> Any:
         url=url,
         wait=WaitStrategy(strategy="load"),
     )
-    return await act.execute(backend)
+    try:
+        return await act.execute(backend)
+    finally:
+        await _close_backend(backend)
 
 
 @app.command()
@@ -94,7 +97,10 @@ async def _download(url: str, pattern: str) -> bytes:
         url=url,
         wait=WaitStrategy(strategy="load"),
     )
-    return await act.execute(backend)
+    try:
+        return await act.execute(backend)
+    finally:
+        await _close_backend(backend)
 
 
 @app.command()
@@ -126,7 +132,10 @@ async def _dialog(url: str, action: str, prompt_text: str | None) -> None:
         url=url,
         wait=WaitStrategy(strategy="load"),
     )
-    await act.execute(backend)
+    try:
+        await act.execute(backend)
+    finally:
+        await _close_backend(backend)
 
 
 @app.command()
@@ -161,7 +170,10 @@ async def _permissions(action: str, permission: str, url: str) -> None:
         url=url,
         wait=WaitStrategy(strategy="load") if url else None,
     )
-    await act.execute(backend)
+    try:
+        await act.execute(backend)
+    finally:
+        await _close_backend(backend)
 
 
 @app.command()
@@ -206,7 +218,10 @@ async def _security(url: str, action: str) -> Any:
         url=url,
         wait=WaitStrategy(strategy="load"),
     )
-    return await act.execute(backend)
+    try:
+        return await act.execute(backend)
+    finally:
+        await _close_backend(backend)
 
 
 @app.command()
@@ -281,7 +296,10 @@ def lighthouse(
             budgets=budgets,
         )
         action = LighthouseAction(params)
-        return await action.execute(backend)
+        try:
+            return await action.execute(backend)
+        finally:
+            await _close_backend(backend)
 
     result = _run_async(_lighthouse())
     if result is None:

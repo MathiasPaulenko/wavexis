@@ -99,7 +99,10 @@ async def _css_action(
     )
     backend = _get_backend()
     act = CSSAction(params)
-    return await act.execute(backend)
+    try:
+        return await act.execute(backend)
+    finally:
+        await _close_backend(backend)
 
 @debug_app.command("breakpoint")
 def debug_breakpoint(
@@ -231,7 +234,10 @@ async def _debug_action(
     )
     backend = _get_backend()
     act = DebugAction(params)
-    return await act.execute(backend)
+    try:
+        return await act.execute(backend)
+    finally:
+        await _close_backend(backend)
 
 @overlay_app.command("highlight")
 def overlay_highlight(
@@ -276,5 +282,8 @@ async def _overlay_action(
     )
     backend = _get_backend()
     act = OverlayAction(params)
-    await act.execute(backend)
+    try:
+        await act.execute(backend)
+    finally:
+        await _close_backend(backend)
 

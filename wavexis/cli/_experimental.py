@@ -55,8 +55,15 @@ def storage(
         store=store or None,
         wait=WaitStrategy(strategy="load"),
     )
-    backend = _get_backend()
-    result = _run_async(StorageAction(params).execute(backend))
+
+    async def _storage_action() -> Any:
+        backend = _get_backend()
+        try:
+            return await StorageAction(params).execute(backend)
+        finally:
+            await _close_backend(backend)
+
+    result = _run_async(_storage_action())
     if result is None:
         return
 
@@ -86,8 +93,15 @@ def sw(
         registration_id=registration_id or None,
         wait=WaitStrategy(strategy="load"),
     )
-    backend = _get_backend()
-    result = _run_async(ServiceWorkerAction(params).execute(backend))
+
+    async def _sw_action() -> Any:
+        backend = _get_backend()
+        try:
+            return await ServiceWorkerAction(params).execute(backend)
+        finally:
+            await _close_backend(backend)
+
+    result = _run_async(_sw_action())
     if result is None:
         return
 
@@ -112,8 +126,15 @@ def animation(
         time_ms=time_ms if time_ms else None,
         wait=WaitStrategy(strategy="load"),
     )
-    backend = _get_backend()
-    result = _run_async(AnimationAction(params).execute(backend))
+
+    async def _animation_action() -> Any:
+        backend = _get_backend()
+        try:
+            return await AnimationAction(params).execute(backend)
+        finally:
+            await _close_backend(backend)
+
+    result = _run_async(_animation_action())
     if result is None:
         return
 
@@ -155,8 +176,15 @@ def webauthn(
         credential=cred_dict,
         wait=WaitStrategy(strategy="load"),
     )
-    backend = _get_backend()
-    result = _run_async(WebAuthnAction(params).execute(backend))
+
+    async def _webauthn_action() -> Any:
+        backend = _get_backend()
+        try:
+            return await WebAuthnAction(params).execute(backend)
+        finally:
+            await _close_backend(backend)
+
+    result = _run_async(_webauthn_action())
     if result is None:
         return
 
@@ -183,8 +211,15 @@ def webaudio(
         context_id=context_id or None,
         wait=WaitStrategy(strategy="load"),
     )
-    backend = _get_backend()
-    result = _run_async(WebAudioAction(params).execute(backend))
+
+    async def _webaudio_action() -> Any:
+        backend = _get_backend()
+        try:
+            return await WebAudioAction(params).execute(backend)
+        finally:
+            await _close_backend(backend)
+
+    result = _run_async(_webaudio_action())
     if result is None:
         return
 
@@ -209,8 +244,15 @@ def media(
         player_id=player_id or None,
         wait=WaitStrategy(strategy="load"),
     )
-    backend = _get_backend()
-    result = _run_async(MediaAction(params).execute(backend))
+
+    async def _media_action() -> Any:
+        backend = _get_backend()
+        try:
+            return await MediaAction(params).execute(backend)
+        finally:
+            await _close_backend(backend)
+
+    result = _run_async(_media_action())
     if result is None:
         return
 
@@ -235,8 +277,15 @@ def cast(
         sink_name=sink_name or None,
         wait=WaitStrategy(strategy="load"),
     )
-    backend = _get_backend()
-    result = _run_async(CastAction(params).execute(backend))
+
+    async def _cast_action() -> Any:
+        backend = _get_backend()
+        try:
+            return await CastAction(params).execute(backend)
+        finally:
+            await _close_backend(backend)
+
+    result = _run_async(_cast_action())
     if result is None:
         return
 
@@ -264,8 +313,15 @@ def bluetooth(
         address=address,
         wait=WaitStrategy(strategy="load"),
     )
-    backend = _get_backend()
-    _run_async(BluetoothAction(params).execute(backend))
+
+    async def _bluetooth_action() -> None:
+        backend = _get_backend()
+        try:
+            await BluetoothAction(params).execute(backend)
+        finally:
+            await _close_backend(backend)
+
+    _run_async(_bluetooth_action())
     _echo("OK")
 
 @app.command()
@@ -297,9 +353,10 @@ def raw(
         Returns:
             Raw protocol response as a dictionary.
         """
-        backend = _get_backend()
         if backend_name:
             backend = get_manager().select(preferred=backend_name)
+        else:
+            backend = _get_backend()
         try:
             await backend.launch(_browser_options())
             result: dict[str, Any] = await backend.raw(method, raw_params)

@@ -497,16 +497,10 @@ def record(
         elif at == "navigate":
             action_list.append({"navigate": {"url": url}})
         elif at == "click":
-            action_list.append({"dom": {"url": url, "action": "get", "selector": selector}})
+            action_list.append({"input": {"url": url, "action": "click", "selector": selector}})
         elif at == "type":
             action_list.append({
-                "eval": {
-                    "url": url,
-                    "expression": (
-                        f"document.querySelector('{selector.replace(chr(39), chr(92) + chr(39))}')"
-                        f".value='{text.replace(chr(39), chr(92) + chr(39))}'"
-                    ),
-                },
+                "input": {"url": url, "action": "type", "selector": selector, "text": text},
             })
         elif at == "scrape":
             action_list.append({

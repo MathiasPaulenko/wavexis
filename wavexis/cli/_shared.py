@@ -131,6 +131,9 @@ def _load_global_config() -> None:
             ctx.remote_url = str(raw["remote_url"])
         if "stealth" in raw:
             ctx.stealth = bool(raw["stealth"])
+    except ImportError:
+        if ctx.verbose:
+            _echo(f"Warning: failed to load config from {config_path}: PyYAML not installed")
     except (OSError, ValueError, TypeError, yaml.YAMLError) as exc:
         if ctx.verbose:
             _echo(f"Warning: failed to load config from {config_path}: {exc}")

@@ -160,5 +160,8 @@ async def _input_action(
         files=files,
         wait=WaitStrategy(strategy="load"),
     )
-    await InputAction(params).execute(backend)
+    try:
+        await InputAction(params).execute(backend)
+    finally:
+        await _close_backend(backend)
 

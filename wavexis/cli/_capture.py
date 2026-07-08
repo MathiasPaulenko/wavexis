@@ -93,9 +93,12 @@ def annotate(
     wavexis annotate https://example.com -s "button,#email,input" -o out.png
     """
     selector_list = [s.strip() for s in selectors.split(",") if s.strip()]
-    image_bytes, label_map = _run_async(
+    result = _run_async(
         _take_annotated(url, selector_list, format)
     )
+    if result is None:
+        return
+    image_bytes, label_map = result
     Output.write_bytes(image_bytes, output)
     typer.echo(f"Annotated screenshot saved to {output}")
     typer.echo("Labels:")
@@ -655,7 +658,10 @@ async def _screencast(params: ScreencastParams, output_dir: str) -> list[str]:
 
     backend = _get_backend()
     action = ScreencastAction(params, output_dir=output_dir)
-    return await action.execute(backend)
+    try:
+        return await action.execute(backend)
+    finally:
+        await _close_backend(backend)
 
 @app.command("dom-snapshot")
 def dom_snapshot(
@@ -685,5 +691,8 @@ async def _dom_snapshot_action(url: str) -> dict[str, Any]:
     )
     backend = _get_backend()
     act = DOMSnapshotAction(params)
-    return await act.execute(backend)
+    try:
+        return await act.execute(backend)
+    finally:
+        await _close_backend(backend)
 

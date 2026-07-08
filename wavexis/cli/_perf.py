@@ -112,7 +112,10 @@ async def _perf_action(
     )
     backend = _get_backend()
     act = PerformanceAction(params)
-    return await act.execute(backend)
+    try:
+        return await act.execute(backend)
+    finally:
+        await _close_backend(backend)
 
 @app.command()
 def perf(
