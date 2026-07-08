@@ -28,30 +28,26 @@ class CookieAction(BaseAction[CookieActionParams, Any]):
         Raises:
             ValueError: If required parameters are missing.
         """
-        try:
-            await backend.launch(self.params.browser)
-            if self.params.url:
-                await backend.navigate(self.params.url, self.params.wait)
+        if self.params.url:
+            await backend.navigate(self.params.url, self.params.wait)
 
-            action = self.params.action
+        action = self.params.action
 
-            if action == "get":
-                return await backend.get_cookies()
+        if action == "get":
+            return await backend.get_cookies()
 
-            if action == "set":
-                await backend.set_cookie(self.params.cookie)
-                return None
+        if action == "set":
+            await backend.set_cookie(self.params.cookie)
+            return None
 
-            if action == "delete":
-                if not self.params.name:
-                    raise ValueError("name is required for delete action")
-                await backend.delete_cookie(self.params.name, self.params.domain)
-                return None
+        if action == "delete":
+            if not self.params.name:
+                raise ValueError("name is required for delete action")
+            await backend.delete_cookie(self.params.name, self.params.domain)
+            return None
 
-            if action == "clear":
-                await backend.clear_cookies()
-                return None
+        if action == "clear":
+            await backend.clear_cookies()
+            return None
 
-            raise ValueError(f"Unknown cookie action: {action}")
-        finally:
-            await backend.close()
+        raise ValueError(f"Unknown cookie action: {action}")

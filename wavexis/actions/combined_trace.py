@@ -56,23 +56,19 @@ class CombinedTraceAction(BaseAction[CombinedTraceParams, dict[str, Any]]):
         """
         import asyncio
 
-        await backend.launch(self.params.browser)
-        try:
-            if self.params.url:
-                await backend.navigate(self.params.url, self.params.wait)
+        if self.params.url:
+            await backend.navigate(self.params.url, self.params.wait)
 
-            if self.params.action == "start":
-                trace_id = await backend.start_combined_trace(
-                    capture_screenshots=self.params.capture_screenshots,
-                    capture_network=self.params.capture_network,
-                    capture_console=self.params.capture_console,
-                )
-                await asyncio.sleep(self.params.duration_ms / 1000)
-                return await backend.stop_combined_trace(trace_id)
+        if self.params.action == "start":
+            trace_id = await backend.start_combined_trace(
+                capture_screenshots=self.params.capture_screenshots,
+                capture_network=self.params.capture_network,
+                capture_console=self.params.capture_console,
+            )
+            await asyncio.sleep(self.params.duration_ms / 1000)
+            return await backend.stop_combined_trace(trace_id)
 
-            if self.params.action == "stop" and self.params.trace_id:
-                return await backend.stop_combined_trace(self.params.trace_id)
+        if self.params.action == "stop" and self.params.trace_id:
+            return await backend.stop_combined_trace(self.params.trace_id)
 
-            return {"error": f"Unknown action: {self.params.action}"}
-        finally:
-            await backend.close()
+        return {"error": f"Unknown action: {self.params.action}"}

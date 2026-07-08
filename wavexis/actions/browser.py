@@ -36,4 +36,13 @@ class BrowserAction(BaseAction[str, Any]):
         if action == "list_contexts":
             return await backend.list_contexts()
 
+        if action == "close_context":
+            raise NotImplementedError("close_context action not yet implemented")
+
+        if action == "get_window":
+            raise NotImplementedError("get_window action not yet implemented")
+
+        if action == "set_window":
+            raise NotImplementedError("set_window action not yet implemented")
+
         return None

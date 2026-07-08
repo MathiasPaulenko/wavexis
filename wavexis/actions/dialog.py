@@ -44,16 +44,12 @@ class DialogAction(BaseAction[str, None]):
         Returns:
             None.
         """
-        await backend.launch(BrowserOptions())
-        try:
-            if self._url:
-                await backend.navigate(self._url, self._wait)
-            if self._action == "accept":
-                await backend.dialog_accept(self._prompt_text)
-            elif self._action == "dismiss":
-                await backend.dialog_dismiss()
-            else:
-                raise ValueError(f"Unknown dialog action: {self._action}")
-        finally:
-            await backend.close()
+        if self._url:
+            await backend.navigate(self._url, self._wait)
+        if self._action == "accept":
+            await backend.dialog_accept(self._prompt_text)
+        elif self._action == "dismiss":
+            await backend.dialog_dismiss()
+        else:
+            raise ValueError(f"Unknown dialog action: {self._action}")
         return None

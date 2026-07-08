@@ -28,25 +28,21 @@ class HeaderAction(BaseAction[HeaderParams, Any]):
         Raises:
             ValueError: If required parameters are missing.
         """
-        try:
-            await backend.launch(self.params.browser)
-            if self.params.url:
-                await backend.navigate(self.params.url, self.params.wait)
+        if self.params.url:
+            await backend.navigate(self.params.url, self.params.wait)
 
-            action = self.params.action
+        action = self.params.action
 
-            if action == "set-headers":
-                if not self.params.headers:
-                    raise ValueError("headers is required for set-headers action")
-                await backend.set_headers(self.params.headers)
-                return None
+        if action == "set-headers":
+            if not self.params.headers:
+                raise ValueError("headers is required for set-headers action")
+            await backend.set_headers(self.params.headers)
+            return None
 
-            if action == "set-user-agent":
-                if not self.params.user_agent:
-                    raise ValueError("user-agent is required for set-user-agent action")
-                await backend.set_user_agent(self.params.user_agent)
-                return None
+        if action == "set-user-agent":
+            if not self.params.user_agent:
+                raise ValueError("user-agent is required for set-user-agent action")
+            await backend.set_user_agent(self.params.user_agent)
+            return None
 
-            raise ValueError(f"Unknown header action: {action}")
-        finally:
-            await backend.close()
+        raise ValueError(f"Unknown header action: {action}")

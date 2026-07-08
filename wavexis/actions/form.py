@@ -44,31 +44,27 @@ class FormAction(BaseAction[FormParams, dict[str, Any]]):
         Returns:
             Dict with filled count and submit status.
         """
-        await backend.launch(self.params.browser)
-        try:
-            await backend.navigate(self.params.url, self.params.wait)
+        await backend.navigate(self.params.url, self.params.wait)
 
-            filled = 0
-            for selector, value in self.params.fields.items():
-                try:
-                    await backend.fill(selector, value)
-                    filled += 1
-                except WavexisError:
-                    pass
+        filled = 0
+        for selector, value in self.params.fields.items():
+            try:
+                await backend.fill(selector, value)
+                filled += 1
+            except WavexisError:
+                pass
 
-            submitted = False
-            if self.params.submit:
-                try:
-                    await backend.click(self.params.submit)
-                    submitted = True
-                except WavexisError:
-                    pass
+        submitted = False
+        if self.params.submit:
+            try:
+                await backend.click(self.params.submit)
+                submitted = True
+            except WavexisError:
+                pass
 
-            return {
-                "url": self.params.url,
-                "fields_filled": filled,
-                "fields_total": len(self.params.fields),
-                "submitted": submitted,
-            }
-        finally:
-            await backend.close()
+        return {
+            "url": self.params.url,
+            "fields_filled": filled,
+            "fields_total": len(self.params.fields),
+            "submitted": submitted,
+        }

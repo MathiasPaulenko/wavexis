@@ -44,16 +44,12 @@ class SecurityAction(BaseAction[str, Any]):
         Returns:
             Security state dict for "state" action; None for "ignore_cert".
         """
-        await backend.launch(BrowserOptions())
-        try:
-            if self._url:
-                await backend.navigate(self._url, self._wait)
-            if self._action == "state":
-                return await backend.get_security_state()
-            elif self._action == "ignore_cert":
-                await backend.ignore_cert_errors(self._ignore)
-                return None
-            else:
-                raise ValueError(f"Unknown security action: {self._action}")
-        finally:
-            await backend.close()
+        if self._url:
+            await backend.navigate(self._url, self._wait)
+        if self._action == "state":
+            return await backend.get_security_state()
+        elif self._action == "ignore_cert":
+            await backend.ignore_cert_errors(self._ignore)
+            return None
+        else:
+            raise ValueError(f"Unknown security action: {self._action}")

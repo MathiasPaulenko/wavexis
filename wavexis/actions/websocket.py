@@ -46,65 +46,61 @@ class WebSocketInterceptAction(BaseAction[WebSocketParams, dict[str, Any]]):
         Returns:
             Dict with sent/received frames and connection info.
         """
-        await backend.launch(self.params.browser)
-        try:
-            await backend.navigate(self.params.url, self.params.wait)
+        await backend.navigate(self.params.url, self.params.wait)
 
-            js = f"""
-                (() => {{
-                    const frames = {{sent: [], received: [], errors: []}};
-                    const pattern = {json.dumps(self.params.url_pattern)};
-                    const regex = pattern ? new RegExp(pattern) : null;
-                    const mocks = {json.dumps(self.params.mock_responses)};
+        js = f"""
+            (() => {{
+                const frames = {{sent: [], received: [], errors: []}};
+                const pattern = {json.dumps(self.params.url_pattern)};
+                const regex = pattern ? new RegExp(pattern) : null;
+                const mocks = {json.dumps(self.params.mock_responses)};
 
-                    const origWS = window.WebSocket;
-                    window.WebSocket = function(url, protocols) {{
-                        if (regex && !regex.test(url)) {{
-                            return new origWS(url, protocols);
+                const origWS = window.WebSocket;
+                window.WebSocket = function(url, protocols) {{
+                    if (regex && !regex.test(url)) {{
+                        return new origWS(url, protocols);
+                    }}
+                    const ws = new origWS(url, protocols);
+                    frames.url = url;
+
+                    const origSend = ws.send.bind(ws);
+                    ws.send = function(data) {{
+                        frames.sent.push({{timestamp: Date.now(), data: String(data)}});
+                        if (mocks[String(data)]) {{
+                            setTimeout(() => {{
+                                frames.received.push({{
+                                    timestamp: Date.now(),
+                                    data: mocks[String(data)],
+                                    mocked: true,
+                                }});
+                                ws.dispatchEvent(new MessageEvent(
+                                    'message', {{data: mocks[String(data)]}}
+                                ));
+                            }}, 10);
                         }}
-                        const ws = new origWS(url, protocols);
-                        frames.url = url;
-
-                        const origSend = ws.send.bind(ws);
-                        ws.send = function(data) {{
-                            frames.sent.push({{timestamp: Date.now(), data: String(data)}});
-                            if (mocks[String(data)]) {{
-                                setTimeout(() => {{
-                                    frames.received.push({{
-                                        timestamp: Date.now(),
-                                        data: mocks[String(data)],
-                                        mocked: true,
-                                    }});
-                                    ws.dispatchEvent(new MessageEvent(
-                                        'message', {{data: mocks[String(data)]}}
-                                    ));
-                                }}, 10);
-                            }}
-                            return origSend(data);
-                        }};
-
-                        ws.addEventListener('message', (e) => {{
-                            frames.received.push({{timestamp: Date.now(), data: String(e.data)}});
-                        }});
-                        ws.addEventListener('error', (e) => {{
-                            frames.errors.push({{timestamp: Date.now(), error: String(e)}});
-                        }});
-                        return ws;
+                        return origSend(data);
                     }};
-                    window.WebSocket.prototype = origWS.prototype;
-                    window.WebSocket.CONNECTING = origWS.CONNECTING;
-                    window.WebSocket.OPEN = origWS.OPEN;
-                    window.WebSocket.CLOSING = origWS.CLOSING;
-                    window.WebSocket.CLOSED = origWS.CLOSED;
 
-                    return new Promise((resolve) => {{
-                        setTimeout(() => resolve(frames), {self.params.duration_ms});
+                    ws.addEventListener('message', (e) => {{
+                        frames.received.push({{timestamp: Date.now(), data: String(e.data)}});
                     }});
-                }})()
-            """
-            result = await backend.eval(js, await_promise=True)
-            if isinstance(result, dict):
-                return result
-            return {"sent": [], "received": [], "errors": []}
-        finally:
-            await backend.close()
+                    ws.addEventListener('error', (e) => {{
+                        frames.errors.push({{timestamp: Date.now(), error: String(e)}});
+                    }});
+                    return ws;
+                }};
+                window.WebSocket.prototype = origWS.prototype;
+                window.WebSocket.CONNECTING = origWS.CONNECTING;
+                window.WebSocket.OPEN = origWS.OPEN;
+                window.WebSocket.CLOSING = origWS.CLOSING;
+                window.WebSocket.CLOSED = origWS.CLOSED;
+
+                return new Promise((resolve) => {{
+                    setTimeout(() => resolve(frames), {self.params.duration_ms});
+                }});
+            }})()
+        """
+        result = await backend.eval(js, await_promise=True)
+        if isinstance(result, dict):
+            return result
+        return {"sent": [], "received": [], "errors": []}

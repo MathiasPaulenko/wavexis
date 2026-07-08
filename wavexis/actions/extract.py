@@ -44,43 +44,39 @@ class ExtractAction(BaseAction[ExtractParams, list[dict[str, Any]]]):
         Returns:
             List of dicts with field names mapped to extracted text/HTML.
         """
-        await backend.launch(self.params.browser)
-        try:
-            await backend.navigate(self.params.url, self.params.wait)
+        await backend.navigate(self.params.url, self.params.wait)
 
-            schema_json = json.dumps(self.params.schema)
-            if self.params.selector:
-                escaped = self.params.selector.replace("'", "\\'")
-                js = f"""
-                    (() => {{
-                        const schema = {schema_json};
-                        const elements = document.querySelectorAll('{escaped}');
-                        return Array.from(elements).map(el => {{
-                            const row = {{}};
-                            for (const [field, sel] of Object.entries(schema)) {{
-                                const node = el.querySelector(sel);
-                                row[field] = node ? node.textContent.trim() : null;
-                            }}
-                            return row;
-                        }});
-                    }})()
-                """
-            else:
-                js = f"""
-                    (() => {{
-                        const schema = {schema_json};
+        schema_json = json.dumps(self.params.schema)
+        if self.params.selector:
+            selector_json = json.dumps(self.params.selector)
+            js = f"""
+                (() => {{
+                    const schema = {schema_json};
+                    const elements = document.querySelectorAll({selector_json});
+                    return Array.from(elements).map(el => {{
                         const row = {{}};
                         for (const [field, sel] of Object.entries(schema)) {{
-                            const node = document.querySelector(sel);
+                            const node = el.querySelector(sel);
                             row[field] = node ? node.textContent.trim() : null;
                         }}
-                        return [row];
-                    }})()
-                """
+                        return row;
+                    }});
+                }})()
+            """
+        else:
+            js = f"""
+                (() => {{
+                    const schema = {schema_json};
+                    const row = {{}};
+                    for (const [field, sel] of Object.entries(schema)) {{
+                        const node = document.querySelector(sel);
+                        row[field] = node ? node.textContent.trim() : null;
+                    }}
+                    return [row];
+                }})()
+            """
 
-            result = await backend.eval(js, await_promise=False)
-            if isinstance(result, list):
-                return result
-            return []
-        finally:
-            await backend.close()
+        result = await backend.eval(js, await_promise=False)
+        if isinstance(result, list):
+            return result
+        return []

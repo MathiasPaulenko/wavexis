@@ -80,9 +80,9 @@ def events_to_yaml(events: list[dict[str, Any]], initial_url: str) -> str:
             tag = event.get("tag", "input")
             if tag == "select":
                 actions.append({
-                    "type": {
+                    "select": {
                         "selector": event["selector"],
-                        "text": event["value"],
+                        "value": event["value"],
                     }
                 })
             else:
@@ -131,20 +131,24 @@ async def record_session(
     await backend.eval(_RECORD_SCRIPT, await_promise=False)
 
     events: list[dict[str, Any]] = []
+    interrupted = False
     with contextlib.suppress(KeyboardInterrupt):
-        await asyncio.sleep(min(duration, 60))
+        await asyncio.sleep(duration)
+    else:
+        interrupted = True
 
-    try:
-        raw = await backend.eval(
-            "JSON.stringify(window.__wavexis_record_events || [])",
-            await_promise=True,
-        )
-        if isinstance(raw, str):
-            events = json.loads(raw)
-        elif isinstance(raw, list):
-            events = raw
-    except (json.JSONDecodeError, TypeError, WavexisError):
-        pass
+    if not interrupted:
+        try:
+            raw = await backend.eval(
+                "JSON.stringify(window.__wavexis_record_events || [])",
+                await_promise=True,
+            )
+            if isinstance(raw, str):
+                events = json.loads(raw)
+            elif isinstance(raw, list):
+                events = raw
+        except (json.JSONDecodeError, TypeError, WavexisError):
+            pass
 
     with contextlib.suppress(WavexisError):
         await backend.close()

@@ -43,26 +43,21 @@ class BluetoothAction(BaseAction[BluetoothParams, Any]):
         Returns:
             Result of the Bluetooth operation.
         """
-        try:
-            await backend.launch(self.params.browser)
-            if self.params.url:
-                await backend.navigate(self.params.url, self.params.wait)
+        if self.params.url:
+            await backend.navigate(self.params.url, self.params.wait)
 
-            action = self.params.action
+        action = self.params.action
 
-            if action == "emulate":
-                if not self.params.name:
-                    raise ValueError("name is required for emulate action")
-                await backend.bluetooth_emulate(
-                    self.params.name, self.params.address
-                )
-                return None
+        if action == "emulate":
+            if not self.params.name:
+                raise ValueError("name is required for emulate action")
+            await backend.bluetooth_emulate(
+                self.params.name, self.params.address
+            )
+            return None
 
-            if action == "stop":
-                await backend.bluetooth_stop()
-                return None
+        if action == "stop":
+            await backend.bluetooth_stop()
+            return None
 
-            raise ValueError(f"Unknown Bluetooth action: {action}")
-
-        finally:
-            await backend.close()
+        raise ValueError(f"Unknown Bluetooth action: {action}")

@@ -41,10 +41,6 @@ class AxeAuditAction(BaseAction[AxeAuditParams, dict[str, Any]]):
         Returns:
             Dict with violations, passes, incomplete, and inapplicable lists.
         """
-        await backend.launch(self.params.browser)
-        try:
-            if self.params.url:
-                await backend.navigate(self.params.url, self.params.wait)
-            return await backend.axe_audit()
-        finally:
-            await backend.close()
+        if self.params.url:
+            await backend.navigate(self.params.url, self.params.wait)
+        return await backend.axe_audit()

@@ -41,27 +41,22 @@ class CastAction(BaseAction[CastParams, Any]):
         Returns:
             Result of the Cast operation.
         """
-        try:
-            await backend.launch(self.params.browser)
-            if self.params.url:
-                await backend.navigate(self.params.url, self.params.wait)
+        if self.params.url:
+            await backend.navigate(self.params.url, self.params.wait)
 
-            action = self.params.action
+        action = self.params.action
 
-            if action == "list":
-                return await backend.cast_list()
+        if action == "list":
+            return await backend.cast_list()
 
-            if action == "start-tab":
-                if not self.params.sink_name:
-                    raise ValueError("sink_name is required for start-tab action")
-                await backend.cast_start_tab(self.params.sink_name)
-                return None
+        if action == "start-tab":
+            if not self.params.sink_name:
+                raise ValueError("sink_name is required for start-tab action")
+            await backend.cast_start_tab(self.params.sink_name)
+            return None
 
-            if action == "stop":
-                await backend.cast_stop()
-                return None
+        if action == "stop":
+            await backend.cast_stop()
+            return None
 
-            raise ValueError(f"Unknown Cast action: {action}")
-
-        finally:
-            await backend.close()
+        raise ValueError(f"Unknown Cast action: {action}")

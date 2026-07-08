@@ -42,12 +42,8 @@ class OverlayAction(BaseAction[OverlayParams, None]):
         Raises:
             ValueError: If the action is not recognized or selector is missing.
         """
-        await backend.launch(self.params.browser)
-        try:
-            await backend.navigate(self.params.url, self.params.wait)
-            await self._run_action(backend)
-        finally:
-            await backend.close()
+        await backend.navigate(self.params.url, self.params.wait)
+        await self._run_action(backend)
 
     async def _run_action(self, backend: AbstractBackend) -> None:
         """Execute the overlay action against the backend.

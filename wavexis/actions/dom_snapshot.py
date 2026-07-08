@@ -37,9 +37,5 @@ class DOMSnapshotAction(BaseAction[DOMSnapshotParams, dict[str, Any]]):
         Returns:
             Dict containing the raw DOM snapshot.
         """
-        await backend.launch(self.params.browser)
-        try:
-            await backend.navigate(self.params.url, self.params.wait)
-            return await backend.dom_snapshot()
-        finally:
-            await backend.close()
+        await backend.navigate(self.params.url, self.params.wait)
+        return await backend.dom_snapshot()

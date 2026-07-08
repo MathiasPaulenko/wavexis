@@ -44,16 +44,12 @@ class PermissionsAction(BaseAction[str, None]):
         Returns:
             None.
         """
-        await backend.launch(BrowserOptions())
-        try:
-            if self._url:
-                await backend.navigate(self._url, self._wait)
-            if self._action == "grant":
-                await backend.grant_permission(self._permission)
-            elif self._action == "reset":
-                await backend.reset_permissions()
-            else:
-                raise ValueError(f"Unknown permissions action: {self._action}")
-        finally:
-            await backend.close()
+        if self._url:
+            await backend.navigate(self._url, self._wait)
+        if self._action == "grant":
+            await backend.grant_permission(self._permission)
+        elif self._action == "reset":
+            await backend.reset_permissions()
+        else:
+            raise ValueError(f"Unknown permissions action: {self._action}")
         return None

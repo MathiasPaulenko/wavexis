@@ -45,12 +45,8 @@ class PerformanceAction(BaseAction[PerformanceParams, dict[str, Any]]):
         Raises:
             ValueError: If the action is not recognized.
         """
-        await backend.launch(self.params.browser)
-        try:
-            await backend.navigate(self.params.url, self.params.wait)
-            return await self._run_action(backend)
-        finally:
-            await backend.close()
+        await backend.navigate(self.params.url, self.params.wait)
+        return await self._run_action(backend)
 
     async def _run_action(self, backend: AbstractBackend) -> dict[str, Any]:
         """Execute the performance action against the backend.

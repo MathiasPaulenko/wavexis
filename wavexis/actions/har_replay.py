@@ -45,11 +45,7 @@ class HARReplayAction(BaseAction[HARReplayParams, dict[str, Any]]):
         Returns:
             Dict with replayed count and any errors.
         """
-        await backend.launch(self.params.browser)
-        try:
-            if self.params.url:
-                await backend.navigate(self.params.url, self.params.wait)
-            await backend.replay_har(self.params.har_path, self.params.url_filter)
-            return {"status": "ok", "har_path": self.params.har_path}
-        finally:
-            await backend.close()
+        if self.params.url:
+            await backend.navigate(self.params.url, self.params.wait)
+        await backend.replay_har(self.params.har_path, self.params.url_filter)
+        return {"status": "ok", "har_path": self.params.har_path}

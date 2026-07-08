@@ -76,12 +76,8 @@ class CoreWebVitalsAction(BaseAction[CoreWebVitalsParams, dict[str, Any]]):
         Returns:
             Dict with metrics, ratings, score, and budget check results.
         """
-        await backend.launch(self.params.browser)
-        try:
-            await backend.navigate(self.params.url, self.params.wait)
-            return await self._collect_cwv(backend)
-        finally:
-            await backend.close()
+        await backend.navigate(self.params.url, self.params.wait)
+        return await self._collect_cwv(backend)
 
     async def _collect_cwv(self, backend: AbstractBackend) -> dict[str, Any]:
         """Collect Core Web Vitals from the page.
@@ -92,8 +88,6 @@ class CoreWebVitalsAction(BaseAction[CoreWebVitalsParams, dict[str, Any]]):
         Returns:
             Dict with raw metrics, ratings, score, and budgets.
         """
-
-        self.params.observe_ms / 1000
 
         cwv_js = f"""
             (() => {{

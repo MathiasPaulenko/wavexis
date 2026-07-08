@@ -41,29 +41,24 @@ class ServiceWorkerAction(BaseAction[ServiceWorkerParams, Any]):
         Returns:
             Result of the service worker operation.
         """
-        try:
-            await backend.launch(self.params.browser)
-            if self.params.url:
-                await backend.navigate(self.params.url, self.params.wait)
+        if self.params.url:
+            await backend.navigate(self.params.url, self.params.wait)
 
-            action = self.params.action
+        action = self.params.action
 
-            if action == "list":
-                return await backend.sw_list()
+        if action == "list":
+            return await backend.sw_list()
 
-            if action == "unregister":
-                if not self.params.registration_id:
-                    raise ValueError("registration_id is required for unregister action")
-                await backend.sw_unregister(self.params.registration_id)
-                return None
+        if action == "unregister":
+            if not self.params.registration_id:
+                raise ValueError("registration_id is required for unregister action")
+            await backend.sw_unregister(self.params.registration_id)
+            return None
 
-            if action == "update":
-                if not self.params.registration_id:
-                    raise ValueError("registration_id is required for update action")
-                await backend.sw_update(self.params.registration_id)
-                return None
+        if action == "update":
+            if not self.params.registration_id:
+                raise ValueError("registration_id is required for update action")
+            await backend.sw_update(self.params.registration_id)
+            return None
 
-            raise ValueError(f"Unknown service worker action: {action}")
-
-        finally:
-            await backend.close()
+        raise ValueError(f"Unknown service worker action: {action}")

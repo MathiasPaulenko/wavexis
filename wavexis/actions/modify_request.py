@@ -46,11 +46,7 @@ class ModifyRequestAction(BaseAction[ModifyRequestParams, dict[str, Any]]):
         Returns:
             Dict with status indicating interception was set up.
         """
-        await backend.launch(self.params.browser)
-        try:
-            await backend.modify_request(self.params.pattern, self.params.modifications)
-            if self.params.url:
-                await backend.navigate(self.params.url, self.params.wait)
-            return {"status": "ok", "pattern": self.params.pattern}
-        finally:
-            await backend.close()
+        await backend.modify_request(self.params.pattern, self.params.modifications)
+        if self.params.url:
+            await backend.navigate(self.params.url, self.params.wait)
+        return {"status": "ok", "pattern": self.params.pattern}

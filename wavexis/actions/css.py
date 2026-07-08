@@ -48,12 +48,8 @@ class CSSAction(BaseAction[CSSActionParams, dict[str, Any] | list[dict[str, Any]
         Raises:
             ValueError: If the action is not recognized or required params missing.
         """
-        await backend.launch(self.params.browser)
-        try:
-            await backend.navigate(self.params.url, self.params.wait)
-            return await self._run_action(backend)
-        finally:
-            await backend.close()
+        await backend.navigate(self.params.url, self.params.wait)
+        return await self._run_action(backend)
 
     async def _run_action(
         self, backend: AbstractBackend

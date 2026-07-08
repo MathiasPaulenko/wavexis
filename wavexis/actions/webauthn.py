@@ -48,49 +48,44 @@ class WebAuthnAction(BaseAction[WebAuthnParams, Any]):
         Returns:
             Result of the WebAuthn operation.
         """
-        try:
-            await backend.launch(self.params.browser)
-            if self.params.url:
-                await backend.navigate(self.params.url, self.params.wait)
+        if self.params.url:
+            await backend.navigate(self.params.url, self.params.wait)
 
-            action = self.params.action
+        action = self.params.action
 
-            if action == "add-virtual-authenticator":
-                return await backend.webauthn_add_virtual_authenticator(
-                    self.params.protocol, self.params.transport
+        if action == "add-virtual-authenticator":
+            return await backend.webauthn_add_virtual_authenticator(
+                self.params.protocol, self.params.transport
+            )
+
+        if action == "remove-authenticator":
+            if not self.params.authenticator_id:
+                raise ValueError(
+                    "authenticator_id is required for remove-authenticator"
                 )
+            await backend.webauthn_remove_authenticator(
+                self.params.authenticator_id
+            )
+            return None
 
-            if action == "remove-authenticator":
-                if not self.params.authenticator_id:
-                    raise ValueError(
-                        "authenticator_id is required for remove-authenticator"
-                    )
-                await backend.webauthn_remove_authenticator(
-                    self.params.authenticator_id
+        if action == "add-credential":
+            if not self.params.authenticator_id or not self.params.credential:
+                raise ValueError(
+                    "authenticator_id and credential are required "
+                    "for add-credential"
                 )
-                return None
+            await backend.webauthn_add_credential(
+                self.params.authenticator_id, self.params.credential
+            )
+            return None
 
-            if action == "add-credential":
-                if not self.params.authenticator_id or not self.params.credential:
-                    raise ValueError(
-                        "authenticator_id and credential are required "
-                        "for add-credential"
-                    )
-                await backend.webauthn_add_credential(
-                    self.params.authenticator_id, self.params.credential
+        if action == "get-credentials":
+            if not self.params.authenticator_id:
+                raise ValueError(
+                    "authenticator_id is required for get-credentials"
                 )
-                return None
+            return await backend.webauthn_get_credentials(
+                self.params.authenticator_id
+            )
 
-            if action == "get-credentials":
-                if not self.params.authenticator_id:
-                    raise ValueError(
-                        "authenticator_id is required for get-credentials"
-                    )
-                return await backend.webauthn_get_credentials(
-                    self.params.authenticator_id
-                )
-
-            raise ValueError(f"Unknown WebAuthn action: {action}")
-
-        finally:
-            await backend.close()
+        raise ValueError(f"Unknown WebAuthn action: {action}")

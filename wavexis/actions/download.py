@@ -36,10 +36,6 @@ class DownloadAction(BaseAction[str, bytes]):
         Returns:
             Downloaded file bytes.
         """
-        await backend.launch(BrowserOptions())
-        try:
-            if self._url:
-                await backend.navigate(self._url, self._wait)
-            return await backend.intercept_download(self.params)
-        finally:
-            await backend.close()
+        if self._url:
+            await backend.navigate(self._url, self._wait)
+        return await backend.intercept_download(self.params)

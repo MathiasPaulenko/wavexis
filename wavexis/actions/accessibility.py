@@ -44,19 +44,13 @@ class AccessibilityAction(BaseAction[Any, Any]):
         Returns:
             Accessibility tree dict, node dict, or list of ancestor dicts.
         """
-        from wavexis.config import BrowserOptions
-
-        await backend.launch(BrowserOptions())
-        try:
-            if self._url:
-                await backend.navigate(self._url, self._wait)
-            if self._action == "tree":
-                return await backend.a11y_tree()
-            elif self._action == "node":
-                return await backend.a11y_node(self._node_id)
-            elif self._action == "ancestors":
-                return await backend.a11y_ancestors(self._node_id)
-            else:
-                raise ValueError(f"Unknown a11y action: {self._action}")
-        finally:
-            await backend.close()
+        if self._url:
+            await backend.navigate(self._url, self._wait)
+        if self._action == "tree":
+            return await backend.a11y_tree()
+        elif self._action == "node":
+            return await backend.a11y_node(self._node_id)
+        elif self._action == "ancestors":
+            return await backend.a11y_ancestors(self._node_id)
+        else:
+            raise ValueError(f"Unknown a11y action: {self._action}")

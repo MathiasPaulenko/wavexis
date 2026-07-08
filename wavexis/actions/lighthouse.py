@@ -53,44 +53,40 @@ class LighthouseAction(BaseAction[LighthouseParams, dict[str, Any]]):
         Returns:
             Dict with category scores and detailed metrics.
         """
-        await backend.launch(self.params.browser)
-        try:
-            await backend.navigate(self.params.url, self.params.wait)
+        await backend.navigate(self.params.url, self.params.wait)
 
-            cats = self.params.categories or [
-                "performance",
-                "accessibility",
-                "seo",
-                "best-practices",
-            ]
-            result: dict[str, Any] = {
-                "url": self.params.url,
-                "categories": {},
-            }
+        cats = self.params.categories or [
+            "performance",
+            "accessibility",
+            "seo",
+            "best-practices",
+        ]
+        result: dict[str, Any] = {
+            "url": self.params.url,
+            "categories": {},
+        }
 
-            if "performance" in cats:
-                result["categories"]["performance"] = (
-                    await self._audit_performance(backend)
-                )
+        if "performance" in cats:
+            result["categories"]["performance"] = (
+                await self._audit_performance(backend)
+            )
 
-            if "accessibility" in cats:
-                result["categories"]["accessibility"] = (
-                    await self._audit_accessibility(backend)
-                )
+        if "accessibility" in cats:
+            result["categories"]["accessibility"] = (
+                await self._audit_accessibility(backend)
+            )
 
-            if "seo" in cats:
-                result["categories"]["seo"] = (
-                    await self._audit_seo(backend)
-                )
+        if "seo" in cats:
+            result["categories"]["seo"] = (
+                await self._audit_seo(backend)
+            )
 
-            if "best-practices" in cats:
-                result["categories"]["best-practices"] = (
-                    await self._audit_best_practices(backend)
-                )
+        if "best-practices" in cats:
+            result["categories"]["best-practices"] = (
+                await self._audit_best_practices(backend)
+            )
 
-            return result
-        finally:
-            await backend.close()
+        return result
 
     async def _audit_performance(
         self, backend: AbstractBackend

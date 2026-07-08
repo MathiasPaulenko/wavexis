@@ -32,12 +32,8 @@ class ScreencastAction(BaseAction[ScreencastParams, list[str]]):
         Returns:
             List of saved frame file paths.
         """
-        await backend.launch(self.params.browser)
-        try:
-            await backend.navigate(self.params.url, self.params.wait)
-            frames = await backend.screencast(self.params)
-        finally:
-            await backend.close()
+        await backend.navigate(self.params.url, self.params.wait)
+        frames = await backend.screencast(self.params)
 
         await asyncio.to_thread(
             lambda: Path(self._output_dir).mkdir(parents=True, exist_ok=True)

@@ -21,39 +21,34 @@ class AnimationAction(BaseAction[AnimationParams, Any]):
         Returns:
             Result of the animation operation.
         """
-        try:
-            await backend.launch(self.params.browser)
-            if self.params.url:
-                await backend.navigate(self.params.url, self.params.wait)
+        if self.params.url:
+            await backend.navigate(self.params.url, self.params.wait)
 
-            action = self.params.action
+        action = self.params.action
 
-            if action == "list":
-                return await backend.animation_list()
+        if action == "list":
+            return await backend.animation_list()
 
-            if action == "pause":
-                if not self.params.animation_id:
-                    raise ValueError("animation_id is required for pause action")
-                await backend.animation_pause(self.params.animation_id)
-                return None
+        if action == "pause":
+            if not self.params.animation_id:
+                raise ValueError("animation_id is required for pause action")
+            await backend.animation_pause(self.params.animation_id)
+            return None
 
-            if action == "play":
-                if not self.params.animation_id:
-                    raise ValueError("animation_id is required for play action")
-                await backend.animation_play(self.params.animation_id)
-                return None
+        if action == "play":
+            if not self.params.animation_id:
+                raise ValueError("animation_id is required for play action")
+            await backend.animation_play(self.params.animation_id)
+            return None
 
-            if action == "seek":
-                if not self.params.animation_id or self.params.time_ms is None:
-                    raise ValueError(
-                        "animation_id and time_ms are required for seek action"
-                    )
-                await backend.animation_seek(
-                    self.params.animation_id, self.params.time_ms
+        if action == "seek":
+            if not self.params.animation_id or self.params.time_ms is None:
+                raise ValueError(
+                    "animation_id and time_ms are required for seek action"
                 )
-                return None
+            await backend.animation_seek(
+                self.params.animation_id, self.params.time_ms
+            )
+            return None
 
-            raise ValueError(f"Unknown animation action: {action}")
-
-        finally:
-            await backend.close()
+        raise ValueError(f"Unknown animation action: {action}")

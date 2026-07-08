@@ -41,22 +41,17 @@ class WebAudioAction(BaseAction[WebAudioParams, Any]):
         Returns:
             Result of the WebAudio operation.
         """
-        try:
-            await backend.launch(self.params.browser)
-            if self.params.url:
-                await backend.navigate(self.params.url, self.params.wait)
+        if self.params.url:
+            await backend.navigate(self.params.url, self.params.wait)
 
-            action = self.params.action
+        action = self.params.action
 
-            if action == "list":
-                return await backend.webaudio_get_contexts()
+        if action == "list":
+            return await backend.webaudio_get_contexts()
 
-            if action == "get":
-                if not self.params.context_id:
-                    raise ValueError("context_id is required for get action")
-                return await backend.webaudio_get_context(self.params.context_id)
+        if action == "get":
+            if not self.params.context_id:
+                raise ValueError("context_id is required for get action")
+            return await backend.webaudio_get_context(self.params.context_id)
 
-            raise ValueError(f"Unknown WebAudio action: {action}")
-
-        finally:
-            await backend.close()
+        raise ValueError(f"Unknown WebAudio action: {action}")

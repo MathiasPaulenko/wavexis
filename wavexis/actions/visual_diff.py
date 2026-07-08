@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import io
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from wavexis.actions.base import BaseAction
@@ -49,26 +51,19 @@ class VisualDiffAction(BaseAction[VisualDiffParams, dict[str, Any]]):
         Returns:
             Dict with diff_count, diff_percentage, total_pixels, and diff_base64.
         """
-        await backend.launch(self.params.browser)
-        try:
-            if self.params.url:
-                await backend.navigate(self.params.url, self.params.wait)
+        if self.params.url:
+            await backend.navigate(self.params.url, self.params.wait)
 
-            if self.params.selector:
-                current_bytes = await backend.screenshot_selector(
-                    self.params.selector, format="png"
-                )
-            else:
-                current_bytes = await backend.screenshot(
-                    ScreenshotParams(url="", format="png")
-                )
-        finally:
-            await backend.close()
+        if self.params.selector:
+            current_bytes = await backend.screenshot_selector(
+                self.params.selector, format="png"
+            )
+        else:
+            current_bytes = await backend.screenshot(
+                ScreenshotParams(url="", format="png")
+            )
 
-        import asyncio as _asyncio
-        from pathlib import Path
-
-        baseline_bytes = await _asyncio.to_thread(
+        baseline_bytes = await asyncio.to_thread(
             Path(self.params.baseline_path).read_bytes
         )
 

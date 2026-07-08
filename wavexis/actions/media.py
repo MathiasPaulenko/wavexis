@@ -41,22 +41,17 @@ class MediaAction(BaseAction[MediaParams, Any]):
         Returns:
             Result of the Media operation.
         """
-        try:
-            await backend.launch(self.params.browser)
-            if self.params.url:
-                await backend.navigate(self.params.url, self.params.wait)
+        if self.params.url:
+            await backend.navigate(self.params.url, self.params.wait)
 
-            action = self.params.action
+        action = self.params.action
 
-            if action == "list":
-                return await backend.media_get_players()
+        if action == "list":
+            return await backend.media_get_players()
 
-            if action == "messages":
-                if not self.params.player_id:
-                    raise ValueError("player_id is required for messages action")
-                return await backend.media_get_messages(self.params.player_id)
+        if action == "messages":
+            if not self.params.player_id:
+                raise ValueError("player_id is required for messages action")
+            return await backend.media_get_messages(self.params.player_id)
 
-            raise ValueError(f"Unknown Media action: {action}")
-
-        finally:
-            await backend.close()
+        raise ValueError(f"Unknown Media action: {action}")
