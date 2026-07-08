@@ -184,6 +184,11 @@ class CDPBackend(AbstractBackend):
                 )
             except TimeoutError:
                 raise WaitTimeoutError("domcontentloaded", wait.timeout) from None
+        elif wait.strategy == "networkidle":
+            raise ValueError(
+                "networkidle wait strategy is not implemented in CDP backend. "
+                "Use 'load', 'domcontentloaded', or 'selector' instead."
+            )
 
     async def screenshot(self, params: ScreenshotParams) -> bytes:
         """Take a screenshot of the current page.
@@ -430,7 +435,7 @@ class CDPBackend(AbstractBackend):
         deadline = time.monotonic() + timeout_sec
 
         if strategy.strategy == "selector" and strategy.selector:
-            escaped = strategy.selector.replace("'", "\\'")
+            escaped = json.dumps(strategy.selector)
             js = f"document.querySelector('{escaped}') !== null"
             while time.monotonic() < deadline:
                 result = await session.runtime.evaluate(js)
@@ -457,6 +462,43 @@ class CDPBackend(AbstractBackend):
                 await asyncio.sleep(0.1)
             raise WaitTimeoutError("url", strategy.timeout)
 
+        if strategy.strategy == "domcontentloaded":
+            try:
+                await session.wait_for_event(
+                    "Page.domContentEventFired", timeout=timeout_sec
+                )
+            except TimeoutError:
+                raise WaitTimeoutError("domcontentloaded", strategy.timeout) from None
+            return
+
+        if strategy.strategy == "networkidle":
+            # Poll for network idle: no more than 2 active requests for 500ms
+            js = """
+            (function() {
+                return window.performance.getEntries()
+                    .filter(e => e.entryType === 'resource')
+                    .filter(e => !e.duration || e.duration < 0)
+                    .length <= 2;
+            })()
+            """
+            deadline = time.monotonic() + timeout_sec
+            idle_start = None
+            while time.monotonic() < deadline:
+                result = await session.runtime.evaluate(js)
+                is_idle = result.get("result", {}).get("value", False)
+                if is_idle:
+                    if idle_start is None:
+                        idle_start = time.monotonic()
+                    elif time.monotonic() - idle_start >= 0.5:
+                        return
+                else:
+                    idle_start = None
+                await asyncio.sleep(0.1)
+            raise WaitTimeoutError("networkidle", strategy.timeout)
+
+        # If we get here, the strategy is not supported
+        raise ValueError(f"Unsupported wait strategy: {strategy.strategy}")
+
     async def pdf(self, params: PDFParams) -> bytes:
         """Generate a PDF of the current page.
 
@@ -471,7 +513,7 @@ class CDPBackend(AbstractBackend):
         await session.emulation.set_emulated_media(media=params.media)
 
         paper_dims = PAPER_SIZES.get(params.paper, PAPER_SIZES["letter"])
-        margin_val = float(params.margin.replace("in", ""))
+        margin_val = float(params.margin.replace("in", "").replace("cm", ""))
 
         result = await session.page.print_to_pdf(
             landscape=params.landscape,
@@ -750,7 +792,7 @@ class CDPBackend(AbstractBackend):
         """
         session = self._require_session()
         if selector:
-            escaped = selector.replace("'", "\\'")
+            escaped = json.dumps(selector)
             js = f"document.querySelector('{escaped}').scrollIntoView()"
         else:
             js = f"window.scrollBy({x}, {y})"
@@ -769,7 +811,7 @@ class CDPBackend(AbstractBackend):
             List of selector strings when all=True, single best selector when all=False.
         """
         session = self._require_session()
-        escaped = selector.replace("'", "\\'")
+        escaped = json.dumps(selector)
         js = self._suggest_locator_js(escaped)
         result = await session.runtime.evaluate(js)
         raw = result.get("result", {}).get("value")
@@ -817,7 +859,7 @@ class CDPBackend(AbstractBackend):
     @staticmethod
     def _find_by_text_js(query: str) -> str:
         """Build JS that finds elements by natural language text query."""
-        escaped = query.replace("\\", "\\\\").replace("'", "\\'")
+        escaped = json.dumps(query)
         return (
             f"(function(){{"
             f"var q='{escaped}'.toLowerCase().trim();"
@@ -1326,7 +1368,7 @@ class CDPBackend(AbstractBackend):
             WaitTimeoutError: If the element is not found within the timeout.
         """
         session = self._require_session()
-        escaped = selector.replace("'", "\\'")
+        escaped = json.dumps(selector)
         js = (
             f"(function(){{var el=document.querySelector('{escaped}');"
             f"if(!el)return false;"
@@ -1348,7 +1390,7 @@ class CDPBackend(AbstractBackend):
             selector: CSS selector for the target element.
         """
         session = self._require_session()
-        escaped = selector.replace("'", "\\'")
+        escaped = json.dumps(selector)
         js = (
             f"(function(){{var el=document.querySelector('{escaped}');"
             f"if(!el)return;var rect=el.getBoundingClientRect();"
@@ -1420,7 +1462,7 @@ class CDPBackend(AbstractBackend):
         if auto_wait:
             await self._wait_for_element(selector)
         await self._scroll_into_view_if_needed(selector)
-        escaped = selector.replace("'", "\\'")
+        escaped = json.dumps(selector)
         js = (
             f"(function(){{var el=document.querySelector('{escaped}');"
             f"if(!el)return false;el.focus();el.value='{value}';"
@@ -1440,8 +1482,8 @@ class CDPBackend(AbstractBackend):
             value: Option value to select.
         """
         session = self._require_session()
-        escaped = selector.replace("'", "\\'")
-        escaped_val = value.replace("'", "\\'")
+        escaped = json.dumps(selector)
+        escaped_val = json.dumps(value)
         js = (
             f"(function(){{var el=document.querySelector('{escaped}');"
             f"if(!el)return false;el.value='{escaped_val}';"
@@ -1555,8 +1597,8 @@ class CDPBackend(AbstractBackend):
             The evaluation result value.
         """
         session = self._require_session()
-        escaped_iframe = iframe_selector.replace("'", "\\'")
-        escaped_expr = expression.replace("\\", "\\\\").replace("'", "\\'")
+        escaped_iframe = json.dumps(iframe_selector)
+        escaped_expr = json.dumps(expression)
         js = (
             f"(function(){{var f=document.querySelector('{escaped_iframe}');"
             f"if(!f||!f.contentDocument)return null;"
@@ -1579,8 +1621,8 @@ class CDPBackend(AbstractBackend):
             WaitTimeoutError: If the element is not found within the timeout.
         """
         session = self._require_session()
-        escaped_iframe = iframe_selector.replace("'", "\\'")
-        escaped_sel = selector.replace("'", "\\'")
+        escaped_iframe = json.dumps(iframe_selector)
+        escaped_sel = json.dumps(selector)
         js = (
             f"(function(){{var f=document.querySelector('{escaped_iframe}');"
             f"if(!f||!f.contentDocument)return false;"
@@ -1610,8 +1652,8 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         if auto_wait:
             await self._wait_for_element_in_iframe(iframe_selector, selector)
-        escaped_iframe = iframe_selector.replace("'", "\\'")
-        escaped_sel = selector.replace("'", "\\'")
+        escaped_iframe = json.dumps(iframe_selector)
+        escaped_sel = json.dumps(selector)
         js = (
             f"(function(){{var f=document.querySelector('{escaped_iframe}');"
             f"if(!f||!f.contentDocument)return false;"
@@ -1639,9 +1681,9 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         if auto_wait:
             await self._wait_for_element_in_iframe(iframe_selector, selector)
-        escaped_iframe = iframe_selector.replace("'", "\\'")
-        escaped_sel = selector.replace("'", "\\'")
-        escaped_val = value.replace("\\", "\\\\").replace("'", "\\'")
+        escaped_iframe = json.dumps(iframe_selector)
+        escaped_sel = json.dumps(selector)
+        escaped_val = json.dumps(value)
         js = (
             f"(function(){{var f=document.querySelector('{escaped_iframe}');"
             f"if(!f||!f.contentDocument)return false;"
@@ -1669,7 +1711,7 @@ class CDPBackend(AbstractBackend):
         Returns:
             JavaScript IIFE that returns the final element or null.
         """
-        escaped = [s.replace("'", "\\'") for s in selectors]
+        escaped = [json.dumps(s) for s in selectors]
         parts = [f"var el=document.querySelector('{escaped[0]}')"]
         for sel in escaped[1:]:
             parts.append(
@@ -1695,7 +1737,7 @@ class CDPBackend(AbstractBackend):
         """
         session = self._require_session()
         pierce_js = self._build_shadow_pierce_js(selectors)
-        escaped_expr = expression.replace("\\", "\\\\").replace("'", "\\'")
+        escaped_expr = json.dumps(expression)
         js = (
             f"(function(){{var el=({pierce_js});"
             f"if(!el)return null;"
@@ -1770,7 +1812,7 @@ class CDPBackend(AbstractBackend):
         if auto_wait:
             await self._wait_for_element_in_shadow(selectors)
         pierce_js = self._build_shadow_pierce_js(selectors)
-        escaped_val = value.replace("\\", "\\\\").replace("'", "\\'")
+        escaped_val = json.dumps(value)
         js = (
             f"(function(){{var el=({pierce_js});"
             f"if(!el)return false;"
@@ -1793,11 +1835,10 @@ class CDPBackend(AbstractBackend):
         """
         session = self._require_session()
         await session.network.enable()
-        for pattern in patterns:
-            await session.send(
-                "Network.setBlockedURLs",
-                {"urls": [pattern]},
-            )
+        await session.send(
+            "Network.setBlockedURLs",
+            {"urls": patterns},
+        )
 
     async def throttle_network(self, params: ThrottleParams) -> None:
         """Throttle network conditions.
@@ -2341,10 +2382,26 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         result = await session.send("Accessibility.getFullAXTree")
         nodes = result.get("nodes", [])
+
+        # Build a map of nodeId -> node for O(1) lookup
+        node_map = {node.get("nodeId"): node for node in nodes}
+
+        # Find the target node
+        target = node_map.get(node_id)
+        if not target:
+            return []
+
+        # Traverse up via parentId to find ancestors
         ancestors: list[dict[str, Any]] = []
-        for node in nodes:
-            if node.get("nodeId") != node_id:
-                ancestors.append(dict(node))
+        current_parent_id = target.get("parentId")
+        while current_parent_id:
+            parent = node_map.get(current_parent_id)
+            if parent:
+                ancestors.append(dict(parent))
+                current_parent_id = parent.get("parentId")
+            else:
+                break
+
         return ancestors
 
     # ── Downloads ──────────────────────────────────────────
@@ -2428,8 +2485,10 @@ class CDPBackend(AbstractBackend):
             Dict with security state info (secure, explanations, etc.).
         """
         session = self._require_session()
-        result = await session.send("Security.setIgnoreCertificateErrors", {"ignore": False})
-        return dict(result) if result else {}
+        await session.send("Security.enable")
+        # Listen for security state change event
+        state = await session.send("Security.getVisibleSecurityState")
+        return dict(state) if state else {}
 
     async def ignore_cert_errors(self, ignore: bool = True) -> None:
         """Enable or disable ignoring of certificate errors.
@@ -2651,10 +2710,11 @@ class CDPBackend(AbstractBackend):
         try:
             inline = await session.send("CSS.getInlineStyles", {"nodeId": node_id})
         except Exception:
+            escaped = json.dumps(selector)
             inline = await session.runtime.evaluate(
                 expression=(
                     "(() => {const el = document.querySelector('"
-                    + selector
+                    + escaped
                     + "'); const s = getComputedStyle(el); "
                     + "const result = {}; for (let i = 0; i < s.length; i++) "
                     + "{result[s[i]] = s.getPropertyValue(s[i]);} return result;})()"
@@ -2667,10 +2727,11 @@ class CDPBackend(AbstractBackend):
                 "CSS.getComputedStyleForNode", {"nodeId": node_id}
             )
         except Exception:
+            escaped = json.dumps(selector)
             computed = await session.runtime.evaluate(
                 expression=(
                     "(() => {const el = document.querySelector('"
-                    + selector
+                    + escaped
                     + "'); const s = getComputedStyle(el); "
                     + "const result = []; for (let i = 0; i < s.length; i++) "
                     + "{result.push({name: s[i], value: s.getPropertyValue(s[i])});} "
@@ -3041,9 +3102,26 @@ class CDPBackend(AbstractBackend):
             List of cache entry dicts (url, status, etc.).
         """
         session = self._require_session()
+        
+        # First, get the actual cacheId for the given cache_name
+        caches_result = await session.send(
+            "CacheStorage.requestCacheNames",
+            {"securityOrigin": self._get_origin()},
+        )
+        
+        # Find the cacheId for the requested cache_name
+        cache_id = None
+        for cache in caches_result.get("caches", []):
+            if cache.get("cacheName") == cache_name:
+                cache_id = cache.get("cacheId")
+                break
+        
+        if not cache_id:
+            return []
+        
         result = await session.send(
             "CacheStorage.requestEntries",
-            {"cacheId": f"{self._get_origin()}_{cache_name}", "skipCount": 0, "pageSize": 1000},
+            {"cacheId": cache_id, "skipCount": 0, "pageSize": 1000},
         )
         entries: list[dict[str, Any]] = []
         for entry in result.get("cacheDataEntries", []):
@@ -3057,10 +3135,25 @@ class CDPBackend(AbstractBackend):
             cache_name: Name of the cache to delete.
         """
         session = self._require_session()
-        await session.send(
-            "CacheStorage.deleteCache",
-            {"cacheId": f"{self._get_origin()}_{cache_name}"},
+        
+        # First, get the actual cacheId for the given cache_name
+        caches_result = await session.send(
+            "CacheStorage.requestCacheNames",
+            {"securityOrigin": self._get_origin()},
         )
+        
+        # Find the cacheId for the requested cache_name
+        cache_id = None
+        for cache in caches_result.get("caches", []):
+            if cache.get("cacheName") == cache_name:
+                cache_id = cache.get("cacheId")
+                break
+        
+        if cache_id:
+            await session.send(
+                "CacheStorage.deleteCache",
+                {"cacheId": cache_id},
+            )
 
     async def indexeddb_list(self) -> list[dict[str, Any]]:
         """List all IndexedDB databases.
@@ -3292,10 +3385,8 @@ class CDPBackend(AbstractBackend):
 
     async def webaudio_get_context(self, context_id: str) -> dict[str, Any]:
         """Get a specific WebAudio context by ID via CDP WebAudio domain."""
-        session = self._require_session()
-        await session.send("WebAudio.enable", {})
-        result = await session.send("WebAudio.getRealtimeData", {})
-        for ctx in result.get("contexts", []):
+        contexts = await self.webaudio_get_contexts()
+        for ctx in contexts:
             if ctx.get("contextId") == context_id:
                 return dict(ctx)
         return {}
@@ -3321,7 +3412,7 @@ class CDPBackend(AbstractBackend):
     async def media_get_messages(self, player_id: str) -> list[dict[str, Any]]:
         """Get messages for a specific media player via CDP Media domain."""
         session = self._require_session()
-        result = await session.media.get_player_properties(player_id)
+        result = await session.send("Media.getPlayerMessages", {"playerId": player_id})
         return list(result.get("messages", []))
 
     # ── Cast (experimental) ────────────────────────────────
