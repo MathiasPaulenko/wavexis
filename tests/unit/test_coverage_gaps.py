@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -473,7 +472,7 @@ class TestREPL:
         assert "42" in result
 
     async def test_execute_repl_command_help(self) -> None:
-        from wavexis.repl import execute_repl_command, HELP_TEXT
+        from wavexis.repl import HELP_TEXT, execute_repl_command
 
         backend = MockBackend()
         result = await execute_repl_command(backend, "help", [])

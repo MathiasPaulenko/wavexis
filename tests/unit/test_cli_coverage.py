@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -476,35 +475,35 @@ class TestCLISharedFunctions:
         assert ctx.headless is True
 
     def test_echo_quiet(self) -> None:
-        from wavexis.cli._shared import _ctx, _echo, CLIContext
+        from wavexis.cli._shared import CLIContext, _ctx, _echo
 
         ctx = CLIContext(quiet=True)
         _ctx.set(ctx)
         _echo("should not print")
 
     def test_echo_verbose(self) -> None:
-        from wavexis.cli._shared import _ctx, _echo, CLIContext
+        from wavexis.cli._shared import CLIContext, _ctx, _echo
 
         ctx = CLIContext(quiet=False, verbose=True)
         _ctx.set(ctx)
         _echo("should print")
 
     def test_progress_quiet(self) -> None:
-        from wavexis.cli._shared import _ctx, _progress, CLIContext
+        from wavexis.cli._shared import CLIContext, _ctx, _progress
 
         ctx = CLIContext(quiet=True)
         _ctx.set(ctx)
         _progress(1, 10, "test")
 
     def test_progress_normal(self) -> None:
-        from wavexis.cli._shared import _ctx, _progress, CLIContext
+        from wavexis.cli._shared import CLIContext, _ctx, _progress
 
         ctx = CLIContext(quiet=False)
         _ctx.set(ctx)
         _progress(1, 10, "test")
 
     def test_browser_options(self) -> None:
-        from wavexis.cli._shared import _ctx, _browser_options, CLIContext
+        from wavexis.cli._shared import CLIContext, _browser_options, _ctx
 
         ctx = CLIContext(headless=False, timeout=5000, proxy="http://proxy:8080")
         _ctx.set(ctx)
@@ -515,6 +514,7 @@ class TestCLISharedFunctions:
 
     def test_handle_error_wavexis_error(self) -> None:
         import typer
+
         from wavexis.cli._shared import _handle_error
         from wavexis.exceptions import WavexisError
 
@@ -540,7 +540,7 @@ class TestCLISharedFunctions:
         assert Path(out_file).exists()
 
     def test_load_global_config_no_file(self, tmp_path: Path) -> None:
-        from wavexis.cli._shared import _ctx, _load_global_config, CLIContext
+        from wavexis.cli._shared import CLIContext, _ctx, _load_global_config
 
         ctx = CLIContext()
         _ctx.set(ctx)
@@ -548,7 +548,7 @@ class TestCLISharedFunctions:
             _load_global_config()
 
     def test_load_global_config_with_file(self, tmp_path: Path) -> None:
-        from wavexis.cli._shared import _ctx, _load_global_config, CLIContext
+        from wavexis.cli._shared import CLIContext, _ctx, _load_global_config
 
         config_dir = tmp_path / ".wavexis"
         config_dir.mkdir()
@@ -567,7 +567,7 @@ class TestCLISharedFunctions:
         assert ctx.timeout == 60000
 
     def test_load_global_config_invalid_yaml(self, tmp_path: Path) -> None:
-        from wavexis.cli._shared import _ctx, _load_global_config, CLIContext
+        from wavexis.cli._shared import CLIContext, _ctx, _load_global_config
 
         config_dir = tmp_path / ".wavexis"
         config_dir.mkdir()
