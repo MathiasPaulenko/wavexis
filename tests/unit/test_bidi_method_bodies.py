@@ -81,7 +81,9 @@ class TestBiDiMethodBodies:
     async def test_navigate(self) -> None:
         backend, mock = _make_mock_backend()
         await backend.navigate("https://example.com")
-        mock.browsing.navigate.assert_called_once_with("ctx-123", "https://example.com", wait="complete")
+        mock.browsing.navigate.assert_called_once_with(
+            "ctx-123", "https://example.com", wait="complete"
+        )
 
     async def test_screenshot(self) -> None:
         backend, _ = _make_mock_backend()
@@ -90,7 +92,9 @@ class TestBiDiMethodBodies:
 
     async def test_screenshot_selector(self) -> None:
         backend, mock = _make_mock_backend()
-        mock.script.evaluate = AsyncMock(return_value=MagicMock(value='{"x":0,"y":0,"width":100,"height":100}'))
+        mock.script.evaluate = AsyncMock(
+            return_value=MagicMock(value='{"x":0,"y":0,"width":100,"height":100}')
+        )
         result = await backend.screenshot_selector("h1")
         assert isinstance(result, bytes)
 
@@ -149,8 +153,12 @@ class TestBiDiMethodBodies:
 
     async def test_screencast(self) -> None:
         backend, mock = _make_mock_backend()
-        mock.cdp.send_command = AsyncMock(return_value={"data": base64.b64encode(b"frame").decode()})
-        result = await backend.screencast(ScreencastParams(url="https://example.com", duration=0.6))
+        mock.cdp.send_command = AsyncMock(
+            return_value={"data": base64.b64encode(b"frame").decode()}
+        )
+        result = await backend.screencast(
+            ScreencastParams(url="https://example.com", duration=0.6)
+        )
         assert len(result) >= 1
 
     async def test_list_tabs(self) -> None:
@@ -269,7 +277,9 @@ class TestBiDiMethodBodies:
 
     async def test_get_window_bounds(self) -> None:
         backend, mock = _make_mock_backend()
-        mock._connection.send_command = AsyncMock(return_value={"contexts": [{"bounds": {"width": 800}}]})
+        mock._connection.send_command = AsyncMock(
+            return_value={"contexts": [{"bounds": {"width": 800}}]}
+        )
         result = await backend.get_window_bounds()
         assert "width" in result
 
@@ -865,8 +875,8 @@ class TestBiDiMethodBodies:
             emulation=MagicMock(set_user_agent=AsyncMock()),
             close=AsyncMock(),
         )
-        with patch("wavexis.backend.bidi.BiDiClient") as MockClient:
-            MockClient.connect = AsyncMock(return_value=mock_client)
+        with patch("wavexis.backend.bidi.BiDiClient") as mock_client_cls:
+            mock_client_cls.connect = AsyncMock(return_value=mock_client)
             opts = BrowserOptions(browser_url="http://localhost:9222", stealth=True)
             await backend.launch(opts)
 
@@ -885,8 +895,8 @@ class TestBiDiMethodBodies:
             emulation=MagicMock(set_user_agent=AsyncMock()),
             close=AsyncMock(),
         )
-        with patch("wavexis.backend.bidi.BiDiClient") as MockClient:
-            MockClient.connect = AsyncMock(return_value=mock_client)
+        with patch("wavexis.backend.bidi.BiDiClient") as mock_client_cls:
+            mock_client_cls.connect = AsyncMock(return_value=mock_client)
             opts = BrowserOptions(
                 remote_url="ws://localhost:9222/session",
                 user_agent="TestAgent",

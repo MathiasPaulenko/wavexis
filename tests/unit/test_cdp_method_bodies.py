@@ -74,10 +74,14 @@ def _make_mock_backend() -> tuple[Any, Any, Any]:
     mock_session.target.close_target = AsyncMock()
     mock_session.target.activate_target = AsyncMock()
     mock_session.target.get_targets = AsyncMock(return_value={"targetInfos": []})
-    mock_session.target.create_browser_context = AsyncMock(return_value={"browserContextId": "ctx-2"})
+    mock_session.target.create_browser_context = AsyncMock(
+        return_value={"browserContextId": "ctx-2"}
+    )
     mock_session.target.dispose_browser_context = AsyncMock()
     mock_session.target.get_browser_contexts = AsyncMock(return_value={"browserContextIds": []})
-    mock_session.target.get_target_info = AsyncMock(return_value={"bounds": {"left": 0, "top": 0, "width": 800, "height": 600}})
+    mock_session.target.get_target_info = AsyncMock(
+        return_value={"bounds": {"left": 0, "top": 0, "width": 800, "height": 600}}
+    )
 
     mock_session.network.get_cookies = AsyncMock(return_value={"cookies": []})
     mock_session.network.set_cookie = AsyncMock()
@@ -106,7 +110,9 @@ def _make_mock_backend() -> tuple[Any, Any, Any]:
 
     mock_session.browser = MagicMock()
     mock_session.browser.get_version = AsyncMock(return_value={"product": "Chrome/120"})
-    mock_session.browser.get_window_bounds = AsyncMock(return_value={"bounds": {"left": 0, "top": 0, "width": 800, "height": 600}})
+    mock_session.browser.get_window_bounds = AsyncMock(
+        return_value={"bounds": {"left": 0, "top": 0, "width": 800, "height": 600}}
+    )
     mock_session.browser.set_window_bounds = AsyncMock()
     mock_session.browser.get_window_for_target = AsyncMock(return_value={"windowId": 1})
 
@@ -156,8 +162,12 @@ def _make_mock_backend() -> tuple[Any, Any, Any]:
 
     mock_session.debugger = MagicMock()
     mock_session.debugger.enable = AsyncMock()
-    mock_session.debugger.set_breakpoint_by_url = AsyncMock(return_value={"breakpointId": "bp-1"})
-    mock_session.debugger.set_breakpoint_on_function = AsyncMock(return_value={"breakpointId": "bp-2"})
+    mock_session.debugger.set_breakpoint_by_url = AsyncMock(
+        return_value={"breakpointId": "bp-1"}
+    )
+    mock_session.debugger.set_breakpoint_on_function = AsyncMock(
+        return_value={"breakpointId": "bp-2"}
+    )
     mock_session.debugger.remove_breakpoint = AsyncMock()
     mock_session.debugger.step_over = AsyncMock()
     mock_session.debugger.step_into = AsyncMock()
@@ -179,7 +189,9 @@ def _make_mock_backend() -> tuple[Any, Any, Any]:
 
     mock_session.web_authn = MagicMock()
     mock_session.web_authn.enable = AsyncMock()
-    mock_session.web_authn.add_virtual_authenticator = AsyncMock(return_value={"authenticatorId": "auth-1"})
+    mock_session.web_authn.add_virtual_authenticator = AsyncMock(
+        return_value={"authenticatorId": "auth-1"}
+    )
     mock_session.web_authn.remove_virtual_authenticator = AsyncMock()
     mock_session.web_authn.add_credential = AsyncMock()
     mock_session.web_authn.get_credentials = AsyncMock(return_value={"credentials": []})
@@ -243,11 +255,17 @@ class TestCDPMethodBodies:
     async def test_navigate_with_wait_selector(self) -> None:
         backend, _, mock = _make_mock_backend()
         mock.runtime.evaluate = AsyncMock(return_value={"result": {"value": True}})
-        await backend.navigate("https://example.com", WaitStrategy(strategy="selector", selector="h1", timeout=100))
+        await backend.navigate(
+            "https://example.com",
+            WaitStrategy(strategy="selector", selector="h1", timeout=100),
+        )
 
     async def test_navigate_with_wait_domcontentloaded(self) -> None:
         backend, _, _ = _make_mock_backend()
-        await backend.navigate("https://example.com", WaitStrategy(strategy="domcontentloaded", timeout=1000))
+        await backend.navigate(
+            "https://example.com",
+            WaitStrategy(strategy="domcontentloaded", timeout=1000),
+        )
 
     async def test_screenshot(self) -> None:
         backend, _, _ = _make_mock_backend()
@@ -256,7 +274,9 @@ class TestCDPMethodBodies:
 
     async def test_screenshot_with_device(self) -> None:
         backend, _, _ = _make_mock_backend()
-        result = await backend.screenshot(ScreenshotParams(url="https://example.com", device="iphone-15"))
+        result = await backend.screenshot(
+            ScreenshotParams(url="https://example.com", device="iphone-15")
+        )
         assert isinstance(result, bytes)
 
     async def test_screenshot_selector(self) -> None:
@@ -367,7 +387,9 @@ class TestCDPMethodBodies:
 
     async def test_dom_query_all(self) -> None:
         backend, _, mock = _make_mock_backend()
-        mock.dom.describe_node = AsyncMock(return_value={"node": {"children": [{"nodeId": 3}, {"nodeId": 4}]}})
+        mock.dom.describe_node = AsyncMock(
+            return_value={"node": {"children": [{"nodeId": 3}, {"nodeId": 4}]}}
+        )
         result = await backend.dom_query("div", all=True)
         assert isinstance(result, list)
 
@@ -922,12 +944,16 @@ class TestCDPMethodBodies:
 
     async def test_start_combined_trace(self) -> None:
         backend, _, _ = _make_mock_backend()
-        result = await backend.start_combined_trace(capture_screenshots=False, capture_network=False, capture_console=False)
+        result = await backend.start_combined_trace(
+            capture_screenshots=False, capture_network=False, capture_console=False
+        )
         assert isinstance(result, str)
 
     async def test_stop_combined_trace(self) -> None:
         backend, _, _ = _make_mock_backend()
-        trace_id = await backend.start_combined_trace(capture_screenshots=False, capture_network=False, capture_console=False)
+        trace_id = await backend.start_combined_trace(
+            capture_screenshots=False, capture_network=False, capture_console=False
+        )
         result = await backend.stop_combined_trace(trace_id)
         assert isinstance(result, dict)
 
@@ -964,8 +990,8 @@ class TestCDPMethodBodies:
         mock_client = MagicMock()
         mock_client.new_page = AsyncMock(return_value=mock_session)
         mock_client.close = AsyncMock()
-        with patch("wavexis.backend.cdp.CDPClient") as MockClient:
-            MockClient.connect = AsyncMock(return_value=mock_client)
+        with patch("wavexis.backend.cdp.CDPClient") as mock_client_cls:
+            mock_client_cls.connect = AsyncMock(return_value=mock_client)
             opts = BrowserOptions(browser_url="http://localhost:9222", stealth=True)
             await backend.launch(opts)
 
@@ -981,8 +1007,8 @@ class TestCDPMethodBodies:
         mock_client = MagicMock()
         mock_client.new_page = AsyncMock(return_value=mock_session)
         mock_client.close = AsyncMock()
-        with patch("wavexis.backend.cdp.CDPClient") as MockClient:
-            MockClient.connect = AsyncMock(return_value=mock_client)
+        with patch("wavexis.backend.cdp.CDPClient") as mock_client_cls:
+            mock_client_cls.connect = AsyncMock(return_value=mock_client)
             opts = BrowserOptions(
                 remote_url="ws://localhost:9222/session",
                 user_agent="TestAgent",
