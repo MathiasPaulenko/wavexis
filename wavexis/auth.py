@@ -13,7 +13,7 @@ import logging
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from wavexis.backend.base import AbstractBackend
@@ -90,10 +90,14 @@ def load_auth(path: str | Path) -> list[dict[str, str]]:
         FileNotFoundError: If the file does not exist.
         json.JSONDecodeError: If the file is not valid JSON.
     """
-    data: list[dict[str, str]] = json.loads(Path(path).read_text(encoding="utf-8"))
+    data: list[dict[str, str]] | dict[str, Any] = json.loads(
+        Path(path).read_text(encoding="utf-8")
+    )
     if isinstance(data, list):
         return data
-    return data.get("cookies", [])
+    if isinstance(data, dict):
+        return data.get("cookies", [])
+    return []
 
 
 def load_headers(path: str | Path) -> dict[str, str]:

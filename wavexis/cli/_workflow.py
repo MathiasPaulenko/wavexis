@@ -496,7 +496,10 @@ def record(
             action_list.append({
                 "eval": {
                     "url": url,
-                    "expression": f"document.querySelector('{selector}').value='{text}'",
+                    "expression": (
+                        f"document.querySelector('{selector.replace(chr(39), chr(92) + chr(39))}')"
+                        f".value='{text.replace(chr(39), chr(92) + chr(39))}'"
+                    ),
                 },
             })
         elif at == "scrape":

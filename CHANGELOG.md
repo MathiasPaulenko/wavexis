@@ -2,6 +2,16 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.11.2 — 2026-07-08
+
+### Fixed
+
+- **Version mismatch (recurrent)** — Synced `wavexis/__init__.py` with `pyproject.toml` (was `2.11.0` vs `2.11.1`).
+- **JS injection in `record` command** — `cli/_workflow.py` now escapes single quotes in `selector` and `text` before interpolating into JS expressions, preventing breakage and injection.
+- **BiDi backend ignores browser options** — `backend/bidi.py` `launch()` now applies `browser_url`, `width`/`height` (viewport), `user_agent`, `extra_headers`, and `proxy` after connecting, matching CDP backend behavior.
+- **BiDi uses `RuntimeError` instead of `SessionNotInitializedError`** — All 38+ `raise RuntimeError("BiDiBackend not launched...")` in `bidi.py` replaced with `SessionNotInitializedError`, which the CLI maps to a useful exit code and message instead of a raw traceback.
+- **`load_auth` type annotation and runtime bug** — `auth.py` `load_auth()` now correctly handles both list and dict JSON shapes with proper type annotations and explicit `isinstance` checks.
+
 ## v2.11.0 — 2026-07-08
 
 ### Refactored
