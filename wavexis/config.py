@@ -452,8 +452,8 @@ class InputParams:
     Attributes:
         url: URL to navigate to before the input action.
         selector: CSS selector for the target element.
-        action: Input action — "click", "type", "fill", "select", "hover",
-            "key", "drag", "tap", "scroll", "upload".
+        action: Input action — "click", "right_click", "double_click",
+            "type", "fill", "select", "hover", "key", "drag", "tap", "scroll", "upload".
         text: Text to type (for "type" action).
         value: Value to fill or select (for "fill" and "select" actions).
         key: Key to press (for "key" action, e.g. "Enter", "Tab").

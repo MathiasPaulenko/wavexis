@@ -1422,12 +1422,12 @@ class CDPBackend(AbstractBackend):
         x, y = await self._get_box_center(selector)
         btn_map = {"left": "left", "right": "right", "middle": "middle"}
         btn = btn_map.get(button, "left")
-        for _ in range(click_count):
+        for current_click in range(1, click_count + 1):
             await session.input.dispatch_mouse_event(
-                **{"type": "mousePressed"}, x=x, y=y, button=btn, click_count=1
+                **{"type": "mousePressed"}, x=x, y=y, button=btn, click_count=current_click
             )
             await session.input.dispatch_mouse_event(
-                **{"type": "mouseReleased"}, x=x, y=y, button=btn, click_count=1
+                **{"type": "mouseReleased"}, x=x, y=y, button=btn, click_count=current_click
             )
 
     async def type_text(self, selector: str, text: str, delay: int = 0) -> None:

@@ -1291,7 +1291,7 @@ class BiDiBackend(AbstractBackend):
 
         Args:
             selector: CSS selector for the target element.
-            button: Mouse button (unused in BiDi, for API compatibility).
+            button: Mouse button (left, right, middle).
             click_count: Number of clicks to dispatch.
             auto_wait: If True, wait for element to be visible before clicking.
         """
@@ -1300,12 +1300,19 @@ class BiDiBackend(AbstractBackend):
             await self._wait_for_element(selector)
         await self._scroll_into_view_if_needed(selector)
         escaped = json.dumps(selector)
+        button_map = {"left": 0, "middle": 1, "right": 2}
+        buttons_map = {"left": 1, "middle": 4, "right": 2}
+        btn = button_map.get(button, 0)
+        buttons = buttons_map.get(button, 1)
+        detail = click_count
+        event_type = "click" if click_count < 2 else "dblclick"
         js = (
-            f"document.querySelector('{escaped}')"
-            f".dispatchEvent(new MouseEvent('click',{{bubbles:true}}))"
+            f"const el=document.querySelector('{escaped}');"
+            f"const opts={{bubbles:true, cancelable:true,"
+            f"button:{btn}, buttons:{buttons}, detail:{detail}}};"
+            f"el.dispatchEvent(new MouseEvent('{event_type}', opts));"
         )
-        for _ in range(click_count):
-            await client.script.evaluate(self._context, js)
+        await client.script.evaluate(self._context, js)
 
     async def type_text(self, selector: str, text: str, delay: int = 0) -> None:
         """Type text into an element via BiDi."""

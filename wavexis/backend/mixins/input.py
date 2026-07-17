@@ -19,6 +19,14 @@ class InputBackend(ABC):
     ) -> None:
         """Click an element matching a CSS selector."""
 
+    async def right_click(self, selector: str, auto_wait: bool = True) -> None:
+        """Right-click an element matching a CSS selector."""
+        await self.click(selector, button="right", click_count=1, auto_wait=auto_wait)
+
+    async def double_click(self, selector: str, auto_wait: bool = True) -> None:
+        """Double-click an element matching a CSS selector."""
+        await self.click(selector, button="left", click_count=2, auto_wait=auto_wait)
+
     @abstractmethod
     async def type_text(self, selector: str, text: str, delay: int = 0) -> None:
         """Type text into an element, optionally with delay between keystrokes."""

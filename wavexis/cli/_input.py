@@ -7,6 +7,7 @@ from typing import Annotated
 import typer
 
 from wavexis.cli._shared import (
+    _close_backend,
     _get_backend,
     _run_async,
     app,
@@ -28,6 +29,26 @@ def input_click(
         url, "click", selector=selector, button=button, click_count=click_count
     ))
     typer.echo(f"Clicked '{selector}' on {url}")
+
+
+@input_app.command("right-click")
+def input_right_click(
+    url: str = typer.Argument(..., help="URL to navigate to"),
+    selector: str = typer.Argument(..., help="CSS selector for element to right-click"),
+) -> None:
+    """Right-click an element on a web page."""
+    _run_async(_input_action(url, "right_click", selector=selector))
+    typer.echo(f"Right-clicked '{selector}' on {url}")
+
+
+@input_app.command("double-click")
+def input_double_click(
+    url: str = typer.Argument(..., help="URL to navigate to"),
+    selector: str = typer.Argument(..., help="CSS selector for element to double-click"),
+) -> None:
+    """Double-click an element on a web page."""
+    _run_async(_input_action(url, "double_click", selector=selector))
+    typer.echo(f"Double-clicked '{selector}' on {url}")
 
 @input_app.command("type")
 def input_type(

@@ -29,6 +29,10 @@ class InputAction(BaseAction[InputParams, Any]):
                 button=self.params.button,
                 click_count=self.params.click_count,
             )
+        elif action == "right_click":
+            await backend.right_click(self.params.selector)
+        elif action == "double_click":
+            await backend.double_click(self.params.selector)
         elif action == "type":
             await backend.type_text(
                 self.params.selector,
