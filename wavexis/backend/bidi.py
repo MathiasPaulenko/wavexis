@@ -1675,11 +1675,25 @@ class BiDiBackend(AbstractBackend):
             raise ElementNotFoundError(" -> ".join(selectors))
 
     async def block_requests(self, patterns: list[str]) -> None:
-        """Block requests matching URL patterns (partial BiDi support)."""
+        """Block requests matching URL patterns using native BiDi interception."""
         client = self._require_launched()
-        await client._connection.send_command(
-            "network.setBlockedURLs", {"urls": patterns}
+        contexts = [self._context] if self._context else None
+
+        await client.network.add_intercept(
+            phases=["beforeRequestSent"],
+            contexts=contexts,
+            url_patterns=patterns or None,
         )
+
+        async def on_request(params: dict[str, Any]) -> None:
+            """Fail intercepted requests matching the block patterns."""
+            if not params.get("isBlocked"):
+                return
+            request_id = params.get("request", {}).get("request", "")
+            if request_id:
+                await client.network.fail_request(request=request_id)
+
+        client.on_request(on_request)
 
     async def throttle_network(self, params: ThrottleParams) -> None:
         """Throttle network conditions via emulation.setNetworkConditions.
@@ -1697,21 +1711,26 @@ class BiDiBackend(AbstractBackend):
         )
 
     async def set_cache_disabled(self, disabled: bool = True) -> None:
-        """Disable or enable the browser cache via CDP Network.setCacheDisabled.
+        """Disable or enable the browser cache via native BiDi network cache behavior.
 
         Args:
-            disabled: True to disable cache, False to enable.
+            disabled: True to bypass cache, False to restore default behavior.
         """
         client = self._require_launched()
-        await client.cdp.send_command(
-            'Network.setCacheDisabled', {'cacheDisabled': disabled},
+        behavior = "bypass" if disabled else "default"
+        await client.network.set_cache_behavior(
+            cache_behavior=behavior,
+            contexts=[self._context] if self._context else None,
         )
 
     async def intercept_requests(self, pattern: dict[str, Any]) -> None:
-        """Intercept requests matching a pattern (partial BiDi support)."""
+        """Intercept requests matching a pattern using native BiDi add_intercept."""
         client = self._require_launched()
-        await client._connection.send_command(
-            "network.addIntercept", {"patterns": [pattern]}
+        url_pattern = pattern.get("urlPattern")
+        await client.network.add_intercept(
+            phases=["beforeRequestSent"],
+            contexts=[self._context] if self._context else None,
+            url_patterns=[url_pattern] if url_pattern else None,
         )
 
     async def mock_response(self, url: str, response: dict[str, Any]) -> None:
@@ -1758,21 +1777,18 @@ class BiDiBackend(AbstractBackend):
             return None
 
     async def get_response_body(self, request_id: str) -> str | None:
-        """Get the body of a network response by ID via CDP bridge.
+        """Get the body of a network response by ID via native BiDi response_body.
 
         Args:
-            request_id: The network request ID.
+            request_id: The BiDi network request ID.
 
         Returns:
             The response body as a string, or None if not available.
         """
         client = self._require_client()
         try:
-            result = await client.cdp.send_command(
-                "Network.getResponseBody",
-                {"requestId": request_id},
-            )
-            return str(result.get("body")) if result.get("body") is not None else None
+            result = await client.network.response_body(request=request_id)
+            return result.body if result.body is not None else None
         except Exception:
             return None
 
@@ -1781,37 +1797,45 @@ class BiDiBackend(AbstractBackend):
         pattern: dict[str, Any],
         modifications: dict[str, Any],
     ) -> None:
-        """Intercept and modify requests matching a pattern via CDP Fetch domain.
+        """Intercept and modify requests matching a pattern via native BiDi.
 
         Args:
-            pattern: Pattern dict with optional keys: urlPattern, resourceType,
-                requestStage.
+            pattern: Pattern dict with optional key: urlPattern.
             modifications: Dict with optional keys: headers, url, method, post_data.
         """
         client = self._require_client()
+        url_pattern = pattern.get("urlPattern")
+        contexts = [self._context] if self._context else None
 
-        async def on_request_paused(event_params: dict[str, Any]) -> None:
-            """Handle Fetch.requestPaused and continue with modifications."""
-            request_id = event_params.get("requestId", "")
-            await client.cdp.send_command(
-                "Fetch.continueRequest",
-                {
-                    "requestId": request_id,
-                    "url": modifications.get(
-                        "url", event_params.get("request", {}).get("url", "")
-                    ),
-                    "method": modifications.get(
-                        "method", event_params.get("request", {}).get("method", "GET")
-                    ),
-                    "headers": modifications.get(
-                        "headers", event_params.get("request", {}).get("headers", [])
-                    ),
-                    "postData": modifications.get("post_data"),
-                },
+        await client.network.add_intercept(
+            phases=["beforeRequestSent"],
+            contexts=contexts,
+            url_patterns=[url_pattern] if url_pattern else None,
+        )
+
+        raw_headers = modifications.get("headers")
+        headers: list[dict[str, Any]] | None = None
+        if isinstance(raw_headers, dict):
+            headers = [{"name": k, "value": v} for k, v in raw_headers.items()]
+        elif isinstance(raw_headers, list):
+            headers = raw_headers
+
+        async def on_request(params: dict[str, Any]) -> None:
+            """Handle beforeRequestSent and continue with modifications."""
+            if not params.get("isBlocked"):
+                return
+            request_id = params.get("request", {}).get("request", "")
+            if not request_id:
+                return
+            await client.network.continue_request(
+                request=request_id,
+                url=modifications.get("url"),
+                method=modifications.get("method"),
+                headers=headers,
+                post_data=modifications.get("post_data"),
             )
 
-        client.cdp.on("Fetch.requestPaused", on_request_paused)
-        await client.cdp.send_command("Fetch.enable", {"patterns": [pattern]})
+        client.on_request(on_request)
 
     async def modify_response(
         self,
@@ -1820,48 +1844,60 @@ class BiDiBackend(AbstractBackend):
     ) -> None:
         """Intercept responses matching a pattern and modify them in-flight.
 
-        Uses CDP Fetch domain via bridge to pause responses and fulfill
-        with modifications.
+        Uses native BiDi network interception in the responseStarted phase
+        and provides a synthetic response.
 
         Args:
-            pattern: Pattern dict with optional keys: urlPattern, resourceType,
-                requestStage (defaults to "Response").
-            modifications: Dict with optional keys: status, headers, body.
+            pattern: Pattern dict with optional key: urlPattern.
+            modifications: Dict with optional keys: status, headers, body,
+                content_type.
         """
         client = self._require_client()
+        url_pattern = pattern.get("urlPattern")
+        contexts = [self._context] if self._context else None
 
-        response_pattern = dict(pattern)
-        response_pattern.setdefault("requestStage", "Response")
+        await client.network.add_intercept(
+            phases=["responseStarted"],
+            contexts=contexts,
+            url_patterns=[url_pattern] if url_pattern else None,
+        )
 
         body = modifications.get("body", "")
         if isinstance(body, (dict, list)):
             body = json.dumps(body)
         body_b64 = base64.b64encode(body.encode("utf-8")).decode("ascii")
 
-        async def on_request_paused(event_params: dict[str, Any]) -> None:
-            """Handle Fetch.requestPaused and fulfill with modified response."""
-            request_id = event_params.get("requestId", "")
-            response_headers = modifications.get(
-                "headers",
-                [
-                    {
-                        "name": "Content-Type",
-                        "value": modifications.get("content_type", "application/json"),
-                    }
-                ],
-            )
-            await client.cdp.send_command(
-                "Fetch.fulfillRequest",
+        raw_headers = modifications.get("headers")
+        response_headers: list[dict[str, Any]] | None
+        if isinstance(raw_headers, dict):
+            response_headers = [
+                {"name": k, "value": v} for k, v in raw_headers.items()
+            ]
+        elif isinstance(raw_headers, list):
+            response_headers = raw_headers
+        else:
+            response_headers = [
                 {
-                    "requestId": request_id,
-                    "responseCode": modifications.get("status", 200),
-                    "responseHeaders": response_headers,
-                    "body": body_b64,
-                },
+                    "name": "Content-Type",
+                    "value": modifications.get("content_type", "application/json"),
+                }
+            ]
+
+        async def on_response_started(params: dict[str, Any]) -> None:
+            """Handle responseStarted and provide a modified response."""
+            if not params.get("isBlocked"):
+                return
+            request_id = params.get("request", {}).get("request", "")
+            if not request_id:
+                return
+            await client.network.provide_response(
+                request=request_id,
+                status_code=modifications.get("status", 200),
+                headers=response_headers,
+                body=body_b64,
             )
 
-        client.cdp.on("Fetch.requestPaused", on_request_paused)
-        await client.cdp.send_command("Fetch.enable", {"patterns": [response_pattern]})
+        client.on_response_started(on_response_started)
 
     async def replay_har(self, har_path: str, url_filter: str = "") -> None:
         """Replay network requests from a HAR file.

@@ -94,7 +94,7 @@ def modify(
     modifications: dict[str, Any] = {}
     if header:
         key, _, val = header.partition(":")
-        modifications["headers"] = [{key.strip(): val.strip()}]
+        modifications["headers"] = [{"name": key.strip(), "value": val.strip()}]
     if method:
         modifications["method"] = method
     if post_data:
@@ -148,6 +148,12 @@ def modify_response(
     content_type: str = typer.Option(
         "application/json", "--content-type", "-c", help="Content-Type header"
     ),
+    header: list[str] = typer.Option(
+        [],
+        "--header",
+        "-h",
+        help='Custom response header (e.g. "X-Custom: value"). Can be repeated.',
+    ),
     wait: float = typer.Option(
         5.0, "--wait", "-w", help="Seconds to keep interception active (0 = no wait)"
     ),
@@ -164,6 +170,12 @@ def modify_response(
     }
     if body:
         modifications["body"] = body
+    if header:
+        modifications["headers"] = [
+            {"name": k.strip(), "value": v.strip()}
+            for h in header
+            for k, _, v in [h.partition(":")]
+        ]
 
     _run_async(_modify_response(url, pattern, modifications, wait))
     typer.echo(f"Response interception active for pattern: {pattern}")
