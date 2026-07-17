@@ -2185,7 +2185,7 @@ class BiDiBackend(AbstractBackend):
         event_types: list[str],
         callback: Any,
     ) -> str:
-        """Subscribe to real-time browser events.
+        """Subscribe to real-time browser events using native BiDi events.
 
         Args:
             event_types: List of event types to subscribe to.
@@ -2200,45 +2200,53 @@ class BiDiBackend(AbstractBackend):
         sub_id = f"sub-{int(_time.time() * 1000)}"
 
         if not hasattr(self, "_subscriptions"):
-            self._subscriptions: dict[str, dict[str, Any]] = {}
+            self._subscriptions: dict[str, list[Any]] = {}
 
-        handlers: dict[str, Any] = {}
+        subscriptions: list[Any] = []
 
         event_map = {
-            "console": ("Runtime.consoleAPICalled", "console"),
-            "network_request": ("Network.requestWillBeSent", "network_request"),
-            "network_response": ("Network.responseReceived", "network_response"),
-            "dialog": ("Page.javascriptDialogOpening", "dialog"),
-            "navigation": ("Page.frameNavigated", "navigation"),
+            "console": ("log.entryAdded", client.on_log_entry, "console"),
+            "network_request": (
+                "network.beforeRequestSent",
+                client.on_request,
+                "network_request",
+            ),
+            "network_response": (
+                "network.responseCompleted",
+                client.on_response,
+                "network_response",
+            ),
+            "dialog": (
+                "browsingContext.userPromptOpened",
+                client.on_user_prompt_opened,
+                "dialog",
+            ),
+            "navigation": (
+                "browsingContext.navigationStarted",
+                client.on_navigation_started,
+                "navigation",
+            ),
         }
 
         for evt_type in event_types:
             if evt_type in event_map:
-                cdp_event, label = event_map[evt_type]
+                _, subscribe_fn, label = event_map[evt_type]
 
                 def make_handler(lbl: str) -> Any:
-                    def _handler(params: dict[str, Any]) -> None:
-                        callback({"type": lbl, "data": params})
+                    def _handler(params: Any) -> None:
+                        data = (
+                            params.model_dump()
+                            if hasattr(params, "model_dump")
+                            else dict(params)
+                        )
+                        callback({"type": lbl, "data": data})
                     return _handler
 
                 handler = make_handler(label)
-                client.cdp.on(cdp_event, handler)
-                handlers[cdp_event] = handler
+                subscription = subscribe_fn(handler)
+                subscriptions.append(subscription)
 
-                if evt_type in ("network_request", "network_response"):
-                    import asyncio as _asyncio
-
-                    _asyncio.ensure_future(
-                        client.cdp.send_command("Network.enable", {})
-                    )
-                elif evt_type == "console":
-                    import asyncio as _asyncio
-
-                    _asyncio.ensure_future(
-                        client.cdp.send_command("Runtime.enable", {})
-                    )
-
-        self._subscriptions[sub_id] = handlers
+        self._subscriptions[sub_id] = subscriptions
         return sub_id
 
     async def unsubscribe_events(self, subscription_id: str) -> None:
@@ -2248,10 +2256,10 @@ class BiDiBackend(AbstractBackend):
             subscription_id: The ID returned by subscribe_events.
         """
         client = self._require_client()
-        subs: dict[str, dict[str, Any]] = getattr(self, "_subscriptions", {})
-        handlers = subs.pop(subscription_id, {})
-        for cdp_event, handler in handlers.items():
-            client.cdp.off(cdp_event, handler)
+        subs: dict[str, list[Any]] = getattr(self, "_subscriptions", {})
+        subscriptions = subs.pop(subscription_id, [])
+        for subscription in subscriptions:
+            client.off(subscription)
 
     # ── Accessibility ──────────────────────────────────────
 
