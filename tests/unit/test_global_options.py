@@ -140,9 +140,7 @@ class TestLoadGlobalConfig:
         assert ctx.user_data_dir == "/tmp/profile"
         assert ctx.browser_url == "ws://localhost:9222"
 
-    def test_cli_overrides_config(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_cli_overrides_config(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         config_dir = tmp_path / ".wavexis"
         config_dir.mkdir()
         config_file = config_dir / "config.yml"
@@ -185,16 +183,12 @@ class TestConfigCommand:
         assert "headless" in data
         assert "timeout" in data
 
-    def test_config_set(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_config_set(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
         from typer.testing import CliRunner
 
         runner = CliRunner()
-        result = runner.invoke(
-            _cli.app, ["config", "set", "--key", "timeout", "--value", "45000"]
-        )
+        result = runner.invoke(_cli.app, ["config", "set", "--key", "timeout", "--value", "45000"])
         assert result.exit_code == 0
         config_path = tmp_path / ".wavexis" / "config.yml"
         import yaml
@@ -202,16 +196,12 @@ class TestConfigCommand:
         data = yaml.safe_load(config_path.read_text(encoding="utf-8"))
         assert data["timeout"] == 45000
 
-    def test_config_set_headless(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_config_set_headless(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
         from typer.testing import CliRunner
 
         runner = CliRunner()
-        result = runner.invoke(
-            _cli.app, ["config", "set", "--key", "headless", "--value", "false"]
-        )
+        result = runner.invoke(_cli.app, ["config", "set", "--key", "headless", "--value", "false"])
         assert result.exit_code == 0
         config_path = tmp_path / ".wavexis" / "config.yml"
         import yaml
@@ -219,9 +209,7 @@ class TestConfigCommand:
         data = yaml.safe_load(config_path.read_text(encoding="utf-8"))
         assert data["headless"] is False
 
-    def test_config_show_no_file(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_config_show_no_file(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
         from typer.testing import CliRunner
 
@@ -230,14 +218,10 @@ class TestConfigCommand:
         assert result.exit_code == 0
         assert "No config file found" in result.output
 
-    def test_config_show(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_config_show(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         config_dir = tmp_path / ".wavexis"
         config_dir.mkdir()
-        (config_dir / "config.yml").write_text(
-            "backend: cdp\ntimeout: 30000\n", encoding="utf-8"
-        )
+        (config_dir / "config.yml").write_text("backend: cdp\ntimeout: 30000\n", encoding="utf-8")
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
         from typer.testing import CliRunner
 

@@ -43,17 +43,11 @@ def screenshot(
     url: str = typer.Argument(..., help="URL to navigate to"),
     output: str = typer.Option("screenshot.png", "--output", "-o", help="Output file path"),
     full_page: bool = typer.Option(False, "--full-page", help="Capture full page"),
-    selector: str | None = typer.Option(
-        None, "--selector", help="CSS selector to capture"
-    ),
+    selector: str | None = typer.Option(None, "--selector", help="CSS selector to capture"),
     device: str | None = typer.Option(None, "--device", help="Device preset name"),
     format: str = typer.Option("png", "--format", help="Image format (png or jpeg)"),
-    js: str | None = typer.Option(
-        None, "--js", help="JavaScript to execute before screenshot"
-    ),
-    wait_for: str | None = typer.Option(
-        None, "--wait-for", help="CSS selector to wait for"
-    ),
+    js: str | None = typer.Option(None, "--js", help="JavaScript to execute before screenshot"),
+    wait_for: str | None = typer.Option(None, "--wait-for", help="CSS selector to wait for"),
 ) -> None:
     """Take a screenshot of a web page."""
     wait = (
@@ -61,9 +55,7 @@ def screenshot(
         if wait_for
         else WaitStrategy(strategy="load")
     )
-    image_bytes = _run_async(
-        _take_screenshot(url, full_page, selector, device, format, js, wait)
-    )
+    image_bytes = _run_async(_take_screenshot(url, full_page, selector, device, format, js, wait))
     if image_bytes is None:
         return
 
@@ -80,12 +72,8 @@ def annotate(
         "-s",
         help='Comma-separated CSS selectors to annotate (e.g. "button,#email")',
     ),
-    output: str = typer.Option(
-        "annotated.png", "--output", "-o", help="Output file path"
-    ),
-    format: str = typer.Option(
-        "png", "--format", help="Image format (png or jpeg)"
-    ),
+    output: str = typer.Option("annotated.png", "--output", "-o", help="Output file path"),
+    format: str = typer.Option("png", "--format", help="Image format (png or jpeg)"),
 ) -> None:
     """Take a screenshot with numbered labels on elements.
 
@@ -93,9 +81,7 @@ def annotate(
     wavexis annotate https://example.com -s "button,#email,input" -o out.png
     """
     selector_list = [s.strip() for s in selectors.split(",") if s.strip()]
-    result = _run_async(
-        _take_annotated(url, selector_list, format)
-    )
+    result = _run_async(_take_annotated(url, selector_list, format))
     if result is None:
         return
     image_bytes, label_map = result
@@ -114,8 +100,8 @@ async def _take_annotated(
     try:
         await backend.launch(_browser_options())
         await backend.navigate(url, WaitStrategy(strategy="load"))
-        result: tuple[bytes, dict[str, str]] = (
-            await backend.annotated_screenshot(selectors, format=format)
+        result: tuple[bytes, dict[str, str]] = await backend.annotated_screenshot(
+            selectors, format=format
         )
         return result
     finally:
@@ -149,33 +135,27 @@ async def _take_screenshot(
     finally:
         await _close_backend(backend)
 
+
 @app.command()
 def pdf(
     url: str = typer.Argument(..., help="URL to navigate to"),
     output: str = typer.Option("output.pdf", "--output", "-o", help="Output file path"),
-    paper: str = typer.Option(
-        "letter", "--paper", help="Paper size (a4, letter, legal, a3, a5)"
-    ),
+    paper: str = typer.Option("letter", "--paper", help="Paper size (a4, letter, legal, a3, a5)"),
     landscape: bool = typer.Option(False, "--landscape", help="Use landscape orientation"),
-    margins: str = typer.Option(
-        "0.4in", "--margins", help="Margin size (e.g. 0.4in)"
-    ),
-    media: str = typer.Option(
-        "print", "--media", help="CSS media type (print or screen)"
-    ),
+    margins: str = typer.Option("0.4in", "--margins", help="Margin size (e.g. 0.4in)"),
+    media: str = typer.Option("print", "--media", help="CSS media type (print or screen)"),
     no_header_footer: bool = typer.Option(
         False, "--no-header-footer", help="Omit header and footer"
     ),
 ) -> None:
     """Generate a PDF of a web page."""
-    pdf_bytes = _run_async(
-        _generate_pdf(url, paper, landscape, margins, media, no_header_footer)
-    )
+    pdf_bytes = _run_async(_generate_pdf(url, paper, landscape, margins, media, no_header_footer))
     if pdf_bytes is None:
         return
 
     Output.write_bytes(pdf_bytes, output)
     typer.echo(f"PDF saved to {output}")
+
 
 async def _generate_pdf(
     url: str,
@@ -203,21 +183,16 @@ async def _generate_pdf(
     finally:
         await _close_backend(backend)
 
+
 @app.command()
 def eval(
     url: str = typer.Argument(..., help="URL to navigate to"),
     expression: str = typer.Option(
         "", "--expression", "-e", help="JavaScript expression to evaluate"
     ),
-    output: str | None = typer.Option(
-        None, "--output", "-o", help="Output file path"
-    ),
-    format: str = typer.Option(
-        "json", "--format", "-f", help="Output format: json, csv, yaml"
-    ),
-    await_promise: bool = typer.Option(
-        False, "--await-promise", help="Await a returned Promise"
-    ),
+    output: str | None = typer.Option(None, "--output", "-o", help="Output file path"),
+    format: str = typer.Option("json", "--format", "-f", help="Output format: json, csv, yaml"),
+    await_promise: bool = typer.Option(False, "--await-promise", help="Await a returned Promise"),
     file: str | None = typer.Option(None, "--file", help="Read expression from file"),
     assert_expr: str = typer.Option(
         "",
@@ -236,6 +211,7 @@ def eval(
         expression = f"@{file}"
     elif file:
         from pathlib import Path
+
         expression = Path(file).read_text(encoding="utf-8")
 
     result = _run_async(_eval(url, expression, await_promise, file))
@@ -254,6 +230,7 @@ def eval(
     Output.write_formatted(result, format, output)
     if output:
         typer.echo(f"Result saved to {output}")
+
 
 def _check_assertion(result: Any, assert_expr: str) -> tuple[bool, str]:
     """Check if a result satisfies an assertion expression.
@@ -293,15 +270,20 @@ def _check_assertion(result: Any, assert_expr: str) -> tuple[bool, str]:
 
     if assert_expr.startswith("matches "):
         import re
+
         pattern = assert_expr[8:]
-        if re.search(pattern, result_str):
-            return True, ""
+        try:
+            if re.search(pattern, result_str):
+                return True, ""
+        except re.error as e:
+            return False, f"Invalid regex pattern /{pattern}/: {e}"
         return False, f"'{result_str}' does not match /{pattern}/"
 
     return False, (
         f"Unknown assertion: {assert_expr}. "
         "Use: '== value', '!= value', 'contains substring', 'matches regex'"
     )
+
 
 async def _eval(url: str, expression: str, await_promise: bool, file: str | None) -> Any:
     """Async helper to evaluate JS via backend."""
@@ -320,6 +302,7 @@ async def _eval(url: str, expression: str, await_promise: bool, file: str | None
     finally:
         await _close_backend(backend)
 
+
 @app.command()
 def dom(
     url: str = typer.Argument(..., help="URL to navigate to"),
@@ -327,31 +310,23 @@ def dom(
         "get",
         "--action",
         "-a",
-        help=(
-            "DOM action: get, query, attr, remove_attr, remove, focus, scroll, "
-            "suggest_locator"
-        ),
+        help=("DOM action: get, query, attr, remove_attr, remove, focus, scroll, suggest_locator"),
     ),
     selector: str = typer.Option("", "--selector", "-s", help="CSS selector"),
-    output: str | None = typer.Option(
-        None, "--output", "-o", help="Output file path"
-    ),
+    output: str | None = typer.Option(None, "--output", "-o", help="Output file path"),
     outer: bool = typer.Option(True, "--outer/--inner", help="Outer or inner HTML"),
     all: bool = typer.Option(
-        False, "--all",
+        False,
+        "--all",
         help="Query all matching elements or all locator suggestions",
     ),
     attribute: str | None = typer.Option(
         None, "--attribute", help="Attribute name for get/set/remove"
     ),
-    value: str | None = typer.Option(
-        None, "--value", help="Attribute value for set"
-    ),
+    value: str | None = typer.Option(None, "--value", help="Attribute value for set"),
 ) -> None:
     """DOM operations on a web page."""
-    result = _run_async(
-        _dom(url, action, selector, outer, all, attribute, value)
-    )
+    result = _run_async(_dom(url, action, selector, outer, all, attribute, value))
     if result is None:
         return
 
@@ -376,6 +351,7 @@ def dom(
             typer.echo(json.dumps(result, indent=2, default=str))
     else:
         typer.echo("Done")
+
 
 async def _dom(
     url: str,
@@ -407,24 +383,19 @@ async def _dom(
     finally:
         await _close_backend(backend)
 
+
 @app.command()
 def scrape(
     urls: Annotated[list[str], typer.Argument(help="URLs to scrape")],
     expression: str = typer.Option(
         "document.title", "--expression", "-e", help="JavaScript expression"
     ),
-    output: str | None = typer.Option(
-        None, "--output", "-o", help="Output file path"
-    ),
-    format: str = typer.Option(
-        "json", "--format", "-f", help="Output format: json, csv, yaml"
-    ),
+    output: str | None = typer.Option(None, "--output", "-o", help="Output file path"),
+    format: str = typer.Option("json", "--format", "-f", help="Output format: json, csv, yaml"),
     file: str | None = typer.Option(
         None, "--file", help="Read expression from file (prefix with @)"
     ),
-    selector: str | None = typer.Option(
-        None, "--selector", "-s", help="CSS selector to wait for"
-    ),
+    selector: str | None = typer.Option(None, "--selector", "-s", help="CSS selector to wait for"),
     concurrency: int = typer.Option(
         1, "--concurrency", "-c", help="Number of concurrent tabs (1 = sequential)"
     ),
@@ -441,6 +412,7 @@ def scrape(
     Output.write_formatted(results, format, output)
     if output:
         typer.echo(f"Results saved to {output}")
+
 
 async def _scrape(
     urls: list[str],
@@ -512,24 +484,21 @@ async def _scrape(
     finally:
         await _close_backend(backend)
 
+
 @app.command()
 def crawl(
     url: str = typer.Argument(..., help="Starting URL to crawl"),
     max_depth: int = typer.Option(
         2, "--depth", "-d", help="Maximum crawl depth (1 = start page only)"
     ),
-    max_pages: int = typer.Option(
-        50, "--max-pages", help="Maximum number of pages to visit"
-    ),
+    max_pages: int = typer.Option(50, "--max-pages", help="Maximum number of pages to visit"),
     same_origin: bool = typer.Option(
         True, "--same-origin/--cross-origin", help="Only crawl same-origin links"
     ),
     url_pattern: str = typer.Option(
         "", "--pattern", help="Regex pattern to filter URLs (empty = all)"
     ),
-    output: str | None = typer.Option(
-        None, "--output", "-o", help="Output file path (.json)"
-    ),
+    output: str | None = typer.Option(None, "--output", "-o", help="Output file path (.json)"),
     format: str = typer.Option("json", "--format", "-f", help="Output format (json)"),
 ) -> None:
     """Crawl a website starting from a URL, collecting titles and links.
@@ -549,6 +518,7 @@ def crawl(
         typer.echo(f"Crawled {len(results)} pages, saved to {output}")
     else:
         typer.echo(f"Crawled {len(results)} pages")
+
 
 async def _crawl(
     url: str,
@@ -586,18 +556,13 @@ async def _crawl(
     finally:
         await _close_backend(backend)
 
+
 @app.command()
 def har(
     url: str = typer.Argument(..., help="URL to capture HAR for"),
-    output: str | None = typer.Option(
-        None, "--output", "-o", help="Output file path (.har)"
-    ),
-    wait: int = typer.Option(
-        3000, "--wait", help="Wait time after navigation (ms)"
-    ),
-    filter: str | None = typer.Option(
-        None, "--filter", help="URL filter pattern"
-    ),
+    output: str | None = typer.Option(None, "--output", "-o", help="Output file path (.har)"),
+    wait: int = typer.Option(3000, "--wait", help="Wait time after navigation (ms)"),
+    filter: str | None = typer.Option(None, "--filter", help="URL filter pattern"),
 ) -> None:
     """Capture network traffic as HAR 1.2."""
     result = _run_async(_har(url, wait, filter))
@@ -610,15 +575,17 @@ def har(
     else:
         typer.echo(json.dumps(result, indent=2, default=str))
 
+
 async def _har(url: str, wait: int, filter: str | None) -> Any:
     """Async helper for HAR capture."""
     backend = _get_backend()
     try:
         await backend.launch(_browser_options())
-        params = HarParams(url=url, wait=wait, filter=filter)
+        params = HarParams(url=url, wait=WaitStrategy(timeout=wait), filter=filter)
         return await HARAction(params).execute(backend)
     finally:
         await _close_backend(backend)
+
 
 @app.command()
 def screencast(
@@ -644,6 +611,7 @@ def screencast(
         return
     typer.echo(f"Saved {len(frames)} frames to {output_dir}/")
 
+
 async def _screencast(params: ScreencastParams, output_dir: str) -> list[str]:
     """Capture screencast frames and save them to a directory.
 
@@ -657,11 +625,13 @@ async def _screencast(params: ScreencastParams, output_dir: str) -> list[str]:
     from wavexis.actions.screencast import ScreencastAction
 
     backend = _get_backend()
-    action = ScreencastAction(params, output_dir=output_dir)
     try:
+        await backend.launch(_browser_options())
+        action = ScreencastAction(params, output_dir=output_dir)
         return await action.execute(backend)
     finally:
         await _close_backend(backend)
+
 
 @app.command("dom-snapshot")
 def dom_snapshot(
@@ -673,6 +643,7 @@ def dom_snapshot(
     if result is None:
         return
     _write_json_output(result, output, "DOM snapshot")
+
 
 async def _dom_snapshot_action(url: str) -> dict[str, Any]:
     """Capture a DOM snapshot of a web page.
@@ -690,9 +661,9 @@ async def _dom_snapshot_action(url: str) -> dict[str, Any]:
         wait=WaitStrategy(strategy="load"),
     )
     backend = _get_backend()
-    act = DOMSnapshotAction(params)
     try:
+        await backend.launch(_browser_options())
+        act = DOMSnapshotAction(params)
         return await act.execute(backend)
     finally:
         await _close_backend(backend)
-

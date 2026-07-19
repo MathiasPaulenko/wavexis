@@ -10,6 +10,7 @@ from wavexis.backend.base import AbstractBackend
 @pytest.mark.unit
 class TestAbstractBackendPhase5:
     """Test suite for abstractbackendphase5."""
+
     def _get_abstract_methods(self) -> list[str]:
         """Get abstract methods."""
         return list(AbstractBackend.__abstractmethods__)
@@ -18,8 +19,14 @@ class TestAbstractBackendPhase5:
         """Test input methods exist."""
         methods = self._get_abstract_methods()
         for name in [
-            "click", "type_text", "fill", "select_option",
-            "hover", "key_press", "drag", "tap",
+            "click",
+            "type_text",
+            "fill",
+            "select_option",
+            "hover",
+            "key_press",
+            "drag",
+            "tap",
         ]:
             assert name in methods, f"{name} should be an abstract method"
 
@@ -27,8 +34,11 @@ class TestAbstractBackendPhase5:
         """Test network advanced methods exist."""
         methods = self._get_abstract_methods()
         for name in [
-            "block_requests", "throttle_network", "set_cache_disabled",
-            "intercept_requests", "mock_response",
+            "block_requests",
+            "throttle_network",
+            "set_cache_disabled",
+            "intercept_requests",
+            "mock_response",
         ]:
             assert name in methods, f"{name} should be an abstract method"
 

@@ -11,6 +11,7 @@ from wavexis.config import BrowserOptions, ScreenshotParams, WaitStrategy
 @pytest.mark.integration
 class TestEmulationIntegration:
     """Test suite for emulationintegration."""
+
     async def test_emulate_device(self) -> None:
         """Test emulate device."""
         backend = CDPBackend()

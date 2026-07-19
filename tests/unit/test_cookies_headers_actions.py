@@ -124,9 +124,7 @@ class TestHeaderAction:
         backend.close = AsyncMock()
 
         headers = {"X-Custom": "value", "Authorization": "Bearer token"}
-        params = HeaderParams(
-            url="https://example.com", action="set-headers", headers=headers
-        )
+        params = HeaderParams(url="https://example.com", action="set-headers", headers=headers)
         result = await HeaderAction(params).execute(backend)
 
         assert result is None

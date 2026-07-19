@@ -15,9 +15,9 @@ from wavexis.config import ScreencastParams
 def _make_backend() -> MagicMock:
     """Create a mock backend for testing.
 
-        Returns:
-            A MagicMock backend instance.
-        """
+    Returns:
+        A MagicMock backend instance.
+    """
     backend = MagicMock(spec=AbstractBackend)
     backend.launch = AsyncMock()
     backend.close = AsyncMock()
@@ -30,12 +30,13 @@ def _make_backend() -> MagicMock:
 @pytest.mark.unit
 class TestDownloadAction:
     """Test suite for downloadaction."""
+
     async def test_intercept_download(self) -> None:
         """Test intercept download."""
         backend = _make_backend()
-        result = await DownloadAction(
-            params=".*", url="https://example.com/download"
-        ).execute(backend)
+        result = await DownloadAction(params=".*", url="https://example.com/download").execute(
+            backend
+        )
         backend.intercept_download.assert_called_once_with(".*")
         assert result == b"file content"
 
@@ -50,6 +51,7 @@ class TestDownloadAction:
 @pytest.mark.unit
 class TestScreencastAction:
     """Test suite for screencastaction."""
+
     async def test_screencast_saves_frames(self) -> None:
         """Test screencast saves frames."""
         backend = _make_backend()

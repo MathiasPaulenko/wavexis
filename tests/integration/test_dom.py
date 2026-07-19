@@ -17,9 +17,7 @@ class TestDOMIntegration:
         backend = manager.select()
         try:
             await backend.launch(BrowserOptions())
-            await backend.navigate(
-                "https://example.com", WaitStrategy(strategy="load")
-            )
+            await backend.navigate("https://example.com", WaitStrategy(strategy="load"))
             html = await backend.dom_get("h1", outer=True)
             assert "<h1>" in html
             assert "Example Domain" in html
@@ -32,9 +30,7 @@ class TestDOMIntegration:
         backend = manager.select()
         try:
             await backend.launch(BrowserOptions())
-            await backend.navigate(
-                "https://example.com", WaitStrategy(strategy="load")
-            )
+            await backend.navigate("https://example.com", WaitStrategy(strategy="load"))
             html = await backend.dom_get("h1", outer=False)
             assert "Example Domain" in html
             assert "<h1>" not in html
@@ -47,9 +43,7 @@ class TestDOMIntegration:
         backend = manager.select()
         try:
             await backend.launch(BrowserOptions())
-            await backend.navigate(
-                "https://example.com", WaitStrategy(strategy="load")
-            )
+            await backend.navigate("https://example.com", WaitStrategy(strategy="load"))
             node = await backend.dom_query("h1", all=False)
             assert isinstance(node, dict)
             assert "nodeName" in node
@@ -62,9 +56,7 @@ class TestDOMIntegration:
         backend = manager.select()
         try:
             await backend.launch(BrowserOptions())
-            await backend.navigate(
-                "https://example.com", WaitStrategy(strategy="load")
-            )
+            await backend.navigate("https://example.com", WaitStrategy(strategy="load"))
             nodes = await backend.dom_query("p", all=True)
             assert isinstance(nodes, list)
             assert len(nodes) >= 1
@@ -77,9 +69,7 @@ class TestDOMIntegration:
         backend = manager.select()
         try:
             await backend.launch(BrowserOptions())
-            await backend.navigate(
-                "https://example.com", WaitStrategy(strategy="load")
-            )
+            await backend.navigate("https://example.com", WaitStrategy(strategy="load"))
             href = await backend.dom_get_attr("a", "href")
             assert "example.com" in href or "iana.org" in href
         finally:
@@ -91,9 +81,7 @@ class TestDOMIntegration:
         backend = manager.select()
         try:
             await backend.launch(BrowserOptions())
-            await backend.navigate(
-                "https://example.com", WaitStrategy(strategy="load")
-            )
+            await backend.navigate("https://example.com", WaitStrategy(strategy="load"))
             await backend.dom_set_attr("h1", "data-test", "value123")
             val = await backend.dom_get_attr("h1", "data-test")
             assert val == "value123"
@@ -106,9 +94,7 @@ class TestDOMIntegration:
         backend = manager.select()
         try:
             await backend.launch(BrowserOptions())
-            await backend.navigate(
-                "https://example.com", WaitStrategy(strategy="load")
-            )
+            await backend.navigate("https://example.com", WaitStrategy(strategy="load"))
             await backend.dom_scroll(x=0, y=100)
         finally:
             await backend.close()

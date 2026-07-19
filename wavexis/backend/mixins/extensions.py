@@ -18,11 +18,15 @@ class ExtensionsBackend(ABC):
         """Get storage items for an extension."""
 
     @abstractmethod
-    async def extensions_remove_storage_items(self, id: str, storage_type: str, keys: list[str]) -> None:
+    async def extensions_remove_storage_items(
+        self, id: str, storage_type: str, keys: list[str]
+    ) -> None:
         """Remove storage items from an extension."""
 
     @abstractmethod
-    async def extensions_set_storage_items(self, id: str, storage_type: str, values: list[dict[str, Any]]) -> None:
+    async def extensions_set_storage_items(
+        self, id: str, storage_type: str, values: list[dict[str, Any]]
+    ) -> None:
         """Set storage items for an extension."""
 
     @abstractmethod

@@ -11,12 +11,13 @@ from wavexis.backend.base import AbstractBackend
 @pytest.mark.unit
 class TestServiceWorkerAction:
     """Test suite for serviceworkeraction."""
+
     def _make_backend(self) -> MagicMock:
         """Create a mock backend for testing.
 
-            Returns:
-                A MagicMock backend instance.
-            """
+        Returns:
+            A MagicMock backend instance.
+        """
         backend = MagicMock(spec=AbstractBackend)
         backend.launch = AsyncMock()
         backend.close = AsyncMock()

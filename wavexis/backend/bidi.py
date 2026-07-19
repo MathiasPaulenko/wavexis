@@ -11,12 +11,14 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+from pathlib import Path
 from typing import Any
 
 try:
     from io import BytesIO
 
     from PIL import Image
+
     PIL_AVAILABLE = True
 except ImportError:
     PIL_AVAILABLE = False
@@ -122,9 +124,7 @@ class BiDiBackend(AbstractBackend):
             SessionNotInitializedError: If launch() has not been called.
         """
         if self._client is None:
-            raise SessionNotInitializedError(
-                "Session not initialized. Call launch() first."
-            )
+            raise SessionNotInitializedError("Session not initialized. Call launch() first.")
         return self._client
 
     def _require_launched(self) -> BiDiClient:
@@ -138,9 +138,7 @@ class BiDiBackend(AbstractBackend):
                 or the browsing context was not created.
         """
         if self._client is None or self._context is None:
-            raise SessionNotInitializedError(
-                "BiDiBackend not launched. Call launch() first."
-            )
+            raise SessionNotInitializedError("BiDiBackend not launched. Call launch() first.")
         return self._client
 
     async def launch(self, options: BrowserOptions) -> None:
@@ -157,36 +155,37 @@ class BiDiBackend(AbstractBackend):
         if self._client is not None:
             return
         if BiDiClient is None:
-            raise ImportError(
-                "bidiwave is not installed. Run: pip install wavexis[bidi]"
-            )
-        
+            raise ImportError("bidiwave is not installed. Run: pip install wavexis[bidi]")
+
         # BiDi connects to existing browser, cannot control launch options
         if options.headless is not None:
             import warnings
+
             warnings.warn(
                 "BiDi backend ignores 'headless' option - it connects to "
                 "an existing ChromeDriver instance. Use CDP backend for headless control.",
                 UserWarning,
-                stacklevel=2
+                stacklevel=2,
             )
         if options.user_data_dir:
             import warnings
+
             warnings.warn(
                 "BiDi backend ignores 'user_data_dir' option - it connects to "
                 "an existing ChromeDriver instance. Use CDP backend for profile control.",
                 UserWarning,
-                stacklevel=2
+                stacklevel=2,
             )
         if options.timeout:
             import warnings
+
             warnings.warn(
                 "BiDi backend ignores 'timeout' option - it connects to "
                 "an existing ChromeDriver instance. Use CDP backend for timeout control.",
                 UserWarning,
-                stacklevel=2
+                stacklevel=2,
             )
-        
+
         if options.browser_url:
             from urllib.parse import urlparse
 
@@ -230,9 +229,7 @@ class BiDiBackend(AbstractBackend):
         if options.stealth:
             from wavexis.actions.stealth import get_stealth_js
 
-            await client.script.evaluate(
-                self._context, get_stealth_js()
-            )
+            await client.script.evaluate(self._context, get_stealth_js())
 
     async def close(self) -> None:
         """Close the BiDi client and release resources."""
@@ -290,7 +287,7 @@ class BiDiBackend(AbstractBackend):
             PNG or JPEG image bytes.
         """
         client = self._require_launched()
-        
+
         # Navigate only if url is provided (CDP doesn't auto-navigate)
         if params.url:
             # Map wait strategy to BiDi wait parameter
@@ -306,22 +303,20 @@ class BiDiBackend(AbstractBackend):
                     await self.wait_for(params.wait)
                 else:
                     bidi_wait = "complete"
-            
+
             timeout_ms: int = params.wait.timeout if params.wait is not None else 30000
             try:
-                await client.browsing.navigate(
-                    self._context, params.url, wait=bidi_wait
-                )
+                await client.browsing.navigate(self._context, params.url, wait=bidi_wait)
             except TimeoutError:
                 raise WaitTimeoutError(
                     params.wait.strategy if params.wait else "load",
                     timeout_ms,
                 ) from None
-        
+
         # Execute custom JS before screenshot if provided
         if params.js:
             await client.script.evaluate(self._context, params.js)
-        
+
         result = await client.browsing.screenshot(
             self._context, format=params.format, quality=params.quality
         )
@@ -355,7 +350,7 @@ class BiDiBackend(AbstractBackend):
         if not rect_str:
             raise ElementNotFoundError(selector)
         rect = json.loads(rect_str)
-        
+
         screenshot_result = await client.browsing.screenshot(
             self._context, format=format, quality=quality
         )
@@ -365,7 +360,7 @@ class BiDiBackend(AbstractBackend):
             else screenshot_result.get("data", "")
         )
         image_bytes = base64.b64decode(data)
-        
+
         # Crop to bounding box if PIL is available
         if PIL_AVAILABLE:
             img = Image.open(BytesIO(image_bytes))
@@ -380,7 +375,7 @@ class BiDiBackend(AbstractBackend):
             output = BytesIO()
             cropped.save(output, format=format.upper() if format != "jpg" else "JPEG")
             return output.getvalue()
-        
+
         return image_bytes
 
     @staticmethod
@@ -431,8 +426,7 @@ class BiDiBackend(AbstractBackend):
     def _remove_annotate_js() -> str:
         """Build JS that removes annotation overlays."""
         return (
-            "(function(){var e=document.getElementById"
-            "('__wavexis_annotate');if(e)e.remove();})()"
+            "(function(){var e=document.getElementById('__wavexis_annotate');if(e)e.remove();})()"
         )
 
     async def annotated_screenshot(
@@ -453,15 +447,9 @@ class BiDiBackend(AbstractBackend):
         js = self._annotate_js(selectors)
         result = await client.script.evaluate(self._context, js)
         raw = getattr(result, "value", None)
-        label_map: dict[str, str] = (
-            json.loads(raw) if isinstance(raw, str) else {}
-        )
-        screenshot_result = await client.browsing.screenshot(
-            self._context, format=format
-        )
-        await client.script.evaluate(
-            self._context, self._remove_annotate_js()
-        )
+        label_map: dict[str, str] = json.loads(raw) if isinstance(raw, str) else {}
+        screenshot_result = await client.browsing.screenshot(self._context, format=format)
+        await client.script.evaluate(self._context, self._remove_annotate_js())
         data = (
             screenshot_result.data
             if hasattr(screenshot_result, "data")
@@ -487,9 +475,7 @@ class BiDiBackend(AbstractBackend):
             return result.value
         return result
 
-    async def raw(
-        self, method: str, params: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    async def raw(self, method: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         """Send a raw BiDi command (escape hatch).
 
         Args:
@@ -569,9 +555,7 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         await client.cdp.send_command("Page.waitForDebugger", {})
 
-    async def page_get_resource_content(
-        self, frame_id: str, url: str
-    ) -> dict[str, Any]:
+    async def page_get_resource_content(self, frame_id: str, url: str) -> dict[str, Any]:
         """Get the content of a page resource by frame ID and URL."""
         client = self._require_launched()
         return dict(
@@ -581,9 +565,7 @@ class BiDiBackend(AbstractBackend):
             )
         )
 
-    async def page_set_download_behavior(
-        self, behavior: str, download_path: str = ""
-    ) -> None:
+    async def page_set_download_behavior(self, behavior: str, download_path: str = "") -> None:
         """Set page download behavior (allow/deny and path)."""
         client = self._require_launched()
         params: dict[str, Any] = {"behavior": behavior}
@@ -594,9 +576,7 @@ class BiDiBackend(AbstractBackend):
     async def page_capture_snapshot(self, format: str = "mhtml") -> str:
         """Capture a snapshot of the page as MHTML or text via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command(
-            "Page.captureSnapshot", {"format": format}
-        )
+        result = await client.cdp.send_command("Page.captureSnapshot", {"format": format})
         return str(result.get("data", ""))
 
     async def page_print_to_pdf(
@@ -659,9 +639,7 @@ class BiDiBackend(AbstractBackend):
     async def page_set_ad_blocking_enabled(self, enabled: bool) -> None:
         """Enable or disable ad blocking for the page via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command(
-            "Page.setAdBlockingEnabled", {"enabled": enabled}
-        )
+        await client.cdp.send_command("Page.setAdBlockingEnabled", {"enabled": enabled})
 
     async def page_add_script_to_evaluate_on_new_document(
         self, source: str, world_name: str = ""
@@ -671,14 +649,10 @@ class BiDiBackend(AbstractBackend):
         params: dict[str, Any] = {"source": source}
         if world_name:
             params["worldName"] = world_name
-        result = await client.cdp.send_command(
-            "Page.addScriptToEvaluateOnNewDocument", params
-        )
+        result = await client.cdp.send_command("Page.addScriptToEvaluateOnNewDocument", params)
         return str(result.get("identifier", ""))
 
-    async def page_remove_script_to_evaluate_on_new_document(
-        self, script_id: str
-    ) -> None:
+    async def page_remove_script_to_evaluate_on_new_document(self, script_id: str) -> None:
         """Remove a previously added script by ID via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command(
@@ -704,16 +678,12 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         return dict(await client.cdp.send_command("Page.getResourceTree", {}))
 
-    async def page_add_compilation_cache(
-        self, url: str, data: str
-    ) -> None:
+    async def page_add_compilation_cache(self, url: str, data: str) -> None:
         """Add data to the compilation cache for the given URL via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("Page.addCompilationCache", {"url": url, "data": data})
 
-    async def page_add_script_to_evaluate_on_load(
-        self, source: str
-    ) -> str:
+    async def page_add_script_to_evaluate_on_load(self, source: str) -> str:
         """Add a script to evaluate on page load via CDP bridge. Returns script ID."""
         client = self._require_launched()
         result = await client.cdp.send_command("Page.addScriptToEvaluateOnLoad", {"source": source})
@@ -784,12 +754,12 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         await client.cdp.send_command("Page.enable", {})
 
-    async def page_get_ad_script_ancestry(
-        self, frame_id: str
-    ) -> dict[str, Any]:
+    async def page_get_ad_script_ancestry(self, frame_id: str) -> dict[str, Any]:
         """Get the ad script ancestry for a frame via CDP bridge."""
         client = self._require_launched()
-        return dict(await client.cdp.send_command("Page.getAdScriptAncestry", {"frameId": frame_id}))
+        return dict(
+            await client.cdp.send_command("Page.getAdScriptAncestry", {"frameId": frame_id})
+        )
 
     async def page_get_annotated_page_content(self) -> dict[str, Any]:
         """Get annotated page content via CDP bridge."""
@@ -816,16 +786,14 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         return dict(await client.cdp.send_command("Page.getOriginTrials", {}))
 
-    async def page_get_permissions_policy_state(
-        self, frame_id: str
-    ) -> dict[str, Any]:
+    async def page_get_permissions_policy_state(self, frame_id: str) -> dict[str, Any]:
         """Get permissions policy state for a frame via CDP bridge."""
         client = self._require_launched()
-        return dict(await client.cdp.send_command("Page.getPermissionsPolicyState", {"frameId": frame_id}))
+        return dict(
+            await client.cdp.send_command("Page.getPermissionsPolicyState", {"frameId": frame_id})
+        )
 
-    async def page_handle_java_script_dialog(
-        self, accept: bool, prompt_text: str = ""
-    ) -> None:
+    async def page_handle_java_script_dialog(self, accept: bool, prompt_text: str = "") -> None:
         """Handle a JavaScript dialog via CDP bridge (alias for handle_javascript_dialog)."""
         client = self._require_launched()
         params: dict[str, Any] = {"accept": accept}
@@ -833,9 +801,7 @@ class BiDiBackend(AbstractBackend):
             params["promptText"] = prompt_text
         await client.cdp.send_command("Page.handleJavaScriptDialog", params)
 
-    async def page_handle_javascript_dialog(
-        self, accept: bool, prompt_text: str = ""
-    ) -> None:
+    async def page_handle_javascript_dialog(self, accept: bool, prompt_text: str = "") -> None:
         """Handle a JavaScript dialog via CDP bridge."""
         client = self._require_launched()
         params: dict[str, Any] = {"accept": accept}
@@ -843,28 +809,24 @@ class BiDiBackend(AbstractBackend):
             params["promptText"] = prompt_text
         await client.cdp.send_command("Page.handleJavaScriptDialog", params)
 
-    async def page_produce_compilation_cache(
-        self, url: str
-    ) -> dict[str, Any]:
+    async def page_produce_compilation_cache(self, url: str) -> dict[str, Any]:
         """Produce compilation cache for the given URL via CDP bridge."""
         client = self._require_launched()
         return dict(await client.cdp.send_command("Page.produceCompilationCache", {"url": url}))
 
-    async def page_remove_script_to_evaluate_on_load(
-        self, script_id: str
-    ) -> None:
+    async def page_remove_script_to_evaluate_on_load(self, script_id: str) -> None:
         """Remove a script previously added to evaluate on load via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Page.removeScriptToEvaluateOnLoad", {"identifier": script_id})
+        await client.cdp.send_command(
+            "Page.removeScriptToEvaluateOnLoad", {"identifier": script_id}
+        )
 
     async def page_reset_navigation_history(self) -> None:
         """Reset the navigation history via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("Page.resetNavigationHistory", {})
 
-    async def page_screencast_frame_ack(
-        self, session_id: int
-    ) -> None:
+    async def page_screencast_frame_ack(self, session_id: int) -> None:
         """Acknowledge a screencast frame via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("Page.screencastFrameAck", {"sessionId": session_id})
@@ -893,27 +855,23 @@ class BiDiBackend(AbstractBackend):
     ) -> None:
         """Override the device orientation via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Page.setDeviceOrientationOverride", {
-            "alpha": alpha, "beta": beta, "gamma": gamma
-        })
+        await client.cdp.send_command(
+            "Page.setDeviceOrientationOverride", {"alpha": alpha, "beta": beta, "gamma": gamma}
+        )
 
-    async def page_set_document_content(
-        self, frame_id: str, html: str
-    ) -> None:
+    async def page_set_document_content(self, frame_id: str, html: str) -> None:
         """Set the document content for a frame via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Page.setDocumentContent", {"frameId": frame_id, "html": html})
+        await client.cdp.send_command(
+            "Page.setDocumentContent", {"frameId": frame_id, "html": html}
+        )
 
-    async def page_set_font_families(
-        self, font_families: dict[str, Any]
-    ) -> None:
+    async def page_set_font_families(self, font_families: dict[str, Any]) -> None:
         """Set font families for the page via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("Page.setFontFamilies", {"fontFamilies": font_families})
 
-    async def page_set_font_sizes(
-        self, font_sizes: dict[str, Any]
-    ) -> None:
+    async def page_set_font_sizes(self, font_sizes: dict[str, Any]) -> None:
         """Set font sizes for the page via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("Page.setFontSizes", {"fontSizes": font_sizes})
@@ -923,41 +881,32 @@ class BiDiBackend(AbstractBackend):
     ) -> None:
         """Override the geolocation via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Page.setGeolocationOverride", {
-            "latitude": latitude, "longitude": longitude, "accuracy": accuracy
-        })
+        await client.cdp.send_command(
+            "Page.setGeolocationOverride",
+            {"latitude": latitude, "longitude": longitude, "accuracy": accuracy},
+        )
 
-    async def page_set_intercept_file_chooser_dialog(
-        self, enabled: bool
-    ) -> None:
+    async def page_set_intercept_file_chooser_dialog(self, enabled: bool) -> None:
         """Intercept file chooser dialogs via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("Page.setInterceptFileChooserDialog", {"enabled": enabled})
 
-    async def page_set_lifecycle_events_enabled(
-        self, enabled: bool
-    ) -> None:
+    async def page_set_lifecycle_events_enabled(self, enabled: bool) -> None:
         """Enable or disable lifecycle events via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("Page.setLifecycleEventsEnabled", {"enabled": enabled})
 
-    async def page_set_prerendering_allowed(
-        self, is_allowed: bool
-    ) -> None:
+    async def page_set_prerendering_allowed(self, is_allowed: bool) -> None:
         """Set whether prerendering is allowed via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("Page.setPrerenderingAllowed", {"isAllowed": is_allowed})
 
-    async def page_set_rph_registration_mode(
-        self, mode: str
-    ) -> None:
+    async def page_set_rph_registration_mode(self, mode: str) -> None:
         """Set the RPH registration mode via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("Page.setRPHRegistrationMode", {"mode": mode})
 
-    async def page_set_spc_transaction_mode(
-        self, mode: str
-    ) -> None:
+    async def page_set_spc_transaction_mode(self, mode: str) -> None:
         """Set the SPC transaction mode via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("Page.setSPCTransactionMode", {"mode": mode})
@@ -972,9 +921,7 @@ class BiDiBackend(AbstractBackend):
             params["configuration"] = configuration
         await client.cdp.send_command("Page.setTouchEmulationEnabled", params)
 
-    async def page_set_web_lifecycle_state(
-        self, state: str
-    ) -> None:
+    async def page_set_web_lifecycle_state(self, state: str) -> None:
         """Set the web lifecycle state via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("Page.setWebLifecycleState", {"state": state})
@@ -989,22 +936,19 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         import asyncio as _asyncio
         import time as _time
+
         deadline = _time.monotonic() + strategy.timeout / 1000
         while _time.monotonic() < deadline:
             if strategy.strategy == "selector" and strategy.selector:
                 escaped = json.dumps(strategy.selector)
                 js = f"!!document.querySelector('{escaped}')"
-                result = await client.script.evaluate(
-                    self._context, js, await_promise=False
-                )
+                result = await client.script.evaluate(self._context, js, await_promise=False)
                 if hasattr(result, "value") and result.value:
                     return
             elif strategy.strategy == "load":
                 # For load, wait for document.readyState == 'complete'
                 js = "document.readyState === 'complete'"
-                result = await client.script.evaluate(
-                    self._context, js, await_promise=False
-                )
+                result = await client.script.evaluate(self._context, js, await_promise=False)
                 if hasattr(result, "value") and result.value:
                     return
             elif strategy.strategy == "networkidle":
@@ -1017,9 +961,7 @@ class BiDiBackend(AbstractBackend):
                         .length <= 2;
                 })()
                 """
-                result = await client.script.evaluate(
-                    self._context, js, await_promise=False
-                )
+                result = await client.script.evaluate(self._context, js, await_promise=False)
                 is_idle = getattr(result, "value", False)
                 if is_idle:
                     if not hasattr(self, "_networkidle_start"):
@@ -1045,9 +987,7 @@ class BiDiBackend(AbstractBackend):
             PDF bytes.
         """
         client = self._require_launched()
-        await client.browsing.navigate(
-            self._context, params.url, wait="complete"
-        )
+        await client.browsing.navigate(self._context, params.url, wait="complete")
         paper = PAPER_SIZES.get(params.paper, PAPER_SIZES["letter"])
         margin_val = float(params.margin.replace("in", "").replace("cm", ""))
         margin_dict = {
@@ -1083,9 +1023,12 @@ class BiDiBackend(AbstractBackend):
         """
         client = self._require_launched()
         await client.browsing.navigate(
-            self._context, params.url, wait="complete",
+            self._context,
+            params.url,
+            wait="complete",
         )
         import asyncio as _asyncio
+
         frames: list[bytes] = []
         interval = 0.5
         elapsed = 0.0
@@ -1104,9 +1047,7 @@ class BiDiBackend(AbstractBackend):
     async def list_tabs(self) -> list[dict[str, Any]]:
         """List browsing contexts (tabs) via browsingContext.getTree."""
         client = self._require_launched()
-        result = await client._connection.send_command(
-            "browsingContext.getTree", {}
-        )
+        result = await client._connection.send_command("browsingContext.getTree", {})
         return list(result.get("contexts", []))
 
     async def new_tab(self, url: str = "about:blank") -> str:
@@ -1149,6 +1090,7 @@ class BiDiBackend(AbstractBackend):
         """
         client = self._require_launched()
         import asyncio as _asyncio
+
         entries: list[dict[str, Any]] = []
         level_order = {"all": 0, "debug": 0, "info": 1, "warning": 2, "error": 3}
         min_level = level_order.get(level, 0)
@@ -1161,13 +1103,15 @@ class BiDiBackend(AbstractBackend):
             """
             entry_level = getattr(event, "level", "info")
             if level_order.get(entry_level, 0) >= min_level or level == "all":
-                entries.append({
-                    "type": getattr(event, "type", "console"),
-                    "level": entry_level,
-                    "text": getattr(event, "text", ""),
-                    "timestamp": getattr(event, "timestamp", None),
-                    "args": getattr(event, "args", []),
-                })
+                entries.append(
+                    {
+                        "type": getattr(event, "type", "console"),
+                        "level": entry_level,
+                        "text": getattr(event, "text", ""),
+                        "timestamp": getattr(event, "timestamp", None),
+                        "args": getattr(event, "args", []),
+                    }
+                )
 
         sub = await client.on_log_entry(_handler)
         await _asyncio.sleep(0.5)
@@ -1217,10 +1161,7 @@ class BiDiBackend(AbstractBackend):
         escaped = json.dumps(selector)
         escaped_name = json.dumps(name)
         escaped_val = json.dumps(value)
-        js = (
-            f"document.querySelector('{escaped}')"
-            f".setAttribute('{escaped_name}','{escaped_val}')"
-        )
+        js = f"document.querySelector('{escaped}').setAttribute('{escaped_name}','{escaped_val}')"
         await client.script.evaluate(self._context, js)
 
     async def dom_get_attr(self, selector: str, name: str) -> str:
@@ -1228,10 +1169,7 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         escaped = json.dumps(selector)
         escaped_name = json.dumps(name)
-        js = (
-            f"document.querySelector('{escaped}')"
-            f".getAttribute('{escaped_name}')"
-        )
+        js = f"document.querySelector('{escaped}').getAttribute('{escaped_name}')"
         result = await client.script.evaluate(self._context, js)
         return str(result.value if hasattr(result, "value") else result)
 
@@ -1240,10 +1178,7 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         escaped = json.dumps(selector)
         escaped_name = json.dumps(name)
-        js = (
-            f"document.querySelector('{escaped}')"
-            f".removeAttribute('{escaped_name}')"
-        )
+        js = f"document.querySelector('{escaped}').removeAttribute('{escaped_name}')"
         await client.script.evaluate(self._context, js)
 
     async def dom_remove(self, selector: str) -> None:
@@ -1260,9 +1195,7 @@ class BiDiBackend(AbstractBackend):
         js = f"document.querySelector('{escaped}')?.focus()"
         await client.script.evaluate(self._context, js)
 
-    async def dom_scroll(
-        self, selector: str | None = None, x: int = 0, y: int = 0
-    ) -> None:
+    async def dom_scroll(self, selector: str | None = None, x: int = 0, y: int = 0) -> None:
         """Scroll to a position or element via script.evaluate."""
         client = self._require_launched()
         if selector:
@@ -1301,24 +1234,16 @@ class BiDiBackend(AbstractBackend):
         """Get the box model for an element matching a CSS selector."""
         client = self._require_launched()
         node_id = await self._find_node_cdp(client, selector)
-        return dict(
-            await client.cdp.send_command("DOM.getBoxModel", {"nodeId": node_id})
-        )
+        return dict(await client.cdp.send_command("DOM.getBoxModel", {"nodeId": node_id}))
 
-    async def dom_get_content_quads(
-        self, selector: str
-    ) -> list[dict[str, Any]]:
+    async def dom_get_content_quads(self, selector: str) -> list[dict[str, Any]]:
         """Get the content quads for an element matching a CSS selector."""
         client = self._require_launched()
         node_id = await self._find_node_cdp(client, selector)
-        result = await client.cdp.send_command(
-            "DOM.getContentQuads", {"nodeId": node_id}
-        )
+        result = await client.cdp.send_command("DOM.getContentQuads", {"nodeId": node_id})
         return list(result.get("quads", []))
 
-    async def dom_get_node_for_location(
-        self, x: int, y: int
-    ) -> dict[str, Any]:
+    async def dom_get_node_for_location(self, x: int, y: int) -> dict[str, Any]:
         """Get the node ID for a location in the viewport (hit testing)."""
         client = self._require_launched()
         await client.cdp.send_command("DOM.enable", {})
@@ -1345,23 +1270,17 @@ class BiDiBackend(AbstractBackend):
         """Scroll an element matching a CSS selector into view if needed."""
         client = self._require_launched()
         node_id = await self._find_node_cdp(client, selector)
-        await client.cdp.send_command(
-            "DOM.scrollIntoViewIfNeeded", {"nodeId": node_id}
-        )
+        await client.cdp.send_command("DOM.scrollIntoViewIfNeeded", {"nodeId": node_id})
 
     async def dom_describe_node(self, node_id: int) -> dict[str, Any]:
         """Describe a DOM node by node ID via CDP bridge."""
         client = self._require_launched()
-        return dict(await client.cdp.send_command(
-            "DOM.describeNode", {"nodeId": node_id}
-        ))
+        return dict(await client.cdp.send_command("DOM.describeNode", {"nodeId": node_id}))
 
     async def dom_get_outer_html(self, node_id: int) -> str:
         """Get the outer HTML of a node by ID via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command(
-            "DOM.getOuterHTML", {"nodeId": node_id}
-        )
+        result = await client.cdp.send_command("DOM.getOuterHTML", {"nodeId": node_id})
         return str(result.get("outerHTML", ""))
 
     async def dom_remove_node(self, node_id: int) -> None:
@@ -1372,9 +1291,7 @@ class BiDiBackend(AbstractBackend):
     async def dom_set_node_value(self, node_id: int, value: str) -> None:
         """Set the value of a node by ID via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command(
-            "DOM.setNodeValue", {"nodeId": node_id, "value": value}
-        )
+        await client.cdp.send_command("DOM.setNodeValue", {"nodeId": node_id, "value": value})
 
     async def dom_set_outer_html(self, node_id: int, outer_html: str) -> None:
         """Set the outer HTML of a node by ID via CDP bridge."""
@@ -1386,17 +1303,13 @@ class BiDiBackend(AbstractBackend):
     async def dom_request_node(self, node_id: int) -> int:
         """Request a node by ID via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command(
-            "DOM.requestNode", {"nodeId": node_id}
-        )
+        result = await client.cdp.send_command("DOM.requestNode", {"nodeId": node_id})
         return int(result.get("nodeId", 0))
 
     async def dom_resolve_node(self, node_id: int) -> dict[str, Any]:
         """Resolve a node to a remote object via CDP bridge."""
         client = self._require_launched()
-        return dict(await client.cdp.send_command(
-            "DOM.resolveNode", {"nodeId": node_id}
-        ))
+        return dict(await client.cdp.send_command("DOM.resolveNode", {"nodeId": node_id}))
 
     async def dom_set_attribute_value(self, node_id: int, name: str, value: str) -> None:
         """Set an attribute value on a node by ID via CDP bridge."""
@@ -1409,24 +1322,24 @@ class BiDiBackend(AbstractBackend):
     async def dom_remove_attribute(self, node_id: int, name: str) -> None:
         """Remove an attribute from a node by ID via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command(
-            "DOM.removeAttribute", {"nodeId": node_id, "name": name}
-        )
+        await client.cdp.send_command("DOM.removeAttribute", {"nodeId": node_id, "name": name})
 
     async def dom_request_child_nodes(self, node_id: int, depth: int = -1) -> None:
         """Request child nodes of a node by ID via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command(
-            "DOM.requestChildNodes", {"nodeId": node_id, "depth": depth}
-        )
+        await client.cdp.send_command("DOM.requestChildNodes", {"nodeId": node_id, "depth": depth})
 
     async def dom_collect_class_names_from_subtree(self, node_id: int) -> list[str]:
         """Collect class names from the subtree of a node by ID via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("DOM.collectClassNamesFromSubtree", {"nodeId": node_id})
+        result = await client.cdp.send_command(
+            "DOM.collectClassNamesFromSubtree", {"nodeId": node_id}
+        )
         return list(result.get("classNames", [])) if result else []
 
-    async def dom_copy_to(self, node_id: int, target_node_id: int, insert_before_node_id: int | None = None) -> None:
+    async def dom_copy_to(
+        self, node_id: int, target_node_id: int, insert_before_node_id: int | None = None
+    ) -> None:
         """Copy a node to a target node via CDP bridge."""
         client = self._require_launched()
         params: dict[str, Any] = {"nodeId": node_id, "targetNodeId": target_node_id}
@@ -1468,10 +1381,14 @@ class BiDiBackend(AbstractBackend):
     async def dom_get_node_attribute(self, node_id: int, name: str) -> str:
         """Get an attribute value from a node by ID via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("DOM.getAttribute", {"nodeId": node_id, "name": name})
+        result = await client.cdp.send_command(
+            "DOM.getAttribute", {"nodeId": node_id, "name": name}
+        )
         return str(result.get("value", "")) if result else ""
 
-    async def dom_get_container_for_node(self, node_id: int, container_name: str | None = None) -> dict[str, Any]:
+    async def dom_get_container_for_node(
+        self, node_id: int, container_name: str | None = None
+    ) -> dict[str, Any]:
         """Get the container for a node by ID via CDP bridge."""
         client = self._require_launched()
         params: dict[str, Any] = {"nodeId": node_id}
@@ -1489,7 +1406,9 @@ class BiDiBackend(AbstractBackend):
     async def dom_get_element_by_relation(self, node_id: int, relation: str) -> dict[str, Any]:
         """Get an element by relation from a node by ID via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("DOM.getElementByRelation", {"nodeId": node_id, "relation": relation})
+        result = await client.cdp.send_command(
+            "DOM.getElementByRelation", {"nodeId": node_id, "relation": relation}
+        )
         return dict(result) if result else {}
 
     async def dom_get_file_info(self, node_id: int) -> dict[str, Any]:
@@ -1510,16 +1429,25 @@ class BiDiBackend(AbstractBackend):
         result = await client.cdp.send_command("DOM.getNodeStackTraces", {"nodeId": node_id})
         return dict(result) if result else {}
 
-    async def dom_get_nodes_for_subtree_by_style(self, node_id: int, computed_styles: list[str], pierce: bool = False) -> list[dict[str, Any]]:
+    async def dom_get_nodes_for_subtree_by_style(
+        self, node_id: int, computed_styles: list[str], pierce: bool = False
+    ) -> list[dict[str, Any]]:
         """Get nodes in a subtree matching the given computed styles via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("DOM.getNodesForSubtreeByStyle", {"nodeId": node_id, "computedStyles": computed_styles, "pierce": pierce})
+        result = await client.cdp.send_command(
+            "DOM.getNodesForSubtreeByStyle",
+            {"nodeId": node_id, "computedStyles": computed_styles, "pierce": pierce},
+        )
         return list(result.get("nodeIds", [])) if result else []
 
-    async def dom_get_querying_descendants_for_container(self, node_id: int) -> list[dict[str, Any]]:
+    async def dom_get_querying_descendants_for_container(
+        self, node_id: int
+    ) -> list[dict[str, Any]]:
         """Get querying descendants for a container node by ID via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("DOM.getQueryingDescendantsForContainer", {"nodeId": node_id})
+        result = await client.cdp.send_command(
+            "DOM.getQueryingDescendantsForContainer", {"nodeId": node_id}
+        )
         return list(result.get("nodeIds", [])) if result else []
 
     async def dom_get_relayout_boundary(self, node_id: int) -> dict[str, Any]:
@@ -1542,22 +1470,31 @@ class BiDiBackend(AbstractBackend):
     async def dom_highlight_node(self, node_id: int, highlight_config: dict[str, Any]) -> None:
         """Highlight a node by ID with the given highlight config via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("DOM.highlightNode", {"highlightConfig": highlight_config, "nodeId": node_id})
+        await client.cdp.send_command(
+            "DOM.highlightNode", {"highlightConfig": highlight_config, "nodeId": node_id}
+        )
 
-    async def dom_highlight_rect(self, x: int, y: int, width: int, height: int, highlight_config: dict[str, Any]) -> None:
+    async def dom_highlight_rect(
+        self, x: int, y: int, width: int, height: int, highlight_config: dict[str, Any]
+    ) -> None:
         """Highlight a rect with the given highlight config via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("DOM.highlightRect", {
-            "highlightConfig": highlight_config,
-            "rect": {"x": x, "y": y, "width": width, "height": height},
-        })
+        await client.cdp.send_command(
+            "DOM.highlightRect",
+            {
+                "highlightConfig": highlight_config,
+                "rect": {"x": x, "y": y, "width": width, "height": height},
+            },
+        )
 
     async def dom_mark_undoable_state(self) -> None:
         """Mark an undoable state in the DOM via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("DOM.markUndoableState", {})
 
-    async def dom_move_to(self, node_id: int, target_node_id: int, insert_before_node_id: int | None = None) -> None:
+    async def dom_move_to(
+        self, node_id: int, target_node_id: int, insert_before_node_id: int | None = None
+    ) -> None:
         """Move a node to a target node via CDP bridge."""
         client = self._require_launched()
         params: dict[str, Any] = {"nodeId": node_id, "targetNodeId": target_node_id}
@@ -1571,22 +1508,30 @@ class BiDiBackend(AbstractBackend):
         result = await client.cdp.send_command("DOM.pushNodeByPathToFrontend", {"path": path})
         return dict(result) if result else {}
 
-    async def dom_push_nodes_by_backend_ids_to_frontend(self, backend_node_ids: list[int]) -> dict[str, Any]:
+    async def dom_push_nodes_by_backend_ids_to_frontend(
+        self, backend_node_ids: list[int]
+    ) -> dict[str, Any]:
         """Push nodes by backend IDs to frontend via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("DOM.pushNodesByBackendIdsToFrontend", {"backendNodeIds": backend_node_ids})
+        result = await client.cdp.send_command(
+            "DOM.pushNodesByBackendIdsToFrontend", {"backendNodeIds": backend_node_ids}
+        )
         return dict(result) if result else {}
 
     async def dom_query_selector(self, node_id: int, selector: str) -> dict[str, Any]:
         """Query a single selector within a node's subtree via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("DOM.querySelector", {"nodeId": node_id, "selector": selector})
+        result = await client.cdp.send_command(
+            "DOM.querySelector", {"nodeId": node_id, "selector": selector}
+        )
         return dict(result) if result else {}
 
     async def dom_query_selector_all(self, node_id: int, selector: str) -> list[dict[str, Any]]:
         """Query all selectors within a node's subtree via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("DOM.querySelectorAll", {"nodeId": node_id, "selector": selector})
+        result = await client.cdp.send_command(
+            "DOM.querySelectorAll", {"nodeId": node_id, "selector": selector}
+        )
         return list(result.get("nodes", [])) if result else []
 
     async def dom_redo(self) -> None:
@@ -1635,9 +1580,7 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         await client.cdp.send_command("DOM.undo", {})
 
-    async def suggest_locator(
-        self, selector: str, all: bool = False
-    ) -> list[str] | str:
+    async def suggest_locator(self, selector: str, all: bool = False) -> list[str] | str:
         """Suggest the best CSS selector for an element.
 
         Args:
@@ -1746,9 +1689,7 @@ class BiDiBackend(AbstractBackend):
             f"}})()"
         )
 
-    async def find_by_text(
-        self, query: str, all: bool = False
-    ) -> list[str] | str:
+    async def find_by_text(self, query: str, all: bool = False) -> list[str] | str:
         """Find elements by natural language text query.
 
         Args:
@@ -1774,9 +1715,7 @@ class BiDiBackend(AbstractBackend):
             return selectors
         return selectors[0]
 
-    async def nl_click(
-        self, query: str, auto_wait: bool = True
-    ) -> None:
+    async def nl_click(self, query: str, auto_wait: bool = True) -> None:
         """Click an element found by natural language text query.
 
         Args:
@@ -1784,12 +1723,11 @@ class BiDiBackend(AbstractBackend):
             auto_wait: If True, wait for element to be visible before clicking.
         """
         selector = await self.find_by_text(query)
-        assert isinstance(selector, str)
+        if not isinstance(selector, str):
+            raise ElementNotFoundError(query)
         await self.click(selector, auto_wait=auto_wait)
 
-    async def nl_fill(
-        self, query: str, value: str, auto_wait: bool = True
-    ) -> None:
+    async def nl_fill(self, query: str, value: str, auto_wait: bool = True) -> None:
         """Fill an input element found by natural language text query.
 
         Args:
@@ -1798,7 +1736,8 @@ class BiDiBackend(AbstractBackend):
             auto_wait: If True, wait for element to be visible before filling.
         """
         selector = await self.find_by_text(query)
-        assert isinstance(selector, str)
+        if not isinstance(selector, str):
+            raise ElementNotFoundError(query)
         await self.fill(selector, value, auto_wait=auto_wait)
 
     async def capture_har(self, params: HarParams) -> dict[str, Any]:
@@ -1815,18 +1754,24 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         await client.cdp.send_command("Network.enable", {})
         await client.browsing.navigate(
-            self._context, params.url, wait="complete",
+            self._context,
+            params.url,
+            wait="complete",
         )
         import asyncio as _asyncio
+
         await _asyncio.sleep(params.timeout / 1000)
         result = await client.cdp.send_command(
-            "Network.getResponseBody", {"requestId": ""},
+            "Network.getResponseBody",
+            {"requestId": ""},
         )
         har_log = await client.cdp.send_command(
-            "Page.frameNavigated", {},
+            "Page.frameNavigated",
+            {},
         )
         entries = await client.cdp.send_command(
-            "Network.getCookies", {},
+            "Network.getCookies",
+            {},
         )
         return {
             "log": {
@@ -1847,10 +1792,7 @@ class BiDiBackend(AbstractBackend):
         """
         client = self._require_launched()
         cookies = await client.storage.get_cookies(self._context)
-        return [
-            c.model_dump() if hasattr(c, "model_dump") else dict(c)
-            for c in cookies
-        ]
+        return [c.model_dump() if hasattr(c, "model_dump") else dict(c) for c in cookies]
 
     async def set_cookie(self, params: CookieParams) -> None:
         """Set a cookie via storage.setCookie.
@@ -1860,6 +1802,7 @@ class BiDiBackend(AbstractBackend):
         """
         client = self._require_launched()
         from bidiwave import Cookie as BiDiCookie
+
         cookie = BiDiCookie(
             name=params.name,
             value=params.value,
@@ -1896,9 +1839,7 @@ class BiDiBackend(AbstractBackend):
         """
         client = self._require_launched()
         header_list = [{"name": k, "value": v} for k, v in headers.items()]
-        await client.cdp.send_command(
-            "Network.setExtraRequestHeaders", {"headers": header_list}
-        )
+        await client.cdp.send_command("Network.setExtraRequestHeaders", {"headers": header_list})
 
     async def set_user_agent(self, user_agent: str) -> None:
         """Override the User-Agent string via emulation.setUserAgentOverride.
@@ -1950,9 +1891,7 @@ class BiDiBackend(AbstractBackend):
             return dict(contexts[0].get("bounds", {}))
         return {}
 
-    async def set_window_bounds(
-        self, width: int, height: int, x: int = 0, y: int = 0
-    ) -> None:
+    async def set_window_bounds(self, width: int, height: int, x: int = 0, y: int = 0) -> None:
         """Set window bounds via browsingContext.setViewport."""
         client = self._require_launched()
         await client._connection.send_command(
@@ -1997,12 +1936,11 @@ class BiDiBackend(AbstractBackend):
         )
         if preset.get("touch"):
             await client.cdp.send_command(
-                "Emulation.setTouchEmulationEnabled", {"enabled": True},
+                "Emulation.setTouchEmulationEnabled",
+                {"enabled": True},
             )
 
-    async def set_viewport(
-        self, width: int, height: int, device_scale_factor: float = 1.0
-    ) -> None:
+    async def set_viewport(self, width: int, height: int, device_scale_factor: float = 1.0) -> None:
         """Set the viewport size via browsingContext.setViewport.
 
         Args:
@@ -2051,10 +1989,10 @@ class BiDiBackend(AbstractBackend):
             enabled: True to enable dark mode, False to disable.
         """
         client = self._require_launched()
-        feature = 'dark' if enabled else 'light'
+        feature = "dark" if enabled else "light"
         await client.cdp.send_command(
-            'Emulation.setEmulatedMedia',
-            {'features': [{'name': 'prefers-color-scheme', 'value': feature}]},
+            "Emulation.setEmulatedMedia",
+            {"features": [{"name": "prefers-color-scheme", "value": feature}]},
         )
 
     # ── Input ──────────────────────────────────────────────
@@ -2144,22 +2082,15 @@ class BiDiBackend(AbstractBackend):
 
         client = self._require_launched()
         escaped = json.dumps(selector)
-        await client.script.evaluate(
-            self._context, f"document.querySelector('{escaped}').focus()"
-        )
+        await client.script.evaluate(self._context, f"document.querySelector('{escaped}').focus()")
         for char in text:
             escaped_char = json.dumps(char)
-            js = (
-                f"document.querySelector('{escaped}')"
-                f".value += '{escaped_char}'"
-            )
+            js = f"document.querySelector('{escaped}').value += '{escaped_char}'"
             await client.script.evaluate(self._context, js)
             if delay > 0:
                 await _asyncio.sleep(delay / 1000)
 
-    async def fill(
-        self, selector: str, value: str, auto_wait: bool = True
-    ) -> None:
+    async def fill(self, selector: str, value: str, auto_wait: bool = True) -> None:
         """Fill an input element with a value via BiDi.
 
         Args:
@@ -2274,9 +2205,7 @@ class BiDiBackend(AbstractBackend):
             f"if(!f||!f.contentDocument)return null;"
             f"return (function(){{{escaped_expr}}}).call(f.contentDocument);}})()"
         )
-        result = await client.script.evaluate(
-            self._context, js, await_promise=await_promise
-        )
+        result = await client.script.evaluate(self._context, js, await_promise=await_promise)
         if hasattr(result, "value"):
             return result.value
         return result
@@ -2387,8 +2316,7 @@ class BiDiBackend(AbstractBackend):
         parts = [f"var el=document.querySelector('{escaped[0]}')"]
         for sel in escaped[1:]:
             parts.append(
-                f"if(!el||!el.shadowRoot)return null;"
-                f"el=el.shadowRoot.querySelector('{sel}')"
+                f"if(!el||!el.shadowRoot)return null;el=el.shadowRoot.querySelector('{sel}')"
             )
         parts.append("return el")
         body = ";".join(parts)
@@ -2415,9 +2343,7 @@ class BiDiBackend(AbstractBackend):
             f"if(!el)return null;"
             f"return (function(){{{escaped_expr}}}).call(el);}})()"
         )
-        result = await client.script.evaluate(
-            self._context, js, await_promise=await_promise
-        )
+        result = await client.script.evaluate(self._context, js, await_promise=await_promise)
         if hasattr(result, "value"):
             return result.value
         return result
@@ -2454,9 +2380,7 @@ class BiDiBackend(AbstractBackend):
             await _asyncio.sleep(0.1)
         raise WaitTimeoutError("selector", timeout_ms)
 
-    async def shadow_click(
-        self, selectors: list[str], auto_wait: bool = True
-    ) -> None:
+    async def shadow_click(self, selectors: list[str], auto_wait: bool = True) -> None:
         """Click an element inside a shadow DOM tree.
 
         Args:
@@ -2479,9 +2403,7 @@ class BiDiBackend(AbstractBackend):
         if not result_value:
             raise ElementNotFoundError(" -> ".join(selectors))
 
-    async def shadow_fill(
-        self, selectors: list[str], value: str, auto_wait: bool = True
-    ) -> None:
+    async def shadow_fill(self, selectors: list[str], value: str, auto_wait: bool = True) -> None:
         """Fill an input element inside a shadow DOM tree.
 
         Args:
@@ -2585,14 +2507,12 @@ class BiDiBackend(AbstractBackend):
             response: Response dict with status, headers, body.
         """
         client = self._require_launched()
-        status = response.get('status', 200)
-        headers = [
-            {'name': k, 'value': v} for k, v in response.get('headers', {}).items()
-        ]
-        body = response.get('body', '')
+        status = response.get("status", 200)
+        headers = [{"name": k, "value": v} for k, v in response.get("headers", {}).items()]
+        body = response.get("body", "")
         await client.network.add_cache_override(
             url=url,
-            method=response.get('method', 'GET'),
+            method=response.get("method", "GET"),
             status_code=status,
             headers=headers or None,
             body=body or None,
@@ -2714,9 +2634,7 @@ class BiDiBackend(AbstractBackend):
         raw_headers = modifications.get("headers")
         response_headers: list[dict[str, Any]] | None
         if isinstance(raw_headers, dict):
-            response_headers = [
-                {"name": k, "value": v} for k, v in raw_headers.items()
-            ]
+            response_headers = [{"name": k, "value": v} for k, v in raw_headers.items()]
         elif isinstance(raw_headers, list):
             response_headers = raw_headers
         else:
@@ -2779,9 +2697,7 @@ class BiDiBackend(AbstractBackend):
                 f"body: {json.dumps(post_data) if post_data else 'undefined'}"
                 f"}}).then(r => r.status).catch(e => e.message)"
             )
-            await client.script.evaluate(
-                self._context, fetch_js, await_promise=True
-            )
+            await client.script.evaluate(self._context, fetch_js, await_promise=True)
 
     async def handle_auth(
         self,
@@ -2868,9 +2784,7 @@ class BiDiBackend(AbstractBackend):
     async def network_set_extra_request_headers(self, headers: dict[str, str]) -> None:
         """Set extra HTTP headers for all requests via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command(
-            "Network.setExtraRequestHeaders", {"headers": headers}
-        )
+        await client.cdp.send_command("Network.setExtraRequestHeaders", {"headers": headers})
 
     async def network_set_user_agent_override(
         self, user_agent: str, accept_language: str = "", platform: str = ""
@@ -2931,22 +2845,26 @@ class BiDiBackend(AbstractBackend):
             await client.cdp.send_command("Network.enable", {})
 
             def on_network_request(params: dict[str, Any]) -> None:
-                state["network"].append({
-                    "type": "request",
-                    "url": params.get("request", {}).get("url", ""),
-                    "method": params.get("request", {}).get("method", ""),
-                    "requestId": params.get("requestId", ""),
-                    "timestamp": params.get("timestamp"),
-                })
+                state["network"].append(
+                    {
+                        "type": "request",
+                        "url": params.get("request", {}).get("url", ""),
+                        "method": params.get("request", {}).get("method", ""),
+                        "requestId": params.get("requestId", ""),
+                        "timestamp": params.get("timestamp"),
+                    }
+                )
 
             def on_network_response(params: dict[str, Any]) -> None:
-                state["network"].append({
-                    "type": "response",
-                    "url": params.get("response", {}).get("url", ""),
-                    "status": params.get("response", {}).get("status", 0),
-                    "requestId": params.get("requestId", ""),
-                    "timestamp": params.get("timestamp"),
-                })
+                state["network"].append(
+                    {
+                        "type": "response",
+                        "url": params.get("response", {}).get("url", ""),
+                        "status": params.get("response", {}).get("status", 0),
+                        "requestId": params.get("requestId", ""),
+                        "timestamp": params.get("timestamp"),
+                    }
+                )
 
             client.cdp.on("Network.requestWillBeSent", on_network_request)
             client.cdp.on("Network.responseReceived", on_network_response)
@@ -2955,27 +2873,29 @@ class BiDiBackend(AbstractBackend):
             await client.cdp.send_command("Runtime.enable", {})
 
             def on_console_api(params: dict[str, Any]) -> None:
-                state["console"].append({
-                    "type": params.get("type", "log"),
-                    "args": params.get("args", []),
-                    "timestamp": params.get("timestamp"),
-                })
+                state["console"].append(
+                    {
+                        "type": params.get("type", "log"),
+                        "args": params.get("args", []),
+                        "timestamp": params.get("timestamp"),
+                    }
+                )
 
             client.cdp.on("Runtime.consoleAPICalled", on_console_api)
 
         if capture_screenshots:
             result = await client.cdp.send_command("Page.captureScreenshot", {})
             if result.get("data"):
-                state["screenshots"].append({
-                    "timestamp": _time.time(),
-                    "data": result["data"],
-                })
+                state["screenshots"].append(
+                    {
+                        "timestamp": _time.time(),
+                        "data": result["data"],
+                    }
+                )
 
         await client.cdp.send_command("Tracing.start", {"traceType": "devtools-timeline"})
 
-        self._combined_traces: dict[str, dict[str, Any]] = getattr(
-            self, "_combined_traces", {}
-        )
+        self._combined_traces: dict[str, dict[str, Any]] = getattr(self, "_combined_traces", {})
         self._combined_traces[trace_id] = state
         return trace_id
 
@@ -3005,9 +2925,7 @@ class BiDiBackend(AbstractBackend):
             if stream_handle:
                 chunks: list[bytes] = []
                 while True:
-                    resp = await client.cdp.send_command(
-                        "IO.read", {"handle": stream_handle}
-                    )
+                    resp = await client.cdp.send_command("IO.read", {"handle": stream_handle})
                     data = resp.get("data", "")
                     if not data:
                         break
@@ -3019,9 +2937,7 @@ class BiDiBackend(AbstractBackend):
                     zf = zipfile.ZipFile(io.BytesIO(raw))
                     for name in zf.namelist():
                         content = zf.read(name).decode("utf-8", errors="replace")
-                        trace_events.extend(
-                            json.loads(content).get("traceEvents", [])
-                        )
+                        trace_events.extend(json.loads(content).get("traceEvents", []))
                 except (zipfile.BadZipFile, json.JSONDecodeError, KeyError, ValueError):
                     trace_events.append({"raw_size": len(raw)})
 
@@ -3031,10 +2947,12 @@ class BiDiBackend(AbstractBackend):
         if state["capture_screenshots"]:
             screenshot_result = await client.cdp.send_command("Page.captureScreenshot", {})
             if screenshot_result.get("data"):
-                state["screenshots"].append({
-                    "timestamp": 0,
-                    "data": screenshot_result["data"],
-                })
+                state["screenshots"].append(
+                    {
+                        "timestamp": 0,
+                        "data": screenshot_result["data"],
+                    }
+                )
 
         import asyncio as _asyncio
 
@@ -3142,11 +3060,10 @@ class BiDiBackend(AbstractBackend):
                 def make_handler(lbl: str) -> Any:
                     def _handler(params: Any) -> None:
                         data = (
-                            params.model_dump()
-                            if hasattr(params, "model_dump")
-                            else dict(params)
+                            params.model_dump() if hasattr(params, "model_dump") else dict(params)
                         )
                         callback({"type": lbl, "data": data})
+
                     return _handler
 
                 handler = make_handler(label)
@@ -3178,7 +3095,8 @@ class BiDiBackend(AbstractBackend):
         """
         client = self._require_launched()
         result = await client.cdp.send_command(
-            "Accessibility.getFullAXTree", {},
+            "Accessibility.getFullAXTree",
+            {},
         )
         return dict(result) if result else {}
 
@@ -3268,9 +3186,7 @@ class BiDiBackend(AbstractBackend):
     async def reset_permissions(self) -> None:
         """Reset all granted permissions via BiDi."""
         client = self._require_launched()
-        await client._connection.send_command(
-            "browser.resetPermissions", {}
-        )
+        await client._connection.send_command("browser.resetPermissions", {})
 
     # ── Security ───────────────────────────────────────────
 
@@ -3292,7 +3208,8 @@ class BiDiBackend(AbstractBackend):
         """
         client = self._require_launched()
         await client.cdp.send_command(
-            "Security.setIgnoreCertificateErrors", {"ignore": ignore},
+            "Security.setIgnoreCertificateErrors",
+            {"ignore": ignore},
         )
 
     # ── Emulation advanced ─────────────────────────────────
@@ -3305,7 +3222,8 @@ class BiDiBackend(AbstractBackend):
         """
         client = self._require_launched()
         await client.cdp.send_command(
-            'Emulation.setLocaleOverride', {'locale': locale},
+            "Emulation.setLocaleOverride",
+            {"locale": locale},
         )
 
     async def set_cpu_throttle(self, rate: float) -> None:
@@ -3316,7 +3234,8 @@ class BiDiBackend(AbstractBackend):
         """
         client = self._require_launched()
         await client.cdp.send_command(
-            "Emulation.setCPUThrottlingRate", {"rate": rate},
+            "Emulation.setCPUThrottlingRate",
+            {"rate": rate},
         )
 
     async def set_touch_emulation(self, enabled: bool) -> None:
@@ -3327,7 +3246,8 @@ class BiDiBackend(AbstractBackend):
         """
         client = self._require_launched()
         await client.cdp.send_command(
-            'Emulation.setTouchEmulationEnabled', {'enabled': enabled},
+            "Emulation.setTouchEmulationEnabled",
+            {"enabled": enabled},
         )
 
     async def set_sensors(self, sensors: SensorParams) -> None:
@@ -3393,16 +3313,12 @@ class BiDiBackend(AbstractBackend):
     async def set_emulated_vision_deficiency(self, deficiency: str) -> None:
         """Set emulated vision deficiency via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command(
-            "Emulation.setEmulatedVisionDeficiency", {"type": deficiency}
-        )
+        await client.cdp.send_command("Emulation.setEmulatedVisionDeficiency", {"type": deficiency})
 
     async def clear_emulated_vision_deficiency(self) -> None:
         """Clear emulated vision deficiency override via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command(
-            "Emulation.setEmulatedVisionDeficiency", {"type": "none"}
-        )
+        await client.cdp.send_command("Emulation.setEmulatedVisionDeficiency", {"type": "none"})
 
     async def set_idle_override(
         self, is_user_active: bool = True, is_screen_active: bool = True
@@ -3422,9 +3338,7 @@ class BiDiBackend(AbstractBackend):
     async def set_script_execution_disabled(self, disabled: bool = True) -> None:
         """Disable or enable JavaScript script execution via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command(
-            "Emulation.setScriptExecutionDisabled", {"value": disabled}
-        )
+        await client.cdp.send_command("Emulation.setScriptExecutionDisabled", {"value": disabled})
 
     async def set_visible_size(self, width: int, height: int) -> None:
         """Set the visible size of the page via CDP bridge."""
@@ -3521,7 +3435,9 @@ class BiDiBackend(AbstractBackend):
     async def set_default_background_color_override(self, color: dict[str, Any]) -> None:
         """Override the default background color via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Emulation.setDefaultBackgroundColorOverride", {"color": color})
+        await client.cdp.send_command(
+            "Emulation.setDefaultBackgroundColorOverride", {"color": color}
+        )
 
     async def set_device_posture_override(self, posture: str) -> None:
         """Override the device posture via CDP bridge."""
@@ -3531,19 +3447,25 @@ class BiDiBackend(AbstractBackend):
     async def set_disabled_image_types(self, image_types: list[str]) -> None:
         """Disable the given image types from loading via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Emulation.setDisabledImageTypes", {"imageTypes": image_types})
+        await client.cdp.send_command(
+            "Emulation.setDisabledImageTypes", {"imageTypes": image_types}
+        )
 
     async def set_display_features_override(self, features: list[dict[str, Any]]) -> None:
         """Override display features via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Emulation.setDisplayFeaturesOverride", {"features": features})
+        await client.cdp.send_command(
+            "Emulation.setDisplayFeaturesOverride", {"features": features}
+        )
 
     async def set_document_cookie_disabled(self, disabled: bool) -> None:
         """Disable or enable document cookies via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("Emulation.setDocumentCookieDisabled", {"disabled": disabled})
 
-    async def set_emit_touch_events_for_mouse(self, enabled: bool, configuration: dict[str, Any] | None = None) -> None:
+    async def set_emit_touch_events_for_mouse(
+        self, enabled: bool, configuration: dict[str, Any] | None = None
+    ) -> None:
         """Enable or disable touch event emulation for mouse input via CDP bridge."""
         client = self._require_launched()
         params: dict[str, Any] = {"enabled": enabled}
@@ -3566,19 +3488,26 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         await client.cdp.send_command("Emulation.setFocusEmulationEnabled", {"enabled": enabled})
 
-    async def set_geolocation_override(self, latitude: float, longitude: float, accuracy: float = 100.0) -> None:
+    async def set_geolocation_override(
+        self, latitude: float, longitude: float, accuracy: float = 100.0
+    ) -> None:
         """Override the geolocation position via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Emulation.setGeolocationOverride", {
-            "latitude": latitude,
-            "longitude": longitude,
-            "accuracy": accuracy,
-        })
+        await client.cdp.send_command(
+            "Emulation.setGeolocationOverride",
+            {
+                "latitude": latitude,
+                "longitude": longitude,
+                "accuracy": accuracy,
+            },
+        )
 
     async def set_hardware_concurrency_override(self, concurrency: int) -> None:
         """Override the hardware concurrency via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Emulation.setHardwareConcurrencyOverride", {"hardwareConcurrency": concurrency})
+        await client.cdp.send_command(
+            "Emulation.setHardwareConcurrencyOverride", {"hardwareConcurrency": concurrency}
+        )
 
     async def set_locale_override(self, locale: str) -> None:
         """Override the browser locale via CDP bridge."""
@@ -3598,12 +3527,16 @@ class BiDiBackend(AbstractBackend):
     async def set_pressure_source_override_enabled(self, source: str, enabled: bool) -> None:
         """Enable or disable pressure source override via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Emulation.setPressureSourceOverrideEnabled", {"source": source, "enabled": enabled})
+        await client.cdp.send_command(
+            "Emulation.setPressureSourceOverrideEnabled", {"source": source, "enabled": enabled}
+        )
 
     async def set_pressure_state_override(self, source: str, state: str, value: float) -> None:
         """Override the pressure state via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Emulation.setPressureStateOverride", {"source": source, "state": state, "value": value})
+        await client.cdp.send_command(
+            "Emulation.setPressureStateOverride", {"source": source, "state": state, "value": value}
+        )
 
     async def set_primary_screen(self, screen_id: str) -> None:
         """Set the primary screen by ID via CDP bridge."""
@@ -3623,17 +3556,23 @@ class BiDiBackend(AbstractBackend):
     async def set_sensor_override_enabled(self, type: str, enabled: bool) -> None:
         """Enable or disable sensor override via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Emulation.setSensorOverrideEnabled", {"type": type, "enabled": enabled})
+        await client.cdp.send_command(
+            "Emulation.setSensorOverrideEnabled", {"type": type, "enabled": enabled}
+        )
 
     async def set_sensor_override_readings(self, type: str, readings: list[dict[str, Any]]) -> None:
         """Override sensor readings via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Emulation.setSensorOverrideReadings", {"type": type, "readings": readings})
+        await client.cdp.send_command(
+            "Emulation.setSensorOverrideReadings", {"type": type, "readings": readings}
+        )
 
     async def set_small_viewport_height_difference_override(self, difference: float) -> None:
         """Override the small viewport height difference via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Emulation.setSmallViewportHeightDifferenceOverride", {"difference": difference})
+        await client.cdp.send_command(
+            "Emulation.setSmallViewportHeightDifferenceOverride", {"difference": difference}
+        )
 
     async def set_timezone_override(self, timezone_id: str) -> None:
         """Override the timezone via CDP bridge."""
@@ -3643,9 +3582,18 @@ class BiDiBackend(AbstractBackend):
     async def set_touch_emulation_enabled(self, enabled: bool, max_touch_points: int = 5) -> None:
         """Enable or disable touch emulation via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Emulation.setTouchEmulationEnabled", {"enabled": enabled, "maxTouchPoints": max_touch_points})
+        await client.cdp.send_command(
+            "Emulation.setTouchEmulationEnabled",
+            {"enabled": enabled, "maxTouchPoints": max_touch_points},
+        )
 
-    async def set_user_agent_override(self, user_agent: str, accept_language: str = "", platform: str = "", user_agent_metadata: dict[str, Any] | None = None) -> None:
+    async def set_user_agent_override(
+        self,
+        user_agent: str,
+        accept_language: str = "",
+        platform: str = "",
+        user_agent_metadata: dict[str, Any] | None = None,
+    ) -> None:
         """Override the user agent string and related metadata via CDP bridge."""
         client = self._require_launched()
         params: dict[str, Any] = {"userAgent": user_agent}
@@ -3660,12 +3608,16 @@ class BiDiBackend(AbstractBackend):
     async def set_virtual_time_policy(self, policy: str, budget: int = 0) -> None:
         """Set the virtual time policy via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Emulation.setVirtualTimePolicy", {"policy": policy, "budget": budget})
+        await client.cdp.send_command(
+            "Emulation.setVirtualTimePolicy", {"policy": policy, "budget": budget}
+        )
 
     async def update_screen(self, screen_id: str, screen: dict[str, Any]) -> None:
         """Update a virtual screen by ID via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Emulation.updateScreen", {"screenId": screen_id, "screen": screen})
+        await client.cdp.send_command(
+            "Emulation.updateScreen", {"screenId": screen_id, "screen": screen}
+        )
 
     # ── Performance ───────────────────────────────────────
 
@@ -3715,6 +3667,7 @@ class BiDiBackend(AbstractBackend):
             {"traceConfig": {"recordMode": "recordUntilFull"}},
         )
         import asyncio as _asyncio
+
         await _asyncio.sleep(duration_ms / 1000)
         result = await client.cdp.send_command("Tracing.end", {})
         return dict(result) if result else {}
@@ -3732,6 +3685,7 @@ class BiDiBackend(AbstractBackend):
         await client.cdp.send_command("Profiler.enable", {})
         await client.cdp.send_command("Profiler.start", {})
         import asyncio as _asyncio
+
         await _asyncio.sleep(duration_ms / 1000)
         result = await client.cdp.send_command("Profiler.stop", {})
         return dict(result) if result else {}
@@ -3745,7 +3699,8 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         await client.cdp.send_command("HeapProfiler.enable", {})
         result = await client.cdp.send_command(
-            "HeapProfiler.takeHeapSnapshot", {},
+            "HeapProfiler.takeHeapSnapshot",
+            {},
         )
         return dict(result) if result else {}
 
@@ -3778,9 +3733,11 @@ class BiDiBackend(AbstractBackend):
         await client.cdp.send_command("CSS.enable", {})
         await client.cdp.send_command("CSS.startRuleUsageTracking", {})
         import asyncio as _asyncio
+
         await _asyncio.sleep(1)
         result = await client.cdp.send_command(
-            "CSS.stopRuleUsageTracking", {},
+            "CSS.stopRuleUsageTracking",
+            {},
         )
         return dict(result) if result else {}
 
@@ -3844,9 +3801,7 @@ class BiDiBackend(AbstractBackend):
         result = await client.cdp.send_command("Tracing.requestMemoryDump", {})
         return dict(result) if result else {}
 
-    async def tracing_get_track_event_descriptor(
-        self, track_event: str
-    ) -> dict[str, Any]:
+    async def tracing_get_track_event_descriptor(self, track_event: str) -> dict[str, Any]:
         """Get a track event descriptor via CDP bridge."""
         client = self._require_launched()
         result = await client.cdp.send_command(
@@ -3999,9 +3954,7 @@ class BiDiBackend(AbstractBackend):
     async def css_create_style_sheet(self, frame_id: str) -> str:
         """Create a new stylesheet in the given frame via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command(
-            "CSS.createStyleSheet", {"frameId": frame_id}
-        )
+        result = await client.cdp.send_command("CSS.createStyleSheet", {"frameId": frame_id})
         return str(result.get("styleSheetId", ""))
 
     async def css_get_media_queries(self) -> list[dict[str, Any]]:
@@ -4061,9 +4014,7 @@ class BiDiBackend(AbstractBackend):
     async def css_get_background_colors(self, node_id: int) -> dict[str, Any]:
         """Get background colors for a node via CDP bridge."""
         client = self._require_launched()
-        return dict(await client.cdp.send_command(
-            "CSS.getBackgroundColors", {"nodeId": node_id}
-        ))
+        return dict(await client.cdp.send_command("CSS.getBackgroundColors", {"nodeId": node_id}))
 
     async def css_start_rule_usage_tracking(self) -> None:
         """Start tracking CSS rule usage via CDP bridge."""
@@ -4096,10 +4047,14 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         await client.cdp.send_command("CSS.enable", {})
 
-    async def css_force_starting_style(self, node_id: int, starting_style_id: dict[str, Any]) -> None:
+    async def css_force_starting_style(
+        self, node_id: int, starting_style_id: dict[str, Any]
+    ) -> None:
         """Force a starting style for a node via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("CSS.forceStartingStyle", {"nodeId": node_id, "startingStyleId": starting_style_id})
+        await client.cdp.send_command(
+            "CSS.forceStartingStyle", {"nodeId": node_id, "startingStyleId": starting_style_id}
+        )
 
     async def css_get_animated_styles_for_node(self, node_id: int) -> dict[str, Any]:
         """Get animated styles for a node by ID via CDP bridge."""
@@ -4137,16 +4092,24 @@ class BiDiBackend(AbstractBackend):
         result = await client.cdp.send_command("CSS.getLayersForNode", {"nodeId": node_id})
         return list(result.get("layers", [])) if result else []
 
-    async def css_get_location_for_selector(self, selector: str, stylesheet_id: str) -> dict[str, Any]:
+    async def css_get_location_for_selector(
+        self, selector: str, stylesheet_id: str
+    ) -> dict[str, Any]:
         """Get the location of a CSS selector in a stylesheet via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("CSS.getLocationForSelector", {"selector": selector, "styleSheetId": stylesheet_id})
+        result = await client.cdp.send_command(
+            "CSS.getLocationForSelector", {"selector": selector, "styleSheetId": stylesheet_id}
+        )
         return dict(result) if result else {}
 
-    async def css_get_longhand_properties(self, shorthand_id: dict[str, Any]) -> list[dict[str, Any]]:
+    async def css_get_longhand_properties(
+        self, shorthand_id: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """Get longhand properties for a shorthand property via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("CSS.getLonghandProperties", {"shorthandId": shorthand_id})
+        result = await client.cdp.send_command(
+            "CSS.getLonghandProperties", {"shorthandId": shorthand_id}
+        )
         return list(result.get("longhandProperties", [])) if result else []
 
     async def css_get_matched_styles_for_node(self, node_id: int) -> dict[str, Any]:
@@ -4164,7 +4127,9 @@ class BiDiBackend(AbstractBackend):
     async def css_get_stylesheet_text(self, stylesheet_id: str) -> str:
         """Get the text content of a stylesheet by ID via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("CSS.getStyleSheetText", {"styleSheetId": stylesheet_id})
+        result = await client.cdp.send_command(
+            "CSS.getStyleSheetText", {"styleSheetId": stylesheet_id}
+        )
         return str(result.get("text", "")) if result else ""
 
     async def css_resolve_values(self, values: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -4173,50 +4138,86 @@ class BiDiBackend(AbstractBackend):
         result = await client.cdp.send_command("CSS.resolveValues", {"values": values})
         return list(result.get("resolvedValues", [])) if result else []
 
-    async def css_set_container_query_condition_text(self, stylesheet_id: str, container_query_id: dict[str, Any], text: str) -> None:
+    async def css_set_container_query_condition_text(
+        self, stylesheet_id: str, container_query_id: dict[str, Any], text: str
+    ) -> None:
         """Set the condition text of a container query via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("CSS.setContainerQueryConditionText", {"styleSheetId": stylesheet_id, "containerQueryId": container_query_id, "text": text})
+        await client.cdp.send_command(
+            "CSS.setContainerQueryConditionText",
+            {"styleSheetId": stylesheet_id, "containerQueryId": container_query_id, "text": text},
+        )
 
-    async def css_set_effective_property_value_for_node(self, node_id: int, property_name: str, value: str) -> None:
+    async def css_set_effective_property_value_for_node(
+        self, node_id: int, property_name: str, value: str
+    ) -> None:
         """Set the effective property value for a node via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("CSS.setEffectivePropertyValueForNode", {"nodeId": node_id, "propertyName": property_name, "value": value})
+        await client.cdp.send_command(
+            "CSS.setEffectivePropertyValueForNode",
+            {"nodeId": node_id, "propertyName": property_name, "value": value},
+        )
 
-    async def css_set_keyframe_key(self, stylesheet_id: str, keyframe_id: dict[str, Any], key_text: str) -> None:
+    async def css_set_keyframe_key(
+        self, stylesheet_id: str, keyframe_id: dict[str, Any], key_text: str
+    ) -> None:
         """Set the key text of a keyframe rule via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("CSS.setKeyframeKey", {"styleSheetId": stylesheet_id, "keyframeId": keyframe_id, "keyText": key_text})
+        await client.cdp.send_command(
+            "CSS.setKeyframeKey",
+            {"styleSheetId": stylesheet_id, "keyframeId": keyframe_id, "keyText": key_text},
+        )
 
     async def css_set_local_fonts_enabled(self, enabled: bool) -> None:
         """Enable or disable local fonts via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("CSS.setLocalFontsEnabled", {"enabled": enabled})
 
-    async def css_set_navigation_text(self, stylesheet_id: str, navigation_id: dict[str, Any], text: str) -> None:
+    async def css_set_navigation_text(
+        self, stylesheet_id: str, navigation_id: dict[str, Any], text: str
+    ) -> None:
         """Set the text of a navigation rule via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("CSS.setNavigationText", {"styleSheetId": stylesheet_id, "navigationId": navigation_id, "text": text})
+        await client.cdp.send_command(
+            "CSS.setNavigationText",
+            {"styleSheetId": stylesheet_id, "navigationId": navigation_id, "text": text},
+        )
 
-    async def css_set_property_rule_property_name(self, stylesheet_id: str, property_rule_id: dict[str, Any], name: str) -> None:
+    async def css_set_property_rule_property_name(
+        self, stylesheet_id: str, property_rule_id: dict[str, Any], name: str
+    ) -> None:
         """Set the property name of a property rule via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("CSS.setPropertyRulePropertyName", {"styleSheetId": stylesheet_id, "propertyRuleId": property_rule_id, "name": name})
+        await client.cdp.send_command(
+            "CSS.setPropertyRulePropertyName",
+            {"styleSheetId": stylesheet_id, "propertyRuleId": property_rule_id, "name": name},
+        )
 
-    async def css_set_rule_style(self, stylesheet_id: str, rule_id: dict[str, Any], style_text: str) -> None:
+    async def css_set_rule_style(
+        self, stylesheet_id: str, rule_id: dict[str, Any], style_text: str
+    ) -> None:
         """Set the style text of a CSS rule via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("CSS.setRuleStyle", {"styleSheetId": stylesheet_id, "ruleId": rule_id, "style": style_text})
+        await client.cdp.send_command(
+            "CSS.setRuleStyle",
+            {"styleSheetId": stylesheet_id, "ruleId": rule_id, "style": style_text},
+        )
 
-    async def css_set_scope_text(self, stylesheet_id: str, scope_id: dict[str, Any], text: str) -> None:
+    async def css_set_scope_text(
+        self, stylesheet_id: str, scope_id: dict[str, Any], text: str
+    ) -> None:
         """Set the text of a scope rule via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("CSS.setScopeText", {"styleSheetId": stylesheet_id, "scopeId": scope_id, "text": text})
+        await client.cdp.send_command(
+            "CSS.setScopeText", {"styleSheetId": stylesheet_id, "scopeId": scope_id, "text": text}
+        )
 
     async def css_set_style_sheet_text(self, stylesheet_id: str, text: str) -> None:
         """Set the text content of a stylesheet by ID via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("CSS.setStyleSheetText", {"styleSheetId": stylesheet_id, "text": text})
+        await client.cdp.send_command(
+            "CSS.setStyleSheetText", {"styleSheetId": stylesheet_id, "text": text}
+        )
 
     async def css_set_style_text(self, edits: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Set style texts for multiple edits via CDP bridge."""
@@ -4233,12 +4234,19 @@ class BiDiBackend(AbstractBackend):
     async def css_set_stylesheet_text(self, stylesheet_id: str, text: str) -> None:
         """Set the text content of a stylesheet by ID (alias) via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("CSS.setStyleSheetText", {"styleSheetId": stylesheet_id, "text": text})
+        await client.cdp.send_command(
+            "CSS.setStyleSheetText", {"styleSheetId": stylesheet_id, "text": text}
+        )
 
-    async def css_set_supports_text(self, stylesheet_id: str, supports_id: dict[str, Any], text: str) -> None:
+    async def css_set_supports_text(
+        self, stylesheet_id: str, supports_id: dict[str, Any], text: str
+    ) -> None:
         """Set the text of a supports rule via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("CSS.setSupportsText", {"styleSheetId": stylesheet_id, "supportsId": supports_id, "text": text})
+        await client.cdp.send_command(
+            "CSS.setSupportsText",
+            {"styleSheetId": stylesheet_id, "supportsId": supports_id, "text": text},
+        )
 
     async def css_take_computed_style_updates(self) -> list[dict[str, Any]]:
         """Take computed style updates via CDP bridge."""
@@ -4249,18 +4257,23 @@ class BiDiBackend(AbstractBackend):
     async def css_track_computed_style_updates(self, track_properties: bool = True) -> None:
         """Track computed style updates via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("CSS.trackComputedStyleUpdates", {"trackProperties": track_properties})
+        await client.cdp.send_command(
+            "CSS.trackComputedStyleUpdates", {"trackProperties": track_properties}
+        )
 
-    async def css_track_computed_style_updates_for_node(self, node_id: int, track_properties: bool = True) -> None:
+    async def css_track_computed_style_updates_for_node(
+        self, node_id: int, track_properties: bool = True
+    ) -> None:
         """Track computed style updates for a specific node via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("CSS.trackComputedStyleUpdatesForNode", {"nodeId": node_id, "trackProperties": track_properties})
+        await client.cdp.send_command(
+            "CSS.trackComputedStyleUpdatesForNode",
+            {"nodeId": node_id, "trackProperties": track_properties},
+        )
 
     # ── Debugging ──────────────────────────────────────────
 
-    async def debug_set_breakpoint(
-        self, url: str, line: int, condition: str | None = None
-    ) -> str:
+    async def debug_set_breakpoint(self, url: str, line: int, condition: str | None = None) -> str:
         """Set a breakpoint by URL and line via CDP Debugger.
 
         Args:
@@ -4277,7 +4290,8 @@ class BiDiBackend(AbstractBackend):
         if condition:
             params["condition"] = condition
         result = await client.cdp.send_command(
-            "Debugger.setBreakpointByUrl", params,
+            "Debugger.setBreakpointByUrl",
+            params,
         )
         return str(result.get("breakpointId", "")) if result else ""
 
@@ -4367,17 +4381,17 @@ class BiDiBackend(AbstractBackend):
     ) -> dict[str, Any]:
         """Evaluate a JavaScript expression in a paused call frame via CDP bridge."""
         client = self._require_launched()
-        return dict(await client.cdp.send_command(
-            "Debugger.evaluateOnCallFrame",
-            {"callFrameId": call_frame_id, "expression": expression},
-        ))
+        return dict(
+            await client.cdp.send_command(
+                "Debugger.evaluateOnCallFrame",
+                {"callFrameId": call_frame_id, "expression": expression},
+            )
+        )
 
     async def debug_get_script_source(self, script_id: str) -> str:
         """Get the source code of a script by ID via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command(
-            "Debugger.getScriptSource", {"scriptId": script_id}
-        )
+        result = await client.cdp.send_command("Debugger.getScriptSource", {"scriptId": script_id})
         return str(result.get("scriptSource", ""))
 
     async def debug_get_stack_trace(self) -> dict[str, Any]:
@@ -4427,14 +4441,14 @@ class BiDiBackend(AbstractBackend):
     async def debug_set_script_source(self, script_id: str, source: str) -> dict[str, Any]:
         """Edit the source code of a live script via CDP bridge."""
         client = self._require_launched()
-        return dict(await client.cdp.send_command(
-            "Debugger.setScriptSource",
-            {"scriptId": script_id, "scriptSource": source},
-        ))
+        return dict(
+            await client.cdp.send_command(
+                "Debugger.setScriptSource",
+                {"scriptId": script_id, "scriptSource": source},
+            )
+        )
 
-    async def debug_continue_to_location(
-        self, url: str, line: int, column: int = 0
-    ) -> None:
+    async def debug_continue_to_location(self, url: str, line: int, column: int = 0) -> None:
         """Continue execution until a specific location via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command(
@@ -4450,7 +4464,9 @@ class BiDiBackend(AbstractBackend):
     async def debug_disassemble_wasm_module(self, script_id: str) -> dict[str, Any]:
         """Disassemble a WASM module by script ID via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("Debugger.disassembleWasmModule", {"scriptId": script_id})
+        result = await client.cdp.send_command(
+            "Debugger.disassembleWasmModule", {"scriptId": script_id}
+        )
         return dict(result) if result else {}
 
     async def debug_enable(self) -> None:
@@ -4461,13 +4477,17 @@ class BiDiBackend(AbstractBackend):
     async def debug_get_wasm_bytecode(self, script_id: str, offset: int) -> dict[str, Any]:
         """Get WASM bytecode for a script by ID and offset via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("Debugger.getWasmBytecode", {"scriptId": script_id, "offset": offset})
+        result = await client.cdp.send_command(
+            "Debugger.getWasmBytecode", {"scriptId": script_id, "offset": offset}
+        )
         return dict(result) if result else {}
 
     async def debug_next_wasm_disassembly_chunk(self, disassembly_id: str) -> dict[str, Any]:
         """Get the next chunk of a WASM disassembly via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("Debugger.nextWasmDisassemblyChunk", {"disassemblyId": disassembly_id})
+        result = await client.cdp.send_command(
+            "Debugger.nextWasmDisassemblyChunk", {"disassemblyId": disassembly_id}
+        )
         return dict(result) if result else {}
 
     async def debug_pause(self) -> None:
@@ -4503,19 +4523,27 @@ class BiDiBackend(AbstractBackend):
     async def debug_set_blackbox_execution_contexts(self, unique_ids: list[str]) -> None:
         """Set blackboxed execution contexts by unique IDs via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Debugger.setBlackboxExecutionContexts", {"uniqueIds": unique_ids})
+        await client.cdp.send_command(
+            "Debugger.setBlackboxExecutionContexts", {"uniqueIds": unique_ids}
+        )
 
     async def debug_set_blackbox_patterns(self, patterns: list[str]) -> None:
         """Set blackbox patterns for script URLs via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("Debugger.setBlackboxPatterns", {"patterns": patterns})
 
-    async def debug_set_blackboxed_ranges(self, script_id: str, positions: list[dict[str, Any]]) -> None:
+    async def debug_set_blackboxed_ranges(
+        self, script_id: str, positions: list[dict[str, Any]]
+    ) -> None:
         """Set blackboxed ranges for a script via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Debugger.setBlackboxedRanges", {"scriptId": script_id, "positions": positions})
+        await client.cdp.send_command(
+            "Debugger.setBlackboxedRanges", {"scriptId": script_id, "positions": positions}
+        )
 
-    async def debug_set_breakpoint_raw(self, location: dict[str, Any], condition: str | None = None) -> dict[str, Any]:
+    async def debug_set_breakpoint_raw(
+        self, location: dict[str, Any], condition: str | None = None
+    ) -> dict[str, Any]:
         """Set a breakpoint at a raw location in a script via CDP bridge."""
         client = self._require_launched()
         params: dict[str, Any] = {"location": location}
@@ -4524,16 +4552,24 @@ class BiDiBackend(AbstractBackend):
         result = await client.cdp.send_command("Debugger.setBreakpoint", params)
         return dict(result) if result else {}
 
-    async def debug_set_breakpoint_by_url(self, url: str, line_number: int, column_number: int = 0, condition: str | None = None) -> dict[str, Any]:
+    async def debug_set_breakpoint_by_url(
+        self, url: str, line_number: int, column_number: int = 0, condition: str | None = None
+    ) -> dict[str, Any]:
         """Set a breakpoint by URL and line number via CDP bridge."""
         client = self._require_launched()
-        params: dict[str, Any] = {"url": url, "lineNumber": line_number, "columnNumber": column_number}
+        params: dict[str, Any] = {
+            "url": url,
+            "lineNumber": line_number,
+            "columnNumber": column_number,
+        }
         if condition is not None:
             params["condition"] = condition
         result = await client.cdp.send_command("Debugger.setBreakpointByUrl", params)
         return dict(result) if result else {}
 
-    async def debug_set_breakpoint_on_function_call(self, object_id: str, condition: str | None = None) -> dict[str, Any]:
+    async def debug_set_breakpoint_on_function_call(
+        self, object_id: str, condition: str | None = None
+    ) -> dict[str, Any]:
         """Set a breakpoint on a function call by object ID via CDP bridge."""
         client = self._require_launched()
         params: dict[str, Any] = {"objectId": object_id}
@@ -4545,7 +4581,9 @@ class BiDiBackend(AbstractBackend):
     async def debug_set_instrumentation_breakpoint(self, instrumentation: str) -> dict[str, Any]:
         """Set an instrumentation breakpoint via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("Debugger.setInstrumentationBreakpoint", {"instrumentation": instrumentation})
+        result = await client.cdp.send_command(
+            "Debugger.setInstrumentationBreakpoint", {"instrumentation": instrumentation}
+        )
         return dict(result) if result else {}
 
     async def debug_set_return_value(self, new_value: dict[str, Any]) -> None:
@@ -4553,25 +4591,44 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         await client.cdp.send_command("Debugger.setReturnValue", {"newValue": new_value})
 
-    async def debug_set_variable_value(self, call_frame_id: str, scope_number: int, variable_name: str, new_value: dict[str, Any]) -> None:
+    async def debug_set_variable_value(
+        self, call_frame_id: str, scope_number: int, variable_name: str, new_value: dict[str, Any]
+    ) -> None:
         """Set a variable value in a scope of a call frame via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Debugger.setVariableValue", {"callFrameId": call_frame_id, "scopeNumber": scope_number, "variableName": variable_name, "newValue": new_value})
+        await client.cdp.send_command(
+            "Debugger.setVariableValue",
+            {
+                "callFrameId": call_frame_id,
+                "scopeNumber": scope_number,
+                "variableName": variable_name,
+                "newValue": new_value,
+            },
+        )
 
     # ── DOMDebugger ────────────────────────────────────────
 
-    async def dom_debugger_get_event_listeners(self, object_id: str, depth: int = 0, pierce: bool = False) -> list[dict[str, Any]]:
+    async def dom_debugger_get_event_listeners(
+        self, object_id: str, depth: int = 0, pierce: bool = False
+    ) -> list[dict[str, Any]]:
         """Get event listeners for an object by its remote object ID via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("DOMDebugger.getEventListeners", {"objectId": object_id, "depth": depth, "pierce": pierce})
+        result = await client.cdp.send_command(
+            "DOMDebugger.getEventListeners",
+            {"objectId": object_id, "depth": depth, "pierce": pierce},
+        )
         return list(result.get("listeners", [])) if result else []
 
     async def dom_debugger_remove_dom_breakpoint(self, node_id: int, type: str) -> None:
         """Remove a DOM breakpoint from a node by ID via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("DOMDebugger.removeDOMBreakpoint", {"nodeId": node_id, "type": type})
+        await client.cdp.send_command(
+            "DOMDebugger.removeDOMBreakpoint", {"nodeId": node_id, "type": type}
+        )
 
-    async def dom_debugger_remove_event_listener_breakpoint(self, event_name: str, target_name: str | None = None) -> None:
+    async def dom_debugger_remove_event_listener_breakpoint(
+        self, event_name: str, target_name: str | None = None
+    ) -> None:
         """Remove an event listener breakpoint via CDP bridge."""
         client = self._require_launched()
         params: dict[str, Any] = {"eventName": event_name}
@@ -4582,7 +4639,9 @@ class BiDiBackend(AbstractBackend):
     async def dom_debugger_remove_instrumentation_breakpoint(self, event_name: str) -> None:
         """Remove an instrumentation breakpoint via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("DOMDebugger.removeInstrumentationBreakpoint", {"eventName": event_name})
+        await client.cdp.send_command(
+            "DOMDebugger.removeInstrumentationBreakpoint", {"eventName": event_name}
+        )
 
     async def dom_debugger_remove_xhr_breakpoint(self, url: str) -> None:
         """Remove an XHR breakpoint for a URL substring via CDP bridge."""
@@ -4597,9 +4656,13 @@ class BiDiBackend(AbstractBackend):
     async def dom_debugger_set_dom_breakpoint(self, node_id: int, type: str) -> None:
         """Set a DOM breakpoint on a node by ID via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("DOMDebugger.setDOMBreakpoint", {"nodeId": node_id, "type": type})
+        await client.cdp.send_command(
+            "DOMDebugger.setDOMBreakpoint", {"nodeId": node_id, "type": type}
+        )
 
-    async def dom_debugger_set_event_listener_breakpoint(self, event_name: str, target_name: str | None = None) -> None:
+    async def dom_debugger_set_event_listener_breakpoint(
+        self, event_name: str, target_name: str | None = None
+    ) -> None:
         """Set an event listener breakpoint via CDP bridge."""
         client = self._require_launched()
         params: dict[str, Any] = {"eventName": event_name}
@@ -4610,7 +4673,9 @@ class BiDiBackend(AbstractBackend):
     async def dom_debugger_set_instrumentation_breakpoint(self, event_name: str) -> None:
         """Set an instrumentation breakpoint via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("DOMDebugger.setInstrumentationBreakpoint", {"eventName": event_name})
+        await client.cdp.send_command(
+            "DOMDebugger.setInstrumentationBreakpoint", {"eventName": event_name}
+        )
 
     async def dom_debugger_set_xhr_breakpoint(self, url: str) -> None:
         """Set an XHR breakpoint for a URL substring via CDP bridge."""
@@ -4635,9 +4700,7 @@ class BiDiBackend(AbstractBackend):
 
     # ── Overlay ────────────────────────────────────────────
 
-    async def overlay_highlight(
-        self, selector: str, color: str = "rgba(255,0,0,0.5)"
-    ) -> None:
+    async def overlay_highlight(self, selector: str, color: str = "rgba(255,0,0,0.5)") -> None:
         """Highlight an element via JS outline.
 
         Args:
@@ -4681,9 +4744,7 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         await client.cdp.send_command("Overlay.disable", {})
 
-    async def overlay_highlight_node(
-        self, node_id: int, color: str = "rgba(255,0,0,0.5)"
-    ) -> None:
+    async def overlay_highlight_node(self, node_id: int, color: str = "rgba(255,0,0,0.5)") -> None:
         """Highlight a DOM node by node ID via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command(
@@ -4710,22 +4771,22 @@ class BiDiBackend(AbstractBackend):
         )
 
     async def overlay_highlight_rect(
-        self, x: float, y: float, width: float, height: float,
-        color: str = "rgba(255,0,0,0.5)"
+        self, x: float, y: float, width: float, height: float, color: str = "rgba(255,0,0,0.5)"
     ) -> None:
         """Highlight a rectangular region via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command(
             "Overlay.highlightRect",
             {
-                "x": x, "y": y, "width": width, "height": height,
+                "x": x,
+                "y": y,
+                "width": width,
+                "height": height,
                 "outlineColor": {"r": 255, "g": 0, "b": 0, "a": 0.5},
             },
         )
 
-    async def overlay_set_inspect_mode(
-        self, mode: str = "searchForNode"
-    ) -> None:
+    async def overlay_set_inspect_mode(self, mode: str = "searchForNode") -> None:
         """Set the inspect mode via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command(
@@ -4753,14 +4814,14 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         await client.cdp.send_command("Overlay.setShowAdHighlights", {"show": show})
 
-    async def overlay_get_grid_highlight_objects_for_test(
-        self, node_id: int
-    ) -> dict[str, Any]:
+    async def overlay_get_grid_highlight_objects_for_test(self, node_id: int) -> dict[str, Any]:
         """Get grid highlight objects for testing via CDP bridge."""
         client = self._require_launched()
-        return dict(await client.cdp.send_command(
-            "Overlay.getGridHighlightObjectsForTest", {"nodeId": node_id}
-        ))
+        return dict(
+            await client.cdp.send_command(
+                "Overlay.getGridHighlightObjectsForTest", {"nodeId": node_id}
+            )
+        )
 
     async def overlay_get_highlight_object_for_test(
         self,
@@ -4784,27 +4845,25 @@ class BiDiBackend(AbstractBackend):
     ) -> dict[str, Any]:
         """Get source order highlight object for testing via CDP bridge."""
         client = self._require_launched()
-        return dict(await client.cdp.send_command(
-            "Overlay.getSourceOrderHighlightObjectForTest", {"nodeId": node_id}
-        ))
+        return dict(
+            await client.cdp.send_command(
+                "Overlay.getSourceOrderHighlightObjectForTest", {"nodeId": node_id}
+            )
+        )
 
     async def overlay_hide_highlight(self) -> None:
         """Hide any highlight overlay via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("Overlay.hideHighlight", {})
 
-    async def overlay_highlight_source_order(
-        self, source_order_config: dict[str, Any]
-    ) -> None:
+    async def overlay_highlight_source_order(self, source_order_config: dict[str, Any]) -> None:
         """Highlight the source order of a node via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command(
             "Overlay.highlightSourceOrder", {"sourceOrderConfig": source_order_config}
         )
 
-    async def overlay_set_paused_in_debugger_message(
-        self, message: str = ""
-    ) -> None:
+    async def overlay_set_paused_in_debugger_message(self, message: str = "") -> None:
         """Set the message displayed when paused in the debugger via CDP bridge."""
         client = self._require_launched()
         params: dict[str, Any] = {}
@@ -4812,9 +4871,7 @@ class BiDiBackend(AbstractBackend):
             params["message"] = message
         await client.cdp.send_command("Overlay.setPausedInDebuggerMessage", params)
 
-    async def overlay_set_show_container_query_overlays(
-        self, show: bool
-    ) -> None:
+    async def overlay_set_show_container_query_overlays(self, show: bool) -> None:
         """Show or hide container query overlays via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("Overlay.setShowContainerQueryOverlays", {"show": show})
@@ -4838,9 +4895,7 @@ class BiDiBackend(AbstractBackend):
             "Overlay.setShowGridOverlays", {"showGridOverlays": show_grid_overlays}
         )
 
-    async def overlay_set_show_hinge(
-        self, hinge_config: dict[str, Any] | None = None
-    ) -> None:
+    async def overlay_set_show_hinge(self, hinge_config: dict[str, Any] | None = None) -> None:
         """Show or hide the hinge overlay via CDP bridge."""
         client = self._require_launched()
         params: dict[str, Any] = {}
@@ -4848,9 +4903,7 @@ class BiDiBackend(AbstractBackend):
             params["hingeConfig"] = hinge_config
         await client.cdp.send_command("Overlay.setShowHinge", params)
 
-    async def overlay_set_show_inspected_element_anchor(
-        self, show: bool
-    ) -> None:
+    async def overlay_set_show_inspected_element_anchor(self, show: bool) -> None:
         """Show or hide the inspected element anchor via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("Overlay.setShowInspectedElementAnchor", {"show": show})
@@ -4865,37 +4918,27 @@ class BiDiBackend(AbstractBackend):
             {"isolatedElementHighlightConfigs": isolated_element_highlight_configs},
         )
 
-    async def overlay_set_show_layout_shift_regions(
-        self, show: bool
-    ) -> None:
+    async def overlay_set_show_layout_shift_regions(self, show: bool) -> None:
         """Show or hide layout shift regions via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("Overlay.setShowLayoutShiftRegions", {"show": show})
 
-    async def overlay_set_show_scroll_bottleneck_rects(
-        self, show: bool
-    ) -> None:
+    async def overlay_set_show_scroll_bottleneck_rects(self, show: bool) -> None:
         """Show or hide scroll bottleneck rects via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("Overlay.setShowScrollBottleneckRects", {"show": show})
 
-    async def overlay_set_show_scroll_snap_overlays(
-        self, show: bool
-    ) -> None:
+    async def overlay_set_show_scroll_snap_overlays(self, show: bool) -> None:
         """Show or hide scroll snap overlays via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("Overlay.setShowScrollSnapOverlays", {"show": show})
 
-    async def overlay_set_show_viewport_size_on_resize(
-        self, show: bool
-    ) -> None:
+    async def overlay_set_show_viewport_size_on_resize(self, show: bool) -> None:
         """Show or hide viewport size on resize via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("Overlay.setShowViewportSizeOnResize", {"show": show})
 
-    async def overlay_set_show_window_controls_overlay(
-        self, show: bool
-    ) -> None:
+    async def overlay_set_show_window_controls_overlay(self, show: bool) -> None:
         """Show or hide window controls overlay via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("Overlay.setShowWindowControlsOverlay", {"show": show})
@@ -4925,24 +4968,28 @@ class BiDiBackend(AbstractBackend):
     ) -> dict[str, Any]:
         """Compile a JavaScript expression via CDP bridge."""
         client = self._require_launched()
-        return dict(await client.cdp.send_command(
-            "Runtime.compileScript",
-            {
-                "expression": expression,
-                "sourceURL": source_url,
-                "persistScript": persist_script,
-            },
-        ))
+        return dict(
+            await client.cdp.send_command(
+                "Runtime.compileScript",
+                {
+                    "expression": expression,
+                    "sourceURL": source_url,
+                    "persistScript": persist_script,
+                },
+            )
+        )
 
     async def runtime_run_script(
         self, script_id: str, await_promise: bool = False
     ) -> dict[str, Any]:
         """Run a previously compiled script via CDP bridge."""
         client = self._require_launched()
-        return dict(await client.cdp.send_command(
-            "Runtime.runScript",
-            {"scriptId": script_id, "awaitPromise": await_promise},
-        ))
+        return dict(
+            await client.cdp.send_command(
+                "Runtime.runScript",
+                {"scriptId": script_id, "awaitPromise": await_promise},
+            )
+        )
 
     async def runtime_call_function_on(
         self,
@@ -4970,10 +5017,12 @@ class BiDiBackend(AbstractBackend):
     ) -> dict[str, Any]:
         """Get properties of a remote object via CDP bridge."""
         client = self._require_launched()
-        return dict(await client.cdp.send_command(
-            "Runtime.getProperties",
-            {"objectId": object_id, "ownProperties": own_properties},
-        ))
+        return dict(
+            await client.cdp.send_command(
+                "Runtime.getProperties",
+                {"objectId": object_id, "ownProperties": own_properties},
+            )
+        )
 
     async def runtime_release_object(self, object_id: str) -> None:
         """Release a remote object via CDP bridge."""
@@ -4983,9 +5032,7 @@ class BiDiBackend(AbstractBackend):
     async def runtime_release_object_group(self, object_group: str) -> None:
         """Release all objects in a group via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command(
-            "Runtime.releaseObjectGroup", {"objectGroup": object_group}
-        )
+        await client.cdp.send_command("Runtime.releaseObjectGroup", {"objectGroup": object_group})
 
     async def runtime_discard_console_entries(self) -> None:
         """Discard collected console entries via CDP bridge."""
@@ -5005,11 +5052,11 @@ class BiDiBackend(AbstractBackend):
         params: dict[str, Any] = {}
         if execution_context_id is not None:
             params["executionContextId"] = execution_context_id
-        return dict(await client.cdp.send_command(
-            "Runtime.globalLexicalScopeNames", params
-        ))
+        return dict(await client.cdp.send_command("Runtime.globalLexicalScopeNames", params))
 
-    async def runtime_add_binding(self, name: str, execution_context_name: str | None = None) -> None:
+    async def runtime_add_binding(
+        self, name: str, execution_context_name: str | None = None
+    ) -> None:
         """Add a binding with the given name via CDP bridge."""
         client = self._require_launched()
         params: dict[str, Any] = {"name": name}
@@ -5017,13 +5064,20 @@ class BiDiBackend(AbstractBackend):
             params["executionContextName"] = execution_context_name
         await client.cdp.send_command("Runtime.addBinding", params)
 
-    async def runtime_await_promise(self, promise_object_id: str, return_by_value: bool = False) -> dict[str, Any]:
+    async def runtime_await_promise(
+        self, promise_object_id: str, return_by_value: bool = False
+    ) -> dict[str, Any]:
         """Await a promise by its remote object ID via CDP bridge."""
         client = self._require_launched()
-        return dict(await client.cdp.send_command("Runtime.awaitPromise", {
-            "promiseObjectId": promise_object_id,
-            "returnByValue": return_by_value,
-        }))
+        return dict(
+            await client.cdp.send_command(
+                "Runtime.awaitPromise",
+                {
+                    "promiseObjectId": promise_object_id,
+                    "returnByValue": return_by_value,
+                },
+            )
+        )
 
     async def runtime_collect_garbage(self) -> None:
         """Collect garbage via CDP bridge."""
@@ -5043,7 +5097,11 @@ class BiDiBackend(AbstractBackend):
     async def runtime_get_exception_details(self, error_object_id: str) -> dict[str, Any]:
         """Get exception details for an error object via CDP bridge."""
         client = self._require_launched()
-        return dict(await client.cdp.send_command("Runtime.getExceptionDetails", {"errorObjectId": error_object_id}))
+        return dict(
+            await client.cdp.send_command(
+                "Runtime.getExceptionDetails", {"errorObjectId": error_object_id}
+            )
+        )
 
     async def runtime_get_isolate_id(self) -> dict[str, Any]:
         """Get the isolate ID via CDP bridge."""
@@ -5053,7 +5111,11 @@ class BiDiBackend(AbstractBackend):
     async def runtime_query_objects(self, prototype_object_id: str) -> dict[str, Any]:
         """Query objects by prototype via CDP bridge."""
         client = self._require_launched()
-        return dict(await client.cdp.send_command("Runtime.queryObjects", {"prototypeObjectId": prototype_object_id}))
+        return dict(
+            await client.cdp.send_command(
+                "Runtime.queryObjects", {"prototypeObjectId": prototype_object_id}
+            )
+        )
 
     async def runtime_remove_binding(self, name: str) -> None:
         """Remove a previously added binding via CDP bridge."""
@@ -5073,7 +5135,9 @@ class BiDiBackend(AbstractBackend):
     async def runtime_set_custom_object_formatter_enabled(self, enabled: bool) -> None:
         """Enable or disable the custom object formatter via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Runtime.setCustomObjectFormatterEnabled", {"enabled": enabled})
+        await client.cdp.send_command(
+            "Runtime.setCustomObjectFormatterEnabled", {"enabled": enabled}
+        )
 
     async def runtime_set_max_call_stack_size_to_capture(self, size: int) -> None:
         """Set the max call stack size to capture via CDP bridge."""
@@ -5112,7 +5176,9 @@ class BiDiBackend(AbstractBackend):
     async def security_handle_certificate_error(self, event_id: int, action: str) -> None:
         """Handle a certificate error event via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Security.handleCertificateError", {"eventId": event_id, "action": action})
+        await client.cdp.send_command(
+            "Security.handleCertificateError", {"eventId": event_id, "action": action}
+        )
 
     async def security_set_ignore_certificate_errors(self, ignore: bool) -> None:
         """Set whether to ignore certificate errors via CDP bridge."""
@@ -5122,7 +5188,9 @@ class BiDiBackend(AbstractBackend):
     async def security_set_override_certificate_errors(self, override: bool) -> None:
         """Set whether to override certificate errors via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Security.setOverrideCertificateErrors", {"override": override})
+        await client.cdp.send_command(
+            "Security.setOverrideCertificateErrors", {"override": override}
+        )
 
     # ── Sensor — via CDP bridge ────────────────────────────
 
@@ -5187,9 +5255,7 @@ class BiDiBackend(AbstractBackend):
     async def target_detach_from_target(self, session_id: str) -> None:
         """Detach from a target by session ID via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command(
-            "Target.detachFromTarget", {"sessionId": session_id}
-        )
+        await client.cdp.send_command("Target.detachFromTarget", {"sessionId": session_id})
 
     async def target_set_auto_attach(
         self, auto_attach: bool, wait_for_debugger_on_start: bool = False
@@ -5207,16 +5273,12 @@ class BiDiBackend(AbstractBackend):
     async def target_set_discover_targets(self, discover: bool) -> None:
         """Enable or disable target discovery via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command(
-            "Target.setDiscoverTargets", {"discover": discover}
-        )
+        await client.cdp.send_command("Target.setDiscoverTargets", {"discover": discover})
 
     async def target_get_target_info(self, target_id: str) -> dict[str, Any]:
         """Get info about a specific target via CDP bridge."""
         client = self._require_launched()
-        return dict(await client.cdp.send_command(
-            "Target.getTargetInfo", {"targetId": target_id}
-        ))
+        return dict(await client.cdp.send_command("Target.getTargetInfo", {"targetId": target_id}))
 
     async def target_create_browser_context(self) -> str:
         """Create a new browser context via CDP bridge."""
@@ -5243,9 +5305,7 @@ class BiDiBackend(AbstractBackend):
             },
         )
 
-    async def target_dispose_browser_context(
-        self, browser_context_id: str
-    ) -> None:
+    async def target_dispose_browser_context(self, browser_context_id: str) -> None:
         """Dispose a browser context by ID via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command(
@@ -5253,9 +5313,7 @@ class BiDiBackend(AbstractBackend):
             {"browserContextId": browser_context_id},
         )
 
-    async def target_expose_dev_tools_protocol(
-        self, target_id: str, binding_name: str
-    ) -> None:
+    async def target_expose_dev_tools_protocol(self, target_id: str, binding_name: str) -> None:
         """Expose DevTools protocol API to the target via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command(
@@ -5272,9 +5330,7 @@ class BiDiBackend(AbstractBackend):
     async def target_get_dev_tools_target(self, target_id: str) -> str:
         """Get the DevTools target for a given target via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command(
-            "Target.getDevToolsTarget", {"targetId": target_id}
-        )
+        result = await client.cdp.send_command("Target.getDevToolsTarget", {"targetId": target_id})
         return str(result.get("targetId", ""))
 
     async def target_open_dev_tools(self, target_id: str) -> None:
@@ -5282,9 +5338,7 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         await client.cdp.send_command("Target.openDevTools", {"targetId": target_id})
 
-    async def target_send_message_to_target(
-        self, session_id: str, message: str
-    ) -> None:
+    async def target_send_message_to_target(self, session_id: str, message: str) -> None:
         """Send a message to a target via session ID via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command(
@@ -5295,9 +5349,7 @@ class BiDiBackend(AbstractBackend):
     async def target_set_remote_locations(self, locations: list[dict[str, str]]) -> None:
         """Set remote locations for target discovery via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command(
-            "Target.setRemoteLocations", {"locations": locations}
-        )
+        await client.cdp.send_command("Target.setRemoteLocations", {"locations": locations})
 
     # ── Storage ────────────────────────────────────────────
 
@@ -5317,18 +5369,14 @@ class BiDiBackend(AbstractBackend):
         """
         client = self._require_client()
         if storage_type not in ("local", "session"):
-            raise ValueError(
-                f"Invalid storage_type: {storage_type}. Must be 'local' or 'session'."
-            )
+            raise ValueError(f"Invalid storage_type: {storage_type}. Must be 'local' or 'session'.")
         result = await client.send(
             "storage.getDOMStorageItems",
             {"storageType": storage_type, "key": key},
         )
         return str(result.get("value", ""))
 
-    async def storage_set(
-        self, key: str, value: str, storage_type: str = "local"
-    ) -> None:
+    async def storage_set(self, key: str, value: str, storage_type: str = "local") -> None:
         """Set a value in DOM storage.
 
         Args:
@@ -5342,9 +5390,7 @@ class BiDiBackend(AbstractBackend):
         """
         client = self._require_client()
         if storage_type not in ("local", "session"):
-            raise ValueError(
-                f"Invalid storage_type: {storage_type}. Must be 'local' or 'session'."
-            )
+            raise ValueError(f"Invalid storage_type: {storage_type}. Must be 'local' or 'session'.")
         await client.send(
             "storage.setDOMStorageItem",
             {"storageType": storage_type, "key": key, "value": value},
@@ -5362,9 +5408,7 @@ class BiDiBackend(AbstractBackend):
         """
         client = self._require_client()
         if storage_type not in ("local", "session"):
-            raise ValueError(
-                f"Invalid storage_type: {storage_type}. Must be 'local' or 'session'."
-            )
+            raise ValueError(f"Invalid storage_type: {storage_type}. Must be 'local' or 'session'.")
         await client.send(
             "storage.clearDOMStorageItems",
             {"storageType": storage_type},
@@ -5385,9 +5429,7 @@ class BiDiBackend(AbstractBackend):
         """
         client = self._require_client()
         if storage_type not in ("local", "session"):
-            raise ValueError(
-                f"Invalid storage_type: {storage_type}. Must be 'local' or 'session'."
-            )
+            raise ValueError(f"Invalid storage_type: {storage_type}. Must be 'local' or 'session'.")
         result = await client.send(
             "storage.getDOMStorageItems",
             {"storageType": storage_type},
@@ -5405,17 +5447,14 @@ class BiDiBackend(AbstractBackend):
             List of cache names.
         """
         client = self._require_launched()
-        js = (
-            "caches.keys().then(function(names){"
-            "  return JSON.stringify(names);"
-            "})"
-        )
+        js = "caches.keys().then(function(names){  return JSON.stringify(names);})"
         result = await client.script.evaluate(self._context, js)
         val = result.value if hasattr(result, "value") else result
         return json.loads(val) if isinstance(val, str) else list(val)
 
     async def cache_storage_entries(
-        self, cache_name: str,
+        self,
+        cache_name: str,
     ) -> list[dict[str, Any]]:
         """List entries in a cache via JS Cache API.
 
@@ -5469,9 +5508,7 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         await client.cdp.send_command("CacheStorage.deleteCache", {"cacheId": cache_id})
 
-    async def cache_storage_delete_entry(
-        self, cache_id: str, request: str
-    ) -> None:
+    async def cache_storage_delete_entry(self, cache_id: str, request: str) -> None:
         """Delete a specific entry from a cache via CDP bridge.
 
         Args:
@@ -5559,9 +5596,7 @@ class BiDiBackend(AbstractBackend):
         names = result.get("databaseNames", []) if result else []
         return [{"name": n} for n in names]
 
-    async def indexeddb_get_data(
-        self, database: str, store: str, key: str = ""
-    ) -> Any:
+    async def indexeddb_get_data(self, database: str, store: str, key: str = "") -> Any:
         """Get data from an IndexedDB store via CDP.
 
         Args:
@@ -5614,9 +5649,7 @@ class BiDiBackend(AbstractBackend):
     async def storage_get_usage_and_quota(self, origin: str) -> dict[str, Any]:
         """Get usage and quota for a given origin via CDP bridge."""
         client = self._require_launched()
-        return dict(await client.cdp.send_command(
-            "Storage.getUsageAndQuota", {"origin": origin}
-        ))
+        return dict(await client.cdp.send_command("Storage.getUsageAndQuota", {"origin": origin}))
 
     async def storage_get_trust_tokens(self) -> list[dict[str, Any]]:
         """Get all trust tokens via CDP bridge."""
@@ -5662,15 +5695,21 @@ class BiDiBackend(AbstractBackend):
             "Storage.clearSharedStorageEntries", {"ownerOrigin": owner_origin}
         )
 
-    async def storage_get_interest_group_details(self, owner_origin: str, name: str) -> dict[str, Any]:
+    async def storage_get_interest_group_details(
+        self, owner_origin: str, name: str
+    ) -> dict[str, Any]:
         """Get interest group details via CDP bridge."""
         client = self._require_launched()
-        return dict(await client.cdp.send_command(
-            "Storage.getInterestGroupDetails",
-            {"ownerOrigin": owner_origin, "name": name},
-        ))
+        return dict(
+            await client.cdp.send_command(
+                "Storage.getInterestGroupDetails",
+                {"ownerOrigin": owner_origin, "name": name},
+            )
+        )
 
-    async def storage_override_quota_for_origin(self, origin: str, quota_size: float | None = None) -> None:
+    async def storage_override_quota_for_origin(
+        self, origin: str, quota_size: float | None = None
+    ) -> None:
         """Override quota for a given origin via CDP bridge."""
         client = self._require_launched()
         params: dict[str, Any] = {"origin": origin}
@@ -5688,9 +5727,7 @@ class BiDiBackend(AbstractBackend):
             {"storageKey": storage_key, "storageTypes": storage_types},
         )
 
-    async def storage_delete_storage_bucket(
-        self, storage_key: str, bucket_name: str
-    ) -> None:
+    async def storage_delete_storage_bucket(self, storage_key: str, bucket_name: str) -> None:
         """Delete a storage bucket via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command(
@@ -5704,22 +5741,20 @@ class BiDiBackend(AbstractBackend):
         result = await client.cdp.send_command("Storage.getRelatedWebsiteSets", {})
         return [dict(s) for s in result.get("sets", [])] if result else []
 
-    async def storage_get_shared_storage_metadata(
-        self, owner_origin: str
-    ) -> dict[str, Any]:
+    async def storage_get_shared_storage_metadata(self, owner_origin: str) -> dict[str, Any]:
         """Get shared storage metadata via CDP bridge."""
         client = self._require_launched()
-        return dict(await client.cdp.send_command(
-            "Storage.getSharedStorageMetadata",
-            {"ownerOrigin": owner_origin},
-        ))
+        return dict(
+            await client.cdp.send_command(
+                "Storage.getSharedStorageMetadata",
+                {"ownerOrigin": owner_origin},
+            )
+        )
 
     async def storage_get_storage_key(self, frame_id: str) -> str:
         """Get storage key for a frame via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command(
-            "Storage.getStorageKey", {"frameId": frame_id}
-        )
+        result = await client.cdp.send_command("Storage.getStorageKey", {"frameId": frame_id})
         return result.get("storageKey", "")
 
     async def storage_get_storage_key_for_frame(self, frame_id: str) -> str:
@@ -5761,9 +5796,7 @@ class BiDiBackend(AbstractBackend):
     async def storage_set_interest_group_tracking(self, enable: bool) -> None:
         """Set interest group tracking via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command(
-            "Storage.setInterestGroupTracking", {"enable": enable}
-        )
+        await client.cdp.send_command("Storage.setInterestGroupTracking", {"enable": enable})
 
     async def storage_set_protected_audience_k_anonymity(
         self, storage_key: str, hashed_mac_key: str
@@ -5778,9 +5811,7 @@ class BiDiBackend(AbstractBackend):
     async def storage_set_shared_storage_tracking(self, enable: bool) -> None:
         """Set shared storage tracking via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command(
-            "Storage.setSharedStorageTracking", {"enable": enable}
-        )
+        await client.cdp.send_command("Storage.setSharedStorageTracking", {"enable": enable})
 
     async def storage_set_storage_bucket_tracking(
         self, storage_key: str, bucket_name: str, enable: bool
@@ -5799,9 +5830,7 @@ class BiDiBackend(AbstractBackend):
     async def storage_track_cache_storage_for_origin(self, origin: str) -> None:
         """Track cache storage for an origin via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command(
-            "Storage.trackCacheStorageForOrigin", {"origin": origin}
-        )
+        await client.cdp.send_command("Storage.trackCacheStorageForOrigin", {"origin": origin})
 
     async def storage_track_cache_storage_for_storage_key(self, storage_key: str) -> None:
         """Track cache storage for a storage key via CDP bridge."""
@@ -5813,9 +5842,7 @@ class BiDiBackend(AbstractBackend):
     async def storage_track_indexed_db_for_origin(self, origin: str) -> None:
         """Track IndexedDB for an origin via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command(
-            "Storage.trackIndexedDBForOrigin", {"origin": origin}
-        )
+        await client.cdp.send_command("Storage.trackIndexedDBForOrigin", {"origin": origin})
 
     async def storage_track_indexed_db_for_storage_key(self, storage_key: str) -> None:
         """Track IndexedDB for a storage key via CDP bridge."""
@@ -5827,9 +5854,7 @@ class BiDiBackend(AbstractBackend):
     async def storage_untrack_cache_storage_for_origin(self, origin: str) -> None:
         """Untrack cache storage for an origin via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command(
-            "Storage.untrackCacheStorageForOrigin", {"origin": origin}
-        )
+        await client.cdp.send_command("Storage.untrackCacheStorageForOrigin", {"origin": origin})
 
     async def storage_untrack_cache_storage_for_storage_key(self, storage_key: str) -> None:
         """Untrack cache storage for a storage key via CDP bridge."""
@@ -5841,9 +5866,7 @@ class BiDiBackend(AbstractBackend):
     async def storage_untrack_indexed_db_for_origin(self, origin: str) -> None:
         """Untrack IndexedDB for an origin via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command(
-            "Storage.untrackIndexedDBForOrigin", {"origin": origin}
-        )
+        await client.cdp.send_command("Storage.untrackIndexedDBForOrigin", {"origin": origin})
 
     async def storage_untrack_indexed_db_for_storage_key(self, storage_key: str) -> None:
         """Untrack IndexedDB for a storage key via CDP bridge."""
@@ -5919,9 +5942,7 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         await client.cdp.send_command("ServiceWorker.disable", {})
 
-    async def sw_deliver_push_message(
-        self, origin: str, registration_id: str, data: str
-    ) -> None:
+    async def sw_deliver_push_message(self, origin: str, registration_id: str, data: str) -> None:
         """Deliver a push message to a service worker via CDP bridge.
 
         Args:
@@ -5971,9 +5992,7 @@ class BiDiBackend(AbstractBackend):
             List of message dicts.
         """
         client = self._require_launched()
-        result = await client.cdp.send_command(
-            "ServiceWorker.getMessages", {"workerId": worker_id}
-        )
+        result = await client.cdp.send_command("ServiceWorker.getMessages", {"workerId": worker_id})
         return result.get("messages", [])
 
     async def sw_inspect_worker(self, worker_id: str) -> None:
@@ -5983,9 +6002,7 @@ class BiDiBackend(AbstractBackend):
             worker_id: Service worker target ID.
         """
         client = self._require_launched()
-        await client.cdp.send_command(
-            "ServiceWorker.inspectWorker", {"workerId": worker_id}
-        )
+        await client.cdp.send_command("ServiceWorker.inspectWorker", {"workerId": worker_id})
 
     async def sw_skip_waiting(self, scope_url: str) -> None:
         """Skip waiting for a service worker via CDP bridge.
@@ -5994,9 +6011,7 @@ class BiDiBackend(AbstractBackend):
             scope_url: Scope URL of the service worker.
         """
         client = self._require_launched()
-        await client.cdp.send_command(
-            "ServiceWorker.skipWaiting", {"scopeURL": scope_url}
-        )
+        await client.cdp.send_command("ServiceWorker.skipWaiting", {"scopeURL": scope_url})
 
     async def sw_start_worker(self, scope_url: str) -> None:
         """Start a service worker by scope URL via CDP bridge.
@@ -6005,9 +6020,7 @@ class BiDiBackend(AbstractBackend):
             scope_url: Scope URL of the service worker.
         """
         client = self._require_launched()
-        await client.cdp.send_command(
-            "ServiceWorker.startWorker", {"scopeURL": scope_url}
-        )
+        await client.cdp.send_command("ServiceWorker.startWorker", {"scopeURL": scope_url})
 
     async def sw_stop_worker(self, worker_id: str) -> None:
         """Stop a running service worker via CDP bridge.
@@ -6016,9 +6029,7 @@ class BiDiBackend(AbstractBackend):
             worker_id: Service worker target ID.
         """
         client = self._require_launched()
-        await client.cdp.send_command(
-            "ServiceWorker.stopWorker", {"workerId": worker_id}
-        )
+        await client.cdp.send_command("ServiceWorker.stopWorker", {"workerId": worker_id})
 
     # ── Animations ─────────────────────────────────────────
 
@@ -6093,9 +6104,7 @@ class BiDiBackend(AbstractBackend):
 
     # ── WebAuthn (experimental) — via CDP bridge ─────────
 
-    async def webauthn_add_virtual_authenticator(
-        self, protocol: str, transport: str
-    ) -> str:
+    async def webauthn_add_virtual_authenticator(self, protocol: str, transport: str) -> str:
         """Add a virtual WebAuthn authenticator via CDP.
 
         Args:
@@ -6140,9 +6149,7 @@ class BiDiBackend(AbstractBackend):
             {"authenticatorId": authenticator_id, "credential": credential},
         )
 
-    async def webauthn_get_credentials(
-        self, authenticator_id: str
-    ) -> list[dict[str, Any]]:
+    async def webauthn_get_credentials(self, authenticator_id: str) -> list[dict[str, Any]]:
         """Get credentials from a virtual authenticator via CDP.
 
         Args:
@@ -6187,9 +6194,7 @@ class BiDiBackend(AbstractBackend):
         )
         return dict(result) if result else {}
 
-    async def webauthn_remove_credential(
-        self, authenticator_id: str, credential_id: str
-    ) -> None:
+    async def webauthn_remove_credential(self, authenticator_id: str, credential_id: str) -> None:
         """Remove a credential from a virtual authenticator via CDP bridge.
 
         Args:
@@ -6306,7 +6311,7 @@ class BiDiBackend(AbstractBackend):
         """
         client = self._require_launched()
         await client.cdp.send_command("WebAudio.enable", {})
-        
+
         contexts: list[dict[str, Any]] = []
         try:
             event = await asyncio.wait_for(
@@ -6406,7 +6411,8 @@ class BiDiBackend(AbstractBackend):
         """
         client = self._require_launched()
         result = await client.cdp.send_command(
-            "Cast.getSinks", {},
+            "Cast.getSinks",
+            {},
         )
         return list(result.get("sinks", [])) if result else []
 
@@ -6453,9 +6459,7 @@ class BiDiBackend(AbstractBackend):
             sink_name: Name of the sink to mirror to.
         """
         client = self._require_launched()
-        await client.cdp.send_command(
-            "Cast.startDesktopMirroring", {"sinkName": sink_name}
-        )
+        await client.cdp.send_command("Cast.startDesktopMirroring", {"sinkName": sink_name})
 
     async def cast_start_tab_mirroring(self, sink_name: str) -> None:
         """Start tab mirroring to a Cast sink via CDP bridge.
@@ -6464,9 +6468,7 @@ class BiDiBackend(AbstractBackend):
             sink_name: Name of the sink to mirror to.
         """
         client = self._require_launched()
-        await client.cdp.send_command(
-            "Cast.startTabMirroring", {"sinkName": sink_name}
-        )
+        await client.cdp.send_command("Cast.startTabMirroring", {"sinkName": sink_name})
 
     async def cast_stop_casting(self, sink_name: str) -> None:
         """Stop casting to a specific sink via CDP bridge.
@@ -6479,9 +6481,7 @@ class BiDiBackend(AbstractBackend):
 
     # ── Bluetooth (experimental) — via CDP bridge ──────────
 
-    async def bluetooth_emulate(
-        self, name: str, address: str = "00:00:00:00:00:01"
-    ) -> None:
+    async def bluetooth_emulate(self, name: str, address: str = "00:00:00:00:00:01") -> None:
         """Emulate a Bluetooth adapter via CDP.
 
         Args:
@@ -6525,9 +6525,7 @@ class BiDiBackend(AbstractBackend):
             )
         else:
             ext_id = hashlib.sha256(path.encode()).hexdigest()[:32]
-            data = await asyncio.to_thread(
-                lambda: open(path, "rb").read()  # noqa: SIM115
-            )
+            data = await asyncio.to_thread(lambda: Path(path).read_bytes())
             await client.cdp.send_command(
                 "Extensions.load",
                 {"data": data.hex(), "id": ext_id},
@@ -6648,7 +6646,9 @@ class BiDiBackend(AbstractBackend):
     async def device_access_select_prompt(self, id: str, device_id: str) -> None:
         """Select a device in a device access prompt via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("DeviceAccess.selectPrompt", {"id": id, "deviceId": device_id})
+        await client.cdp.send_command(
+            "DeviceAccess.selectPrompt", {"id": id, "deviceId": device_id}
+        )
 
     # ── DeviceOrientation — via CDP bridge ──────────────────
 
@@ -6657,21 +6657,37 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         await client.cdp.send_command("DeviceOrientation.clearDeviceOrientationOverride", {})
 
-    async def device_orientation_set_override(self, alpha: float, beta: float, gamma: float) -> None:
+    async def device_orientation_set_override(
+        self, alpha: float, beta: float, gamma: float
+    ) -> None:
         """Set device orientation override via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("DeviceOrientation.setDeviceOrientationOverride", {"alpha": alpha, "beta": beta, "gamma": gamma})
+        await client.cdp.send_command(
+            "DeviceOrientation.setDeviceOrientationOverride",
+            {"alpha": alpha, "beta": beta, "gamma": gamma},
+        )
 
     # ── DigitalCredentials — via CDP bridge ─────────────────
 
-    async def digital_credentials_set_virtual_wallet_behavior(self, behavior: dict[str, Any]) -> None:
+    async def digital_credentials_set_virtual_wallet_behavior(
+        self, behavior: dict[str, Any]
+    ) -> None:
         """Set the virtual wallet behavior for digital credentials via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("DigitalCredentials.setVirtualWalletBehavior", {"behavior": behavior})
+        await client.cdp.send_command(
+            "DigitalCredentials.setVirtualWalletBehavior", {"behavior": behavior}
+        )
 
     # ── DOMSnapshot — via CDP bridge ────────────────────────
 
-    async def dom_snapshot_capture_snapshot(self, computed_styles: list[str] | None = None, include_paint_order: bool = False, include_dom_rects: bool = False, include_blended_background_colors: bool = False, include_text_color_opacity: bool = False) -> dict[str, Any]:
+    async def dom_snapshot_capture_snapshot(
+        self,
+        computed_styles: list[str] | None = None,
+        include_paint_order: bool = False,
+        include_dom_rects: bool = False,
+        include_blended_background_colors: bool = False,
+        include_text_color_opacity: bool = False,
+    ) -> dict[str, Any]:
         """Capture a DOM snapshot of the current page via CDP bridge."""
         client = self._require_launched()
         params: dict[str, Any] = {}
@@ -6698,7 +6714,14 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         await client.cdp.send_command("DOMSnapshot.enable", {})
 
-    async def dom_snapshot_get_snapshot(self, computed_styles: list[str] | None = None, include_paint_order: bool = False, include_dom_rects: bool = False, include_blended_background_colors: bool = False, include_text_color_opacity: bool = False) -> dict[str, Any]:
+    async def dom_snapshot_get_snapshot(
+        self,
+        computed_styles: list[str] | None = None,
+        include_paint_order: bool = False,
+        include_dom_rects: bool = False,
+        include_blended_background_colors: bool = False,
+        include_text_color_opacity: bool = False,
+    ) -> dict[str, Any]:
         """Get a DOM snapshot of the current page via CDP bridge."""
         client = self._require_launched()
         params: dict[str, Any] = {}
@@ -6740,63 +6763,96 @@ class BiDiBackend(AbstractBackend):
     async def dom_storage_get_items(self, storage_id: dict[str, Any]) -> list[dict[str, Any]]:
         """Get all items in a DOM storage via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("DOMStorage.getDOMStorageItems", {"storageId": storage_id})
+        result = await client.cdp.send_command(
+            "DOMStorage.getDOMStorageItems", {"storageId": storage_id}
+        )
         return list(result.get("items", [])) if result else []
 
     async def dom_storage_remove_item(self, storage_id: dict[str, Any], key: str) -> None:
         """Remove an item from a DOM storage via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("DOMStorage.removeDOMStorageItem", {"storageId": storage_id, "key": key})
+        await client.cdp.send_command(
+            "DOMStorage.removeDOMStorageItem", {"storageId": storage_id, "key": key}
+        )
 
     async def dom_storage_set_item(self, storage_id: dict[str, Any], key: str, value: str) -> None:
         """Set an item in a DOM storage via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("DOMStorage.setDOMStorageItem", {"storageId": storage_id, "key": key, "value": value})
+        await client.cdp.send_command(
+            "DOMStorage.setDOMStorageItem", {"storageId": storage_id, "key": key, "value": value}
+        )
 
     # ── EventBreakpoints — via CDP bridge ───────────────────
 
-    async def event_breakpoints_clear_instrumentation_breakpoint(self, instrumentation_name: str) -> None:
+    async def event_breakpoints_clear_instrumentation_breakpoint(
+        self, instrumentation_name: str
+    ) -> None:
         """Clear an instrumentation breakpoint for events via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("EventBreakpoints.clearInstrumentationBreakpoint", {"instrumentationName": instrumentation_name})
+        await client.cdp.send_command(
+            "EventBreakpoints.clearInstrumentationBreakpoint",
+            {"instrumentationName": instrumentation_name},
+        )
 
     async def event_breakpoints_disable(self) -> None:
         """Disable the EventBreakpoints domain via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("EventBreakpoints.disable", {})
 
-    async def event_breakpoints_remove_instrumentation_breakpoint(self, instrumentation_name: str) -> None:
+    async def event_breakpoints_remove_instrumentation_breakpoint(
+        self, instrumentation_name: str
+    ) -> None:
         """Remove an instrumentation breakpoint for events via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("EventBreakpoints.removeInstrumentationBreakpoint", {"instrumentationName": instrumentation_name})
+        await client.cdp.send_command(
+            "EventBreakpoints.removeInstrumentationBreakpoint",
+            {"instrumentationName": instrumentation_name},
+        )
 
-    async def event_breakpoints_set_instrumentation_breakpoint(self, instrumentation_name: str) -> None:
+    async def event_breakpoints_set_instrumentation_breakpoint(
+        self, instrumentation_name: str
+    ) -> None:
         """Set an instrumentation breakpoint for events via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("EventBreakpoints.setInstrumentationBreakpoint", {"instrumentationName": instrumentation_name})
+        await client.cdp.send_command(
+            "EventBreakpoints.setInstrumentationBreakpoint",
+            {"instrumentationName": instrumentation_name},
+        )
 
     # ── Extensions — via CDP bridge ─────────────────────────
 
     async def extensions_clear_storage_items(self, id: str, storage_type: str) -> None:
         """Clear storage items for an extension via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Extensions.clearStorageItems", {"id": id, "storageType": storage_type})
+        await client.cdp.send_command(
+            "Extensions.clearStorageItems", {"id": id, "storageType": storage_type}
+        )
 
     async def extensions_get_storage_items(self, id: str, storage_type: str) -> dict[str, Any]:
         """Get storage items for an extension via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("Extensions.getStorageItems", {"id": id, "storageType": storage_type})
+        result = await client.cdp.send_command(
+            "Extensions.getStorageItems", {"id": id, "storageType": storage_type}
+        )
         return dict(result) if result else {}
 
-    async def extensions_remove_storage_items(self, id: str, storage_type: str, keys: list[str]) -> None:
+    async def extensions_remove_storage_items(
+        self, id: str, storage_type: str, keys: list[str]
+    ) -> None:
         """Remove storage items from an extension via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Extensions.removeStorageItems", {"id": id, "storageType": storage_type, "keys": keys})
+        await client.cdp.send_command(
+            "Extensions.removeStorageItems", {"id": id, "storageType": storage_type, "keys": keys}
+        )
 
-    async def extensions_set_storage_items(self, id: str, storage_type: str, values: list[dict[str, Any]]) -> None:
+    async def extensions_set_storage_items(
+        self, id: str, storage_type: str, values: list[dict[str, Any]]
+    ) -> None:
         """Set storage items for an extension via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Extensions.setStorageItems", {"id": id, "storageType": storage_type, "values": values})
+        await client.cdp.send_command(
+            "Extensions.setStorageItems", {"id": id, "storageType": storage_type, "values": values}
+        )
 
     async def extensions_trigger_action(self, id: str, action: str) -> None:
         """Trigger an action on an extension via CDP bridge."""
@@ -6808,7 +6864,9 @@ class BiDiBackend(AbstractBackend):
     async def fed_cm_click_dialog_button(self, dialog_id: str, button_index: int) -> None:
         """Click a button in a FedCm dialog via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("FedCm.clickDialogButton", {"dialogId": dialog_id, "buttonIndex": button_index})
+        await client.cdp.send_command(
+            "FedCm.clickDialogButton", {"dialogId": dialog_id, "buttonIndex": button_index}
+        )
 
     async def fed_cm_disable(self) -> None:
         """Disable the FedCm domain via CDP bridge."""
@@ -6828,7 +6886,9 @@ class BiDiBackend(AbstractBackend):
     async def fed_cm_open_url(self, dialog_id: str, account_index: int, url: str) -> None:
         """Open a URL from a FedCm dialog via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("FedCm.openUrl", {"dialogId": dialog_id, "accountIndex": account_index, "url": url})
+        await client.cdp.send_command(
+            "FedCm.openUrl", {"dialogId": dialog_id, "accountIndex": account_index, "url": url}
+        )
 
     async def fed_cm_reset_cooldown(self) -> None:
         """Reset the FedCm cooldown via CDP bridge."""
@@ -6838,11 +6898,20 @@ class BiDiBackend(AbstractBackend):
     async def fed_cm_select_account(self, dialog_id: str, account_index: int) -> None:
         """Select an account in a FedCm dialog via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("FedCm.selectAccount", {"dialogId": dialog_id, "accountIndex": account_index})
+        await client.cdp.send_command(
+            "FedCm.selectAccount", {"dialogId": dialog_id, "accountIndex": account_index}
+        )
 
     # ── Fetch — via CDP bridge ──────────────────────────────
 
-    async def fetch_continue_request(self, request_id: str, url: str | None = None, method: str | None = None, post_data: str | None = None, headers: list[dict[str, Any]] | None = None) -> None:
+    async def fetch_continue_request(
+        self,
+        request_id: str,
+        url: str | None = None,
+        method: str | None = None,
+        post_data: str | None = None,
+        headers: list[dict[str, Any]] | None = None,
+    ) -> None:
         """Continue a paused request with optional modifications via CDP bridge."""
         client = self._require_launched()
         params: dict[str, Any] = {"requestId": request_id}
@@ -6856,12 +6925,23 @@ class BiDiBackend(AbstractBackend):
             params["headers"] = headers
         await client.cdp.send_command("Fetch.continueRequest", params)
 
-    async def fetch_continue_request_with_auth(self, request_id: str, auth_challenge_response: dict[str, Any]) -> None:
+    async def fetch_continue_request_with_auth(
+        self, request_id: str, auth_challenge_response: dict[str, Any]
+    ) -> None:
         """Continue a paused request with authentication via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Fetch.continueWithAuth", {"requestId": request_id, "authChallengeResponse": auth_challenge_response})
+        await client.cdp.send_command(
+            "Fetch.continueWithAuth",
+            {"requestId": request_id, "authChallengeResponse": auth_challenge_response},
+        )
 
-    async def fetch_continue_response(self, request_id: str, response_code: int = 200, response_headers: list[dict[str, Any]] | None = None, binary_response_headers: str | None = None) -> None:
+    async def fetch_continue_response(
+        self,
+        request_id: str,
+        response_code: int = 200,
+        response_headers: list[dict[str, Any]] | None = None,
+        binary_response_headers: str | None = None,
+    ) -> None:
         """Continue a paused response via CDP bridge."""
         client = self._require_launched()
         params: dict[str, Any] = {"requestId": request_id, "responseCode": response_code}
@@ -6871,17 +6951,24 @@ class BiDiBackend(AbstractBackend):
             params["binaryResponseHeaders"] = binary_response_headers
         await client.cdp.send_command("Fetch.continueResponse", params)
 
-    async def fetch_continue_with_auth(self, request_id: str, auth_challenge_response: dict[str, Any]) -> None:
+    async def fetch_continue_with_auth(
+        self, request_id: str, auth_challenge_response: dict[str, Any]
+    ) -> None:
         """Continue a paused request with auth challenge response via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Fetch.continueWithAuth", {"requestId": request_id, "authChallengeResponse": auth_challenge_response})
+        await client.cdp.send_command(
+            "Fetch.continueWithAuth",
+            {"requestId": request_id, "authChallengeResponse": auth_challenge_response},
+        )
 
     async def fetch_disable(self) -> None:
         """Disable the Fetch domain via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("Fetch.disable", {})
 
-    async def fetch_enable(self, patterns: list[dict[str, Any]] | None = None, handle_auth_requests: bool = False) -> None:
+    async def fetch_enable(
+        self, patterns: list[dict[str, Any]] | None = None, handle_auth_requests: bool = False
+    ) -> None:
         """Enable the Fetch domain with optional patterns via CDP bridge."""
         client = self._require_launched()
         params: dict[str, Any] = {}
@@ -6894,9 +6981,17 @@ class BiDiBackend(AbstractBackend):
     async def fetch_fail_request(self, request_id: str, error_reason: str) -> None:
         """Fail a paused request with an error via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Fetch.failRequest", {"requestId": request_id, "errorReason": error_reason})
+        await client.cdp.send_command(
+            "Fetch.failRequest", {"requestId": request_id, "errorReason": error_reason}
+        )
 
-    async def fetch_fulfill_request(self, request_id: str, response_code: int = 200, response_headers: list[dict[str, Any]] | None = None, body: str | None = None) -> None:
+    async def fetch_fulfill_request(
+        self,
+        request_id: str,
+        response_code: int = 200,
+        response_headers: list[dict[str, Any]] | None = None,
+        body: str | None = None,
+    ) -> None:
         """Fulfill a paused request with a response via CDP bridge."""
         client = self._require_launched()
         params: dict[str, Any] = {"requestId": request_id, "responseCode": response_code}
@@ -6909,13 +7004,17 @@ class BiDiBackend(AbstractBackend):
     async def fetch_get_request_post_data(self, request_id: str) -> str:
         """Get the POST data of a paused request via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("Fetch.getRequestPostData", {"requestId": request_id})
+        result = await client.cdp.send_command(
+            "Fetch.getRequestPostData", {"requestId": request_id}
+        )
         return str(result.get("postData", "")) if result else ""
 
     async def fetch_take_response_body_as_stream(self, request_id: str) -> dict[str, Any]:
         """Take the response body of a paused request as a stream via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("Fetch.takeResponseBodyAsStream", {"requestId": request_id})
+        result = await client.cdp.send_command(
+            "Fetch.takeResponseBodyAsStream", {"requestId": request_id}
+        )
         return dict(result) if result else {}
 
     # ── FileSystem — via CDP bridge ─────────────────────────
@@ -6923,12 +7022,20 @@ class BiDiBackend(AbstractBackend):
     async def file_system_get_directory(self, origin: str, type: str) -> dict[str, Any]:
         """Get a file system directory by origin and type via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("FileSystem.getDirectory", {"origin": origin, "type": type})
+        result = await client.cdp.send_command(
+            "FileSystem.getDirectory", {"origin": origin, "type": type}
+        )
         return dict(result) if result else {}
 
     # ── HeadlessExperimental — via CDP bridge ───────────────
 
-    async def headless_experimental_begin_frame(self, frame_time_ticks: float | None = None, interval: float | None = None, no_display_updates: bool = False, screenshot: dict[str, Any] | None = None) -> dict[str, Any]:
+    async def headless_experimental_begin_frame(
+        self,
+        frame_time_ticks: float | None = None,
+        interval: float | None = None,
+        no_display_updates: bool = False,
+        screenshot: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Begin a new frame in headless mode via CDP bridge."""
         client = self._require_launched()
         params: dict[str, Any] = {}
@@ -7019,10 +7126,12 @@ class BiDiBackend(AbstractBackend):
     ) -> dict[str, Any]:
         """Start precise code coverage tracking via CDP bridge."""
         client = self._require_launched()
-        return dict(await client.cdp.send_command(
-            "Profiler.startPreciseCoverage",
-            {"callCount": call_count, "detailed": detailed},
-        ))
+        return dict(
+            await client.cdp.send_command(
+                "Profiler.startPreciseCoverage",
+                {"callCount": call_count, "detailed": detailed},
+            )
+        )
 
     async def profiler_stop(self) -> dict[str, Any]:
         """Stop CPU profiling via CDP bridge."""
@@ -7041,10 +7150,14 @@ class BiDiBackend(AbstractBackend):
 
     # ── PWA — via CDP bridge ───────────────────────────────
 
-    async def pwa_change_app_user_settings(self, app_id: str, user_settings: dict[str, Any]) -> None:
+    async def pwa_change_app_user_settings(
+        self, app_id: str, user_settings: dict[str, Any]
+    ) -> None:
         """Change PWA user settings via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("PWA.changeAppUserSettings", {"appId": app_id, "userSettings": user_settings})
+        await client.cdp.send_command(
+            "PWA.changeAppUserSettings", {"appId": app_id, "userSettings": user_settings}
+        )
 
     async def pwa_get_os_app_state(self, app_id: str) -> dict[str, Any]:
         """Get the OS-level state of a PWA via CDP bridge."""
@@ -7062,7 +7175,9 @@ class BiDiBackend(AbstractBackend):
     async def pwa_launch_files_in_app(self, app_id: str, files: list[str]) -> dict[str, Any]:
         """Launch files in a PWA via CDP bridge."""
         client = self._require_launched()
-        return dict(await client.cdp.send_command("PWA.launchFilesInApp", {"appId": app_id, "files": files}))
+        return dict(
+            await client.cdp.send_command("PWA.launchFilesInApp", {"appId": app_id, "files": files})
+        )
 
     async def pwa_open_current_page_in_app(self, app_id: str) -> dict[str, Any]:
         """Open the current page in a PWA via CDP bridge."""
@@ -7076,7 +7191,9 @@ class BiDiBackend(AbstractBackend):
 
     # ── IO — via CDP bridge ─────────────────────────────────
 
-    async def io_read(self, handle: str, offset: int = 0, size: int | None = None) -> dict[str, Any]:
+    async def io_read(
+        self, handle: str, offset: int = 0, size: int | None = None
+    ) -> dict[str, Any]:
         """Read data from a blob handle via CDP bridge."""
         client = self._require_launched()
         params: dict[str, Any] = {"handle": handle, "offset": offset}
@@ -7096,7 +7213,9 @@ class BiDiBackend(AbstractBackend):
     async def heap_profiler_add_inspected_heap_object(self, heap_object_id: str) -> None:
         """Add an inspected heap object via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("HeapProfiler.addInspectedHeapObject", {"heapObjectId": heap_object_id})
+        await client.cdp.send_command(
+            "HeapProfiler.addInspectedHeapObject", {"heapObjectId": heap_object_id}
+        )
 
     async def heap_profiler_collect_garbage(self) -> None:
         """Collect garbage via CDP bridge."""
@@ -7116,10 +7235,14 @@ class BiDiBackend(AbstractBackend):
     async def heap_profiler_get_heap_object_id(self, object_id: str) -> str:
         """Get the heap object ID for a remote object via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("HeapProfiler.getHeapObjectId", {"objectId": object_id})
+        result = await client.cdp.send_command(
+            "HeapProfiler.getHeapObjectId", {"objectId": object_id}
+        )
         return str(result.get("heapSnapshotObjectId", "")) if result else ""
 
-    async def heap_profiler_get_object_by_heap_object_id(self, object_id: str, object_group: str = "") -> dict[str, Any]:
+    async def heap_profiler_get_object_by_heap_object_id(
+        self, object_id: str, object_group: str = ""
+    ) -> dict[str, Any]:
         """Get an object by heap object ID via CDP bridge."""
         client = self._require_launched()
         params: dict[str, Any] = {"objectId": object_id}
@@ -7142,10 +7265,14 @@ class BiDiBackend(AbstractBackend):
             params["samplingInterval"] = sampling_interval
         await client.cdp.send_command("HeapProfiler.startSampling", params)
 
-    async def heap_profiler_start_tracking_heap_objects(self, track_allocations: bool = False) -> None:
+    async def heap_profiler_start_tracking_heap_objects(
+        self, track_allocations: bool = False
+    ) -> None:
         """Start tracking heap objects via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("HeapProfiler.startTrackingHeapObjects", {"trackAllocations": track_allocations})
+        await client.cdp.send_command(
+            "HeapProfiler.startTrackingHeapObjects", {"trackAllocations": track_allocations}
+        )
 
     async def heap_profiler_stop_sampling(self) -> dict[str, Any]:
         """Stop heap sampling and return the profile via CDP bridge."""
@@ -7156,29 +7283,59 @@ class BiDiBackend(AbstractBackend):
     async def heap_profiler_stop_tracking_heap_objects(self, report_progress: bool = False) -> None:
         """Stop tracking heap objects via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("HeapProfiler.stopTrackingHeapObjects", {"reportProgress": report_progress})
+        await client.cdp.send_command(
+            "HeapProfiler.stopTrackingHeapObjects", {"reportProgress": report_progress}
+        )
 
     async def heap_profiler_take_heap_snapshot(self, report_progress: bool = False) -> None:
         """Take a heap snapshot via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("HeapProfiler.takeHeapSnapshot", {"reportProgress": report_progress})
+        await client.cdp.send_command(
+            "HeapProfiler.takeHeapSnapshot", {"reportProgress": report_progress}
+        )
 
     # ── IndexedDB — via CDP bridge ─────────────────────────
 
-    async def indexed_db_clear_object_store(self, security_origin: str, database_name: str, object_store_name: str) -> None:
+    async def indexed_db_clear_object_store(
+        self, security_origin: str, database_name: str, object_store_name: str
+    ) -> None:
         """Clear all entries in an IndexedDB object store via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("IndexedDB.clearObjectStore", {"securityOrigin": security_origin, "databaseName": database_name, "objectStoreName": object_store_name})
+        await client.cdp.send_command(
+            "IndexedDB.clearObjectStore",
+            {
+                "securityOrigin": security_origin,
+                "databaseName": database_name,
+                "objectStoreName": object_store_name,
+            },
+        )
 
     async def indexed_db_delete_database(self, security_origin: str, database_name: str) -> None:
         """Delete an IndexedDB database via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("IndexedDB.deleteDatabase", {"securityOrigin": security_origin, "databaseName": database_name})
+        await client.cdp.send_command(
+            "IndexedDB.deleteDatabase",
+            {"securityOrigin": security_origin, "databaseName": database_name},
+        )
 
-    async def indexed_db_delete_object_store_entries(self, security_origin: str, database_name: str, object_store_name: str, key_range: dict[str, Any]) -> None:
+    async def indexed_db_delete_object_store_entries(
+        self,
+        security_origin: str,
+        database_name: str,
+        object_store_name: str,
+        key_range: dict[str, Any],
+    ) -> None:
         """Delete entries in an IndexedDB object store via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("IndexedDB.deleteObjectStoreEntries", {"securityOrigin": security_origin, "databaseName": database_name, "objectStoreName": object_store_name, "keyRange": key_range})
+        await client.cdp.send_command(
+            "IndexedDB.deleteObjectStoreEntries",
+            {
+                "securityOrigin": security_origin,
+                "databaseName": database_name,
+                "objectStoreName": object_store_name,
+                "keyRange": key_range,
+            },
+        )
 
     async def indexed_db_disable(self) -> None:
         """Disable the IndexedDB domain via CDP bridge."""
@@ -7190,31 +7347,63 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         await client.cdp.send_command("IndexedDB.enable", {})
 
-    async def indexed_db_get_metadata(self, security_origin: str, database_name: str, object_store_name: str) -> dict[str, Any]:
+    async def indexed_db_get_metadata(
+        self, security_origin: str, database_name: str, object_store_name: str
+    ) -> dict[str, Any]:
         """Get metadata for an IndexedDB object store via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("IndexedDB.getMetadata", {"securityOrigin": security_origin, "databaseName": database_name, "objectStoreName": object_store_name})
+        result = await client.cdp.send_command(
+            "IndexedDB.getMetadata",
+            {
+                "securityOrigin": security_origin,
+                "databaseName": database_name,
+                "objectStoreName": object_store_name,
+            },
+        )
         return dict(result) if result else {}
 
-    async def indexed_db_request_data(self, security_origin: str, database_name: str, object_store_name: str, index_name: str, skip_count: int = 0, page_size: int = 10, key_range: dict[str, Any] | None = None) -> dict[str, Any]:
+    async def indexed_db_request_data(
+        self,
+        security_origin: str,
+        database_name: str,
+        object_store_name: str,
+        index_name: str,
+        skip_count: int = 0,
+        page_size: int = 10,
+        key_range: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Request data from an IndexedDB object store via CDP bridge."""
         client = self._require_launched()
-        params: dict[str, Any] = {"securityOrigin": security_origin, "databaseName": database_name, "objectStoreName": object_store_name, "indexName": index_name, "skipCount": skip_count, "pageSize": page_size}
+        params: dict[str, Any] = {
+            "securityOrigin": security_origin,
+            "databaseName": database_name,
+            "objectStoreName": object_store_name,
+            "indexName": index_name,
+            "skipCount": skip_count,
+            "pageSize": page_size,
+        }
         if key_range is not None:
             params["keyRange"] = key_range
         result = await client.cdp.send_command("IndexedDB.requestData", params)
         return dict(result) if result else {}
 
-    async def indexed_db_request_database(self, security_origin: str, database_name: str) -> dict[str, Any]:
+    async def indexed_db_request_database(
+        self, security_origin: str, database_name: str
+    ) -> dict[str, Any]:
         """Request an IndexedDB database with its object stores via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("IndexedDB.requestDatabase", {"securityOrigin": security_origin, "databaseName": database_name})
+        result = await client.cdp.send_command(
+            "IndexedDB.requestDatabase",
+            {"securityOrigin": security_origin, "databaseName": database_name},
+        )
         return dict(result) if result else {}
 
     async def indexed_db_request_database_names(self, security_origin: str) -> dict[str, Any]:
         """Request the names of all IndexedDB databases for an origin via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("IndexedDB.requestDatabaseNames", {"securityOrigin": security_origin})
+        result = await client.cdp.send_command(
+            "IndexedDB.requestDatabaseNames", {"securityOrigin": security_origin}
+        )
         return dict(result) if result else {}
 
     # ── LayerTree — via CDP bridge ─────────────────────────
@@ -7222,7 +7411,9 @@ class BiDiBackend(AbstractBackend):
     async def layer_tree_compositing_reasons(self, layer_id: str) -> dict[str, Any]:
         """Get compositing reasons for a layer via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("LayerTree.compositingReasons", {"layerId": layer_id})
+        result = await client.cdp.send_command(
+            "LayerTree.compositingReasons", {"layerId": layer_id}
+        )
         return dict(result) if result else {}
 
     async def layer_tree_disable(self) -> None:
@@ -7250,7 +7441,9 @@ class BiDiBackend(AbstractBackend):
     async def layer_tree_profile_snapshot(self, snapshot_id: str) -> dict[str, Any]:
         """Profile a layer snapshot via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("LayerTree.profileSnapshot", {"snapshotId": snapshot_id})
+        result = await client.cdp.send_command(
+            "LayerTree.profileSnapshot", {"snapshotId": snapshot_id}
+        )
         return dict(result) if result else {}
 
     async def layer_tree_release_snapshot(self, snapshot_id: str) -> None:
@@ -7261,13 +7454,17 @@ class BiDiBackend(AbstractBackend):
     async def layer_tree_replay_snapshot(self, snapshot_id: str) -> dict[str, Any]:
         """Replay a layer snapshot via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("LayerTree.replaySnapshot", {"snapshotId": snapshot_id})
+        result = await client.cdp.send_command(
+            "LayerTree.replaySnapshot", {"snapshotId": snapshot_id}
+        )
         return dict(result) if result else {}
 
     async def layer_tree_snapshot_command_log(self, snapshot_id: str) -> dict[str, Any]:
         """Get the command log for a layer snapshot via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("LayerTree.snapshotCommandLog", {"snapshotId": snapshot_id})
+        result = await client.cdp.send_command(
+            "LayerTree.snapshotCommandLog", {"snapshotId": snapshot_id}
+        )
         return dict(result) if result else {}
 
     # ── Log — via CDP bridge ────────────────────────────────
@@ -7354,7 +7551,9 @@ class BiDiBackend(AbstractBackend):
     async def memory_set_pressure_notifications_suppressed(self, suppressed: bool) -> None:
         """Set pressure notifications suppressed state via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Memory.setPressureNotificationsSuppressed", {"suppressed": suppressed})
+        await client.cdp.send_command(
+            "Memory.setPressureNotificationsSuppressed", {"suppressed": suppressed}
+        )
 
     async def memory_simulate_pressure_notification(self, level: str) -> None:
         """Simulate a memory pressure notification via CDP bridge."""
@@ -7651,7 +7850,8 @@ class BiDiBackend(AbstractBackend):
         await client.cdp.send_command("Network.disable", {})
 
     async def network_emulate_network_conditions_by_rule(
-        self, download_throughput: float = 0,
+        self,
+        download_throughput: float = 0,
         upload_throughput: float = 0,
         offline: bool = False,
         latency: float = 0,
@@ -7697,7 +7897,9 @@ class BiDiBackend(AbstractBackend):
     async def network_fetch_schemeful_site(self, request_id: str) -> dict[str, Any]:
         """Fetch the schemeful site for a request via CDP bridge."""
         client = self._require_launched()
-        return await client.cdp.send_command("Network.fetchSchemefulSite", {"requestId": request_id})
+        return await client.cdp.send_command(
+            "Network.fetchSchemefulSite", {"requestId": request_id}
+        )
 
     async def network_get_certificate(self, origin: str) -> dict[str, Any]:
         """Get the certificate for an origin via CDP bridge."""
@@ -7707,7 +7909,9 @@ class BiDiBackend(AbstractBackend):
     async def network_get_request_post_data(self, request_id: str) -> str:
         """Get the POST data for a request via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("Network.getRequestPostData", {"requestId": request_id})
+        result = await client.cdp.send_command(
+            "Network.getRequestPostData", {"requestId": request_id}
+        )
         return result.get("postData", "")
 
     async def network_get_response_body_for_interception(self, interception_id: str) -> str:
@@ -7761,7 +7965,9 @@ class BiDiBackend(AbstractBackend):
     async def network_stream_resource_content(self, request_id: str) -> dict[str, Any]:
         """Stream resource content for a request via CDP bridge."""
         client = self._require_launched()
-        return await client.cdp.send_command("Network.streamResourceContent", {"requestId": request_id})
+        return await client.cdp.send_command(
+            "Network.streamResourceContent", {"requestId": request_id}
+        )
 
     async def network_take_response_body_for_interception_as_stream(
         self, interception_id: str
@@ -7785,9 +7991,7 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         await client.cdp.send_command("SmartCardEmulation.disable", {})
 
-    async def smart_card_report_error(
-        self, request_id: str, error: str
-    ) -> None:
+    async def smart_card_report_error(self, request_id: str, error: str) -> None:
         """Report an error for a pending smart card request via CDP bridge.
 
         Args:
@@ -7800,9 +8004,7 @@ class BiDiBackend(AbstractBackend):
             {"requestId": request_id, "error": error},
         )
 
-    async def smart_card_report_plain_result(
-        self, request_id: str, result_code: int
-    ) -> None:
+    async def smart_card_report_plain_result(self, request_id: str, result_code: int) -> None:
         """Report a plain result for a pending smart card request via CDP bridge.
 
         Args:
@@ -7855,9 +8057,7 @@ class BiDiBackend(AbstractBackend):
             },
         )
 
-    async def smart_card_report_status_result(
-        self, request_id: str, status: str
-    ) -> None:
+    async def smart_card_report_status_result(self, request_id: str, status: str) -> None:
         """Report a status result for a pending smart card request via CDP bridge.
 
         Args:
@@ -7983,9 +8183,11 @@ class BiDiBackend(AbstractBackend):
             Dict with feature state information.
         """
         client = self._require_launched()
-        return dict(await client.cdp.send_command(
-            "SystemInfo.getFeatureState", {"featureName": feature_name}
-        ))
+        return dict(
+            await client.cdp.send_command(
+                "SystemInfo.getFeatureState", {"featureName": feature_name}
+            )
+        )
 
     # ── BiDi native: Browsing ──────────────────────────────
 
@@ -7996,9 +8198,7 @@ class BiDiBackend(AbstractBackend):
             List of client window dicts with bounds and state.
         """
         client = self._require_launched()
-        result = await client._connection.send_command(
-            "browsingContext.getClientWindows", {}
-        )
+        result = await client._connection.send_command("browsingContext.getClientWindows", {})
         return list(result.get("clientWindows", []))
 
     async def get_user_contexts(self) -> list[dict[str, Any]]:
@@ -8008,9 +8208,7 @@ class BiDiBackend(AbstractBackend):
             List of user context dicts.
         """
         client = self._require_launched()
-        result = await client._connection.send_command(
-            "browsingContext.getUserContexts", {}
-        )
+        result = await client._connection.send_command("browsingContext.getUserContexts", {})
         return list(result.get("userContexts", []))
 
     async def remove_user_context(self, user_context_id: str) -> None:
@@ -8046,9 +8244,7 @@ class BiDiBackend(AbstractBackend):
         """
         client = self._require_client()
         try:
-            await client._connection.send_command(
-                "browser.close", {}
-            )
+            await client._connection.send_command("browser.close", {})
         finally:
             self._context = None
             self._client = None
@@ -8066,9 +8262,7 @@ class BiDiBackend(AbstractBackend):
         )
         return dict(result)
 
-    async def wait_for_function(
-        self, expression: str, timeout_ms: int = 30000
-    ) -> None:
+    async def wait_for_function(self, expression: str, timeout_ms: int = 30000) -> None:
         """Wait for a JavaScript function to return a truthy value.
 
         Uses polling via ``script.evaluate`` until the expression returns
@@ -8084,19 +8278,16 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         import asyncio as _asyncio
         import time as _time
+
         deadline = _time.monotonic() + timeout_ms / 1000
         while _time.monotonic() < deadline:
-            result = await client.script.evaluate(
-                self._context, expression, await_promise=True
-            )
+            result = await client.script.evaluate(self._context, expression, await_promise=True)
             if hasattr(result, "value") and result.value:
                 return
             await _asyncio.sleep(0.1)
         raise WaitTimeoutError("function", timeout_ms)
 
-    async def wait_for_selector(
-        self, selector: str, timeout_ms: int = 30000
-    ) -> None:
+    async def wait_for_selector(self, selector: str, timeout_ms: int = 30000) -> None:
         """Wait for a CSS selector to appear in the DOM.
 
         Uses native BiDi polling via ``script.evaluate``.
@@ -8111,13 +8302,12 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         import asyncio as _asyncio
         import time as _time
+
         deadline = _time.monotonic() + timeout_ms / 1000
         escaped = json.dumps(selector)
         js = f"!!document.querySelector({escaped})"
         while _time.monotonic() < deadline:
-            result = await client.script.evaluate(
-                self._context, js, await_promise=False
-            )
+            result = await client.script.evaluate(self._context, js, await_promise=False)
             if hasattr(result, "value") and result.value:
                 return
             await _asyncio.sleep(0.1)
@@ -8142,9 +8332,7 @@ class BiDiBackend(AbstractBackend):
         }
         if max_node_count > 0:
             params["maxNodeCount"] = max_node_count
-        result = await client._connection.send_command(
-            "browsingContext.locateNodes", params
-        )
+        result = await client._connection.send_command("browsingContext.locateNodes", params)
         return list(result.get("nodes", []))
 
     # ── BiDi native: CDP Bridge ────────────────────────────
@@ -8160,9 +8348,7 @@ class BiDiBackend(AbstractBackend):
 
     # ── BiDi native: Emulation ─────────────────────────────
 
-    async def set_screen_orientation(
-        self, orientation: str = "portraitPrimary"
-    ) -> None:
+    async def set_screen_orientation(self, orientation: str = "portraitPrimary") -> None:
         """Set screen orientation via native BiDi emulation.
 
         Args:
@@ -8177,9 +8363,7 @@ class BiDiBackend(AbstractBackend):
 
     # ── BiDi native: Input ─────────────────────────────────
 
-    async def perform_actions(
-        self, actions: list[dict[str, Any]]
-    ) -> None:
+    async def perform_actions(self, actions: list[dict[str, Any]]) -> None:
         """Execute a sequence of input actions via native BiDi.
 
         Args:
@@ -8275,9 +8459,7 @@ class BiDiBackend(AbstractBackend):
         }
         if max_encoded_data_size > 0:
             params["maxEncodedDataSize"] = max_encoded_data_size
-        result = await client._connection.send_command(
-            "network.addDataCollector", params
-        )
+        result = await client._connection.send_command("network.addDataCollector", params)
         return str(result.get("collectorId", ""))
 
     async def get_network_data(
@@ -8307,14 +8489,10 @@ class BiDiBackend(AbstractBackend):
             params["collectorId"] = collector_id
         if disown:
             params["disown"] = True
-        result = await client._connection.send_command(
-            "network.getData", params
-        )
+        result = await client._connection.send_command("network.getData", params)
         return dict(result)
 
-    async def disown_network_data(
-        self, collector_id: str, request: str, data_type: str
-    ) -> None:
+    async def disown_network_data(self, collector_id: str, request: str, data_type: str) -> None:
         """Release collected network data via native BiDi.
 
         Args:
@@ -8392,9 +8570,7 @@ class BiDiBackend(AbstractBackend):
             params["body"] = body
         if credentials is not None:
             params["credentials"] = credentials
-        await client._connection.send_command(
-            "network.continueResponse", params
-        )
+        await client._connection.send_command("network.continueResponse", params)
 
     # ── BiDi native: Permissions ───────────────────────────
 
@@ -8418,9 +8594,7 @@ class BiDiBackend(AbstractBackend):
         }
         if user_context:
             params["userContext"] = user_context
-        await client._connection.send_command(
-            "permissions.setPermission", params
-        )
+        await client._connection.send_command("permissions.setPermission", params)
 
     # ── BiDi native: Preload Scripts ───────────────────────
 
@@ -8445,9 +8619,7 @@ class BiDiBackend(AbstractBackend):
         params: dict[str, Any] = {"source": source}
         if user_context:
             params["userContext"] = user_context
-        result = await client._connection.send_command(
-            "script.addPreloadScript", params
-        )
+        result = await client._connection.send_command("script.addPreloadScript", params)
         return str(result.get("scriptId", ""))
 
     async def remove_preload_script(self, script_id: str) -> None:
@@ -8492,9 +8664,7 @@ class BiDiBackend(AbstractBackend):
             params["arguments"] = args
         if user_context:
             params["userContext"] = user_context
-        result = await client._connection.send_command(
-            "script.callFunction", params
-        )
+        result = await client._connection.send_command("script.callFunction", params)
         if isinstance(result, dict) and "result" in result:
             return result["result"]
         return result
@@ -8507,9 +8677,7 @@ class BiDiBackend(AbstractBackend):
         """
         client = self._require_launched()
         params: dict[str, Any] = {"contexts": [self._context]} if self._context else {}
-        result = await client._connection.send_command(
-            "script.getRealms", params
-        )
+        result = await client._connection.send_command("script.getRealms", params)
         return list(result.get("realms", []))
 
     async def disown_handles(self, handles: list[str]) -> None:
@@ -8536,9 +8704,7 @@ class BiDiBackend(AbstractBackend):
             Dict with session status information.
         """
         client = self._require_client()
-        result = await client._connection.send_command(
-            "session.status", {}
-        )
+        result = await client._connection.send_command("session.status", {})
         return dict(result)
 
     # ── BiDi native: Storage ───────────────────────────────
@@ -8564,9 +8730,7 @@ class BiDiBackend(AbstractBackend):
             params["domain"] = domain
         if path:
             params["path"] = path
-        await client._connection.send_command(
-            "storage.deleteCookies", params
-        )
+        await client._connection.send_command("storage.deleteCookies", params)
 
     # ── BiDi native: WebExtensions ─────────────────────────
 
@@ -8668,9 +8832,7 @@ class BiDiBackend(AbstractBackend):
             params["objectId"] = object_id
         return dict(await client.cdp.send_command("Accessibility.getPartialAXTree", params))
 
-    async def a11y_get_root_ax_node(
-        self, frame_id: str | None = None
-    ) -> dict[str, Any]:
+    async def a11y_get_root_ax_node(self, frame_id: str | None = None) -> dict[str, Any]:
         """Fetch the root accessibility node via CDP bridge."""
         client = self._require_launched()
         params: dict[str, Any] = {}
@@ -8746,40 +8908,45 @@ class BiDiBackend(AbstractBackend):
     async def animation_resolve_animation(self, animation_id: str) -> dict[str, Any]:
         """Get the remote object of an Animation via CDP bridge."""
         client = self._require_launched()
-        return dict(await client.cdp.send_command("Animation.resolveAnimation", {"animationId": animation_id}))
+        return dict(
+            await client.cdp.send_command(
+                "Animation.resolveAnimation", {"animationId": animation_id}
+            )
+        )
 
-    async def animation_seek_animations(
-        self, animations: list[str], current_time: int
-    ) -> None:
+    async def animation_seek_animations(self, animations: list[str], current_time: int) -> None:
         """Seek a set of animations via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Animation.seekAnimations", {"animations": animations, "currentTime": current_time})
+        await client.cdp.send_command(
+            "Animation.seekAnimations", {"animations": animations, "currentTime": current_time}
+        )
 
-    async def animation_seek_to(
-        self, animations: list[str], current_time: int
-    ) -> None:
+    async def animation_seek_to(self, animations: list[str], current_time: int) -> None:
         """Seek animations to a specific time via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Animation.seekTo", {"animations": animations, "currentTime": current_time})
+        await client.cdp.send_command(
+            "Animation.seekTo", {"animations": animations, "currentTime": current_time}
+        )
 
-    async def animation_set_paused(
-        self, animations: list[str], paused: bool
-    ) -> None:
+    async def animation_set_paused(self, animations: list[str], paused: bool) -> None:
         """Pause or resume animations via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Animation.setPaused", {"animations": animations, "paused": paused})
+        await client.cdp.send_command(
+            "Animation.setPaused", {"animations": animations, "paused": paused}
+        )
 
     async def animation_set_playback_rate(self, playback_rate: float) -> None:
         """Set the global animation playback rate via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("Animation.setPlaybackRate", {"playbackRate": playback_rate})
 
-    async def animation_set_timing(
-        self, animation_id: str, duration: int, delay: int
-    ) -> None:
+    async def animation_set_timing(self, animation_id: str, duration: int, delay: int) -> None:
         """Set the timing of an animation via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Animation.setTiming", {"animationId": animation_id, "duration": duration, "delay": delay})
+        await client.cdp.send_command(
+            "Animation.setTiming",
+            {"animationId": animation_id, "duration": duration, "delay": delay},
+        )
 
     # ── CDP bridge: Audits ─────────────────────────────────
 
@@ -8831,9 +8998,7 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         await client.cdp.send_command("Autofill.enable", {})
 
-    async def autofill_set_addresses(
-        self, addresses: list[dict[str, Any]]
-    ) -> None:
+    async def autofill_set_addresses(self, addresses: list[dict[str, Any]]) -> None:
         """Set autofill addresses for testing via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("Autofill.setAddresses", {"addresses": addresses})
@@ -8891,12 +9056,12 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         await client.cdp.send_command("BackgroundService.clearEvents", {"service": service})
 
-    async def background_service_set_recording(
-        self, should_record: bool, service: str
-    ) -> None:
+    async def background_service_set_recording(self, should_record: bool, service: str) -> None:
         """Set recording state for a background service via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("BackgroundService.setRecording", {"shouldRecord": should_record, "service": service})
+        await client.cdp.send_command(
+            "BackgroundService.setRecording", {"shouldRecord": should_record, "service": service}
+        )
 
     async def background_service_start_observing(self, service: str) -> None:
         """Start observing events for a background service via CDP bridge."""
@@ -8915,11 +9080,14 @@ class BiDiBackend(AbstractBackend):
     ) -> str:
         """Add a characteristic to a service via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("BluetoothEmulation.addCharacteristic", {
-            "serviceId": service_id,
-            "characteristicUuid": characteristic_uuid,
-            "properties": properties,
-        })
+        result = await client.cdp.send_command(
+            "BluetoothEmulation.addCharacteristic",
+            {
+                "serviceId": service_id,
+                "characteristicUuid": characteristic_uuid,
+                "properties": properties,
+            },
+        )
         return str(result.get("characteristicId", ""))
 
     async def bluetooth_emulation_add_descriptor(
@@ -8927,21 +9095,25 @@ class BiDiBackend(AbstractBackend):
     ) -> str:
         """Add a descriptor to a characteristic via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("BluetoothEmulation.addDescriptor", {
-            "characteristicId": characteristic_id,
-            "descriptorUuid": descriptor_uuid,
-        })
+        result = await client.cdp.send_command(
+            "BluetoothEmulation.addDescriptor",
+            {
+                "characteristicId": characteristic_id,
+                "descriptorUuid": descriptor_uuid,
+            },
+        )
         return str(result.get("descriptorId", ""))
 
-    async def bluetooth_emulation_add_service(
-        self, address: str, service_uuid: str
-    ) -> str:
+    async def bluetooth_emulation_add_service(self, address: str, service_uuid: str) -> str:
         """Add a service to a peripheral via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("BluetoothEmulation.addService", {
-            "address": address,
-            "serviceUuid": service_uuid,
-        })
+        result = await client.cdp.send_command(
+            "BluetoothEmulation.addService",
+            {
+                "address": address,
+                "serviceUuid": service_uuid,
+            },
+        )
         return str(result.get("serviceId", ""))
 
     async def bluetooth_emulation_disable(self) -> None:
@@ -8949,42 +9121,40 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         await client.cdp.send_command("BluetoothEmulation.disable", {})
 
-    async def bluetooth_emulation_enable(
-        self, state: str, le_supported: bool
-    ) -> None:
+    async def bluetooth_emulation_enable(self, state: str, le_supported: bool) -> None:
         """Enable the Bluetooth emulation domain via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("BluetoothEmulation.enable", {"state": state, "leSupported": le_supported})
+        await client.cdp.send_command(
+            "BluetoothEmulation.enable", {"state": state, "leSupported": le_supported}
+        )
 
-    async def bluetooth_emulation_remove_characteristic(
-        self, characteristic_id: str
-    ) -> None:
+    async def bluetooth_emulation_remove_characteristic(self, characteristic_id: str) -> None:
         """Remove a characteristic via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("BluetoothEmulation.removeCharacteristic", {"characteristicId": characteristic_id})
+        await client.cdp.send_command(
+            "BluetoothEmulation.removeCharacteristic", {"characteristicId": characteristic_id}
+        )
 
-    async def bluetooth_emulation_remove_descriptor(
-        self, descriptor_id: str
-    ) -> None:
+    async def bluetooth_emulation_remove_descriptor(self, descriptor_id: str) -> None:
         """Remove a descriptor via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("BluetoothEmulation.removeDescriptor", {"descriptorId": descriptor_id})
+        await client.cdp.send_command(
+            "BluetoothEmulation.removeDescriptor", {"descriptorId": descriptor_id}
+        )
 
     async def bluetooth_emulation_remove_service(self, service_id: str) -> None:
         """Remove a service via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("BluetoothEmulation.removeService", {"serviceId": service_id})
 
-    async def bluetooth_emulation_set_simulated_central_state(
-        self, state: str
-    ) -> None:
+    async def bluetooth_emulation_set_simulated_central_state(self, state: str) -> None:
         """Set the simulated central state via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("BluetoothEmulation.setSimulatedCentralState", {"state": state})
+        await client.cdp.send_command(
+            "BluetoothEmulation.setSimulatedCentralState", {"state": state}
+        )
 
-    async def bluetooth_emulation_simulate_advertisement(
-        self, entry: dict[str, Any]
-    ) -> None:
+    async def bluetooth_emulation_simulate_advertisement(self, entry: dict[str, Any]) -> None:
         """Simulate a Bluetooth advertisement via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("BluetoothEmulation.simulateAdvertisement", {"entry": entry})
@@ -8994,10 +9164,16 @@ class BiDiBackend(AbstractBackend):
     ) -> None:
         """Simulate a characteristic operation response via CDP bridge."""
         client = self._require_launched()
-        params: dict[str, Any] = {"characteristicId": characteristic_id, "opType": op_type, "code": code}
+        params: dict[str, Any] = {
+            "characteristicId": characteristic_id,
+            "opType": op_type,
+            "code": code,
+        }
         if data is not None:
             params["data"] = data
-        await client.cdp.send_command("BluetoothEmulation.simulateCharacteristicOperationResponse", params)
+        await client.cdp.send_command(
+            "BluetoothEmulation.simulateCharacteristicOperationResponse", params
+        )
 
     async def bluetooth_emulation_simulate_descriptor_operation_response(
         self, descriptor_id: str, op_type: str, code: int, data: str | None = None
@@ -9007,21 +9183,26 @@ class BiDiBackend(AbstractBackend):
         params: dict[str, Any] = {"descriptorId": descriptor_id, "opType": op_type, "code": code}
         if data is not None:
             params["data"] = data
-        await client.cdp.send_command("BluetoothEmulation.simulateDescriptorOperationResponse", params)
+        await client.cdp.send_command(
+            "BluetoothEmulation.simulateDescriptorOperationResponse", params
+        )
 
-    async def bluetooth_emulation_simulate_gatt_disconnection(
-        self, address: str
-    ) -> None:
+    async def bluetooth_emulation_simulate_gatt_disconnection(self, address: str) -> None:
         """Simulate a GATT disconnection via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("BluetoothEmulation.simulateGATTDisconnection", {"address": address})
+        await client.cdp.send_command(
+            "BluetoothEmulation.simulateGATTDisconnection", {"address": address}
+        )
 
     async def bluetooth_emulation_simulate_gatt_operation_response(
         self, address: str, op_type: str, code: int
     ) -> None:
         """Simulate a GATT operation response via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("BluetoothEmulation.simulateGATTOperationResponse", {"address": address, "opType": op_type, "code": code})
+        await client.cdp.send_command(
+            "BluetoothEmulation.simulateGATTOperationResponse",
+            {"address": address, "opType": op_type, "code": code},
+        )
 
     async def bluetooth_emulation_simulate_preconnected_peripheral(
         self,
@@ -9032,29 +9213,37 @@ class BiDiBackend(AbstractBackend):
     ) -> None:
         """Simulate a preconnected peripheral via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("BluetoothEmulation.simulatePreconnectedPeripheral", {
-            "address": address,
-            "name": name,
-            "manufacturerData": manufacturer_data,
-            "knownServiceUuids": known_service_uuids,
-        })
+        await client.cdp.send_command(
+            "BluetoothEmulation.simulatePreconnectedPeripheral",
+            {
+                "address": address,
+                "name": name,
+                "manufacturerData": manufacturer_data,
+                "knownServiceUuids": known_service_uuids,
+            },
+        )
 
     # ── CDP bridge: Browser (extended) ─────────────────────
 
     async def browser_add_privacy_sandbox_coordinator_key_config(
-        self, api: str, coordinator_origin: str, key_config: str,
+        self,
+        api: str,
+        coordinator_origin: str,
+        key_config: str,
         browser_context_id: str | None = None,
     ) -> None:
         """Configure encryption keys for a privacy sandbox API via CDP bridge."""
         client = self._require_launched()
-        params: dict[str, Any] = {"api": api, "coordinatorOrigin": coordinator_origin, "keyConfig": key_config}
+        params: dict[str, Any] = {
+            "api": api,
+            "coordinatorOrigin": coordinator_origin,
+            "keyConfig": key_config,
+        }
         if browser_context_id is not None:
             params["browserContextId"] = browser_context_id
         await client.cdp.send_command("Browser.addPrivacySandboxCoordinatorKeyConfig", params)
 
-    async def browser_add_privacy_sandbox_enrollment_override(
-        self, url: str
-    ) -> None:
+    async def browser_add_privacy_sandbox_enrollment_override(self, url: str) -> None:
         """Allow a site to use privacy sandbox features via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("Browser.addPrivacySandboxEnrollmentOverride", {"url": url})
@@ -9079,9 +9268,7 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         await client.cdp.send_command("Browser.crashGpuProcess", {})
 
-    async def browser_execute_browser_command(
-        self, command_id: str
-    ) -> None:
+    async def browser_execute_browser_command(self, command_id: str) -> None:
         """Invoke custom browser commands via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("Browser.executeBrowserCommand", {"commandId": command_id})
@@ -9098,12 +9285,12 @@ class BiDiBackend(AbstractBackend):
         result = await client.cdp.send_command("Browser.getCommandLine", {})
         return str(result.get("commandLine", ""))
 
-    async def browser_get_histogram(
-        self, name: str, delta: bool = False
-    ) -> dict[str, Any]:
+    async def browser_get_histogram(self, name: str, delta: bool = False) -> dict[str, Any]:
         """Get a Chrome histogram by name via CDP bridge."""
         client = self._require_launched()
-        return dict(await client.cdp.send_command("Browser.getHistogram", {"name": name, "delta": delta}))
+        return dict(
+            await client.cdp.send_command("Browser.getHistogram", {"name": name, "delta": delta})
+        )
 
     async def browser_get_histograms(
         self, query: str | None = None, delta: bool = False
@@ -9121,9 +9308,7 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         return dict(await client.cdp.send_command("Browser.getVersion", {}))
 
-    async def browser_get_window_for_target(
-        self, target_id: str | None = None
-    ) -> dict[str, Any]:
+    async def browser_get_window_for_target(self, target_id: str | None = None) -> dict[str, Any]:
         """Get the browser window for a devtools target via CDP bridge."""
         client = self._require_launched()
         params: dict[str, Any] = {}
@@ -9132,7 +9317,9 @@ class BiDiBackend(AbstractBackend):
         return dict(await client.cdp.send_command("Browser.getWindowForTarget", params))
 
     async def browser_grant_permissions(
-        self, origin: str, permissions: list[str],
+        self,
+        origin: str,
+        permissions: list[str],
         browser_context_id: str | None = None,
     ) -> None:
         """Grant specific permissions to the given origin via CDP bridge."""
@@ -9167,7 +9354,8 @@ class BiDiBackend(AbstractBackend):
         await client.cdp.send_command("Browser.setDockTile", params)
 
     async def browser_set_download_behavior(
-        self, behavior: str,
+        self,
+        behavior: str,
         browser_context_id: str | None = None,
         download_path: str | None = None,
         events_enabled: bool = False,
@@ -9182,7 +9370,9 @@ class BiDiBackend(AbstractBackend):
         await client.cdp.send_command("Browser.setDownloadBehavior", params)
 
     async def browser_set_permission(
-        self, permission: dict[str, Any], setting: str,
+        self,
+        permission: dict[str, Any],
+        setting: str,
         origin: str | None = None,
         embedded_origin: str | None = None,
         browser_context_id: str | None = None,
@@ -9215,7 +9405,9 @@ class BiDiBackend(AbstractBackend):
 
     async def debugger_disassemble_wasm_module(self, script_id: str) -> dict[str, Any]:
         client = self._require_launched()
-        return dict(await client.cdp.send_command("Debugger.disassembleWasmModule", {"scriptId": script_id}))
+        return dict(
+            await client.cdp.send_command("Debugger.disassembleWasmModule", {"scriptId": script_id})
+        )
 
     async def debugger_enable(self, max_scripts_cache_size: int | None = None) -> None:
         client = self._require_launched()
@@ -9225,7 +9417,9 @@ class BiDiBackend(AbstractBackend):
         await client.cdp.send_command("Debugger.enable", params)
 
     async def debugger_evaluate_on_call_frame(
-        self, call_frame_id: str, expression: str,
+        self,
+        call_frame_id: str,
+        expression: str,
         object_group: str | None = None,
         include_command_line_api: bool | None = None,
         silent: bool | None = None,
@@ -9253,7 +9447,8 @@ class BiDiBackend(AbstractBackend):
         return dict(await client.cdp.send_command("Debugger.evaluateOnCallFrame", params))
 
     async def debugger_get_possible_breakpoints(
-        self, start: dict[str, Any],
+        self,
+        start: dict[str, Any],
         end: dict[str, Any] | None = None,
         restrict_to_function: bool | None = None,
     ) -> list[dict[str, Any]]:
@@ -9273,15 +9468,25 @@ class BiDiBackend(AbstractBackend):
 
     async def debugger_get_stack_trace(self, stack_trace_id: dict[str, Any]) -> dict[str, Any]:
         client = self._require_launched()
-        return dict(await client.cdp.send_command("Debugger.getStackTrace", {"stackTraceId": stack_trace_id}))
+        return dict(
+            await client.cdp.send_command(
+                "Debugger.getStackTrace", {"stackTraceId": stack_trace_id}
+            )
+        )
 
     async def debugger_get_wasm_bytecode(self, script_id: str) -> dict[str, Any]:
         client = self._require_launched()
-        return dict(await client.cdp.send_command("Debugger.getWasmBytecode", {"scriptId": script_id}))
+        return dict(
+            await client.cdp.send_command("Debugger.getWasmBytecode", {"scriptId": script_id})
+        )
 
     async def debugger_next_wasm_disassembly_chunk(self, stream_id: str) -> dict[str, Any]:
         client = self._require_launched()
-        return dict(await client.cdp.send_command("Debugger.nextWasmDisassemblyChunk", {"streamId": stream_id}))
+        return dict(
+            await client.cdp.send_command(
+                "Debugger.nextWasmDisassemblyChunk", {"streamId": stream_id}
+            )
+        )
 
     async def debugger_pause(self) -> None:
         client = self._require_launched()
@@ -9289,7 +9494,9 @@ class BiDiBackend(AbstractBackend):
 
     async def debugger_pause_on_async_call(self, parent_stack_trace_id: dict[str, Any]) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("Debugger.pauseOnAsyncCall", {"parentStackTraceId": parent_stack_trace_id})
+        await client.cdp.send_command(
+            "Debugger.pauseOnAsyncCall", {"parentStackTraceId": parent_stack_trace_id}
+        )
 
     async def debugger_remove_breakpoint(self, breakpoint_id: str) -> None:
         client = self._require_launched()
@@ -9297,7 +9504,9 @@ class BiDiBackend(AbstractBackend):
 
     async def debugger_restart_frame(self, call_frame_id: str, mode: str) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("Debugger.restartFrame", {"callFrameId": call_frame_id, "mode": mode})
+        await client.cdp.send_command(
+            "Debugger.restartFrame", {"callFrameId": call_frame_id, "mode": mode}
+        )
 
     async def debugger_resume(self, terminate_on_resume: bool | None = None) -> None:
         client = self._require_launched()
@@ -9307,7 +9516,9 @@ class BiDiBackend(AbstractBackend):
         await client.cdp.send_command("Debugger.resume", params)
 
     async def debugger_search_in_content(
-        self, script_id: str, query: str,
+        self,
+        script_id: str,
+        query: str,
         case_sensitive: bool | None = None,
         is_regex: bool | None = None,
     ) -> list[dict[str, Any]]:
@@ -9324,9 +9535,13 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         await client.cdp.send_command("Debugger.setAsyncCallStackDepth", {"maxDepth": max_depth})
 
-    async def debugger_set_blackbox_execution_contexts(self, execution_context_ids: list[int]) -> None:
+    async def debugger_set_blackbox_execution_contexts(
+        self, execution_context_ids: list[int]
+    ) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("Debugger.setBlackboxExecutionContexts", {"executionContextIds": execution_context_ids})
+        await client.cdp.send_command(
+            "Debugger.setBlackboxExecutionContexts", {"executionContextIds": execution_context_ids}
+        )
 
     async def debugger_set_blackbox_patterns(
         self, patterns: list[str], skip_anonymous: bool | None = None
@@ -9341,7 +9556,9 @@ class BiDiBackend(AbstractBackend):
         self, script_id: str, positions: list[dict[str, Any]]
     ) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("Debugger.setBlackboxedRanges", {"scriptId": script_id, "positions": positions})
+        await client.cdp.send_command(
+            "Debugger.setBlackboxedRanges", {"scriptId": script_id, "positions": positions}
+        )
 
     async def debugger_set_breakpoint(
         self, location: dict[str, Any], condition: str | None = None
@@ -9353,7 +9570,8 @@ class BiDiBackend(AbstractBackend):
         return dict(await client.cdp.send_command("Debugger.setBreakpoint", params))
 
     async def debugger_set_breakpoint_by_url(
-        self, line_number: int,
+        self,
+        line_number: int,
         url: str | None = None,
         url_regex: str | None = None,
         script_hash: str | None = None,
@@ -9389,7 +9607,9 @@ class BiDiBackend(AbstractBackend):
 
     async def debugger_set_instrumentation_breakpoint(self, instrumentation: str) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("Debugger.setInstrumentationBreakpoint", {"instrumentation": instrumentation})
+        await client.cdp.send_command(
+            "Debugger.setInstrumentationBreakpoint", {"instrumentation": instrumentation}
+        )
 
     async def debugger_set_pause_on_exceptions(self, state: str) -> None:
         client = self._require_launched()
@@ -9400,7 +9620,9 @@ class BiDiBackend(AbstractBackend):
         await client.cdp.send_command("Debugger.setReturnValue", {"newValue": new_value})
 
     async def debugger_set_script_source(
-        self, script_id: str, source: str,
+        self,
+        script_id: str,
+        source: str,
         dry_run: bool | None = None,
         allow_top_frame_editing: bool | None = None,
     ) -> dict[str, Any]:
@@ -9417,17 +9639,26 @@ class BiDiBackend(AbstractBackend):
         await client.cdp.send_command("Debugger.setSkipAllPauses", {"skip": skip})
 
     async def debugger_set_variable_value(
-        self, call_frame_id: str, scope_number: int,
-        variable_name: str, new_value: dict[str, Any],
+        self,
+        call_frame_id: str,
+        scope_number: int,
+        variable_name: str,
+        new_value: dict[str, Any],
     ) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("Debugger.setVariableValue", {
-            "callFrameId": call_frame_id, "scopeNumber": scope_number,
-            "variableName": variable_name, "newValue": new_value,
-        })
+        await client.cdp.send_command(
+            "Debugger.setVariableValue",
+            {
+                "callFrameId": call_frame_id,
+                "scopeNumber": scope_number,
+                "variableName": variable_name,
+                "newValue": new_value,
+            },
+        )
 
     async def debugger_step_into(
-        self, break_on_async_call: bool | None = None,
+        self,
+        break_on_async_call: bool | None = None,
         skip_list: list[dict[str, Any]] | None = None,
     ) -> None:
         client = self._require_launched()
@@ -9442,9 +9673,7 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         await client.cdp.send_command("Debugger.stepOut", {})
 
-    async def debugger_step_over(
-        self, skip_list: list[dict[str, Any]] | None = None
-    ) -> None:
+    async def debugger_step_over(self, skip_list: list[dict[str, Any]] | None = None) -> None:
         client = self._require_launched()
         params: dict[str, Any] = {}
         if skip_list is not None:
@@ -9455,7 +9684,9 @@ class BiDiBackend(AbstractBackend):
 
     async def heap_profiler_add_inspected_heap_object(self, heap_object_id: str) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("HeapProfiler.addInspectedHeapObject", {"heapObjectId": heap_object_id})
+        await client.cdp.send_command(
+            "HeapProfiler.addInspectedHeapObject", {"heapObjectId": heap_object_id}
+        )
 
     async def heap_profiler_collect_garbage(self) -> None:
         client = self._require_launched()
@@ -9471,7 +9702,9 @@ class BiDiBackend(AbstractBackend):
 
     async def heap_profiler_get_heap_object_id(self, object_id: str) -> str:
         client = self._require_launched()
-        result = await client.cdp.send_command("HeapProfiler.getHeapObjectId", {"objectId": object_id})
+        result = await client.cdp.send_command(
+            "HeapProfiler.getHeapObjectId", {"objectId": object_id}
+        )
         return str(result.get("heapObjectId", ""))
 
     async def heap_profiler_get_object_by_heap_object_id(
@@ -9488,7 +9721,8 @@ class BiDiBackend(AbstractBackend):
         return dict(await client.cdp.send_command("HeapProfiler.getSamplingProfile", {}))
 
     async def heap_profiler_start_sampling(
-        self, sampling_interval: float | None = None,
+        self,
+        sampling_interval: float | None = None,
         stack_depth: float | None = None,
         include_objects_collected_by_major_gc: bool = False,
         include_objects_collected_by_minor_gc: bool = False,
@@ -9504,37 +9738,51 @@ class BiDiBackend(AbstractBackend):
             params["stackDepth"] = stack_depth
         await client.cdp.send_command("HeapProfiler.startSampling", params)
 
-    async def heap_profiler_start_tracking_heap_objects(self, track_allocations: bool = False) -> None:
+    async def heap_profiler_start_tracking_heap_objects(
+        self, track_allocations: bool = False
+    ) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("HeapProfiler.startTrackingHeapObjects", {"trackAllocations": track_allocations})
+        await client.cdp.send_command(
+            "HeapProfiler.startTrackingHeapObjects", {"trackAllocations": track_allocations}
+        )
 
     async def heap_profiler_stop_sampling(self) -> dict[str, Any]:
         client = self._require_launched()
         return dict(await client.cdp.send_command("HeapProfiler.stopSampling", {}))
 
     async def heap_profiler_stop_tracking_heap_objects(
-        self, report_progress: bool = False,
+        self,
+        report_progress: bool = False,
         capture_numeric_value: bool = False,
         expose_internals: bool = False,
     ) -> dict[str, Any]:
         client = self._require_launched()
-        return dict(await client.cdp.send_command("HeapProfiler.stopTrackingHeapObjects", {
-            "reportProgress": report_progress,
-            "captureNumericValue": capture_numeric_value,
-            "exposeInternals": expose_internals,
-        }))
+        return dict(
+            await client.cdp.send_command(
+                "HeapProfiler.stopTrackingHeapObjects",
+                {
+                    "reportProgress": report_progress,
+                    "captureNumericValue": capture_numeric_value,
+                    "exposeInternals": expose_internals,
+                },
+            )
+        )
 
     async def heap_profiler_take_heap_snapshot(
-        self, report_progress: bool = False,
+        self,
+        report_progress: bool = False,
         capture_numeric_value: bool = False,
         expose_internals: bool = False,
     ) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("HeapProfiler.takeHeapSnapshot", {
-            "reportProgress": report_progress,
-            "captureNumericValue": capture_numeric_value,
-            "exposeInternals": expose_internals,
-        })
+        await client.cdp.send_command(
+            "HeapProfiler.takeHeapSnapshot",
+            {
+                "reportProgress": report_progress,
+                "captureNumericValue": capture_numeric_value,
+                "exposeInternals": expose_internals,
+            },
+        )
 
     # ── SmartCardEmulation (CDP bridge) ───────────────────
 
@@ -9550,7 +9798,10 @@ class BiDiBackend(AbstractBackend):
         self, request_id: str, handle: int
     ) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("SmartCardEmulation.reportBeginTransactionResult", {"requestId": request_id, "handle": handle})
+        await client.cdp.send_command(
+            "SmartCardEmulation.reportBeginTransactionResult",
+            {"requestId": request_id, "handle": handle},
+        )
 
     async def smart_card_emulation_report_connect_result(
         self, request_id: str, handle: int, active_protocol: str | None = None
@@ -9561,50 +9812,72 @@ class BiDiBackend(AbstractBackend):
             params["activeProtocol"] = active_protocol
         await client.cdp.send_command("SmartCardEmulation.reportConnectResult", params)
 
-    async def smart_card_emulation_report_data_result(
-        self, request_id: str, data: str
-    ) -> None:
+    async def smart_card_emulation_report_data_result(self, request_id: str, data: str) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("SmartCardEmulation.reportDataResult", {"requestId": request_id, "data": data})
+        await client.cdp.send_command(
+            "SmartCardEmulation.reportDataResult", {"requestId": request_id, "data": data}
+        )
 
-    async def smart_card_emulation_report_error(
-        self, request_id: str, result_code: str
-    ) -> None:
+    async def smart_card_emulation_report_error(self, request_id: str, result_code: str) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("SmartCardEmulation.reportError", {"requestId": request_id, "resultCode": result_code})
+        await client.cdp.send_command(
+            "SmartCardEmulation.reportError", {"requestId": request_id, "resultCode": result_code}
+        )
 
     async def smart_card_emulation_report_establish_context_result(
         self, request_id: str, context_id: int
     ) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("SmartCardEmulation.reportEstablishContextResult", {"requestId": request_id, "contextId": context_id})
+        await client.cdp.send_command(
+            "SmartCardEmulation.reportEstablishContextResult",
+            {"requestId": request_id, "contextId": context_id},
+        )
 
     async def smart_card_emulation_report_get_status_change_result(
         self, request_id: str, reader_states: list[dict[str, Any]]
     ) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("SmartCardEmulation.reportGetStatusChangeResult", {"requestId": request_id, "readerStates": reader_states})
+        await client.cdp.send_command(
+            "SmartCardEmulation.reportGetStatusChangeResult",
+            {"requestId": request_id, "readerStates": reader_states},
+        )
 
     async def smart_card_emulation_report_list_readers_result(
         self, request_id: str, readers: list[str]
     ) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("SmartCardEmulation.reportListReadersResult", {"requestId": request_id, "readers": readers})
+        await client.cdp.send_command(
+            "SmartCardEmulation.reportListReadersResult",
+            {"requestId": request_id, "readers": readers},
+        )
 
     async def smart_card_emulation_report_plain_result(self, request_id: str) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("SmartCardEmulation.reportPlainResult", {"requestId": request_id})
+        await client.cdp.send_command(
+            "SmartCardEmulation.reportPlainResult", {"requestId": request_id}
+        )
 
     async def smart_card_emulation_report_release_context_result(self, request_id: str) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("SmartCardEmulation.reportReleaseContextResult", {"requestId": request_id})
+        await client.cdp.send_command(
+            "SmartCardEmulation.reportReleaseContextResult", {"requestId": request_id}
+        )
 
     async def smart_card_emulation_report_status_result(
-        self, request_id: str, reader_name: str, state: str, atr: str,
+        self,
+        request_id: str,
+        reader_name: str,
+        state: str,
+        atr: str,
         protocol: str | None = None,
     ) -> None:
         client = self._require_launched()
-        params: dict[str, Any] = {"requestId": request_id, "readerName": reader_name, "state": state, "atr": atr}
+        params: dict[str, Any] = {
+            "requestId": request_id,
+            "readerName": reader_name,
+            "state": state,
+            "atr": atr,
+        }
         if protocol is not None:
             params["protocol"] = protocol
         await client.cdp.send_command("SmartCardEmulation.reportStatusResult", params)
@@ -9612,13 +9885,18 @@ class BiDiBackend(AbstractBackend):
     # ── IndexedDB (CDP bridge) ────────────────────────────
 
     async def indexed_db_clear_object_store(
-        self, database_name: str, object_store_name: str,
+        self,
+        database_name: str,
+        object_store_name: str,
         security_origin: str | None = None,
         storage_key: str | None = None,
         storage_bucket: dict[str, Any] | None = None,
     ) -> None:
         client = self._require_launched()
-        params: dict[str, Any] = {"databaseName": database_name, "objectStoreName": object_store_name}
+        params: dict[str, Any] = {
+            "databaseName": database_name,
+            "objectStoreName": object_store_name,
+        }
         if security_origin is not None:
             params["securityOrigin"] = security_origin
         if storage_key is not None:
@@ -9628,7 +9906,8 @@ class BiDiBackend(AbstractBackend):
         await client.cdp.send_command("IndexedDB.clearObjectStore", params)
 
     async def indexed_db_delete_database(
-        self, database_name: str,
+        self,
+        database_name: str,
         security_origin: str | None = None,
         storage_key: str | None = None,
         storage_bucket: dict[str, Any] | None = None,
@@ -9644,13 +9923,20 @@ class BiDiBackend(AbstractBackend):
         await client.cdp.send_command("IndexedDB.deleteDatabase", params)
 
     async def indexed_db_delete_object_store_entries(
-        self, database_name: str, object_store_name: str, key_range: dict[str, Any],
+        self,
+        database_name: str,
+        object_store_name: str,
+        key_range: dict[str, Any],
         security_origin: str | None = None,
         storage_key: str | None = None,
         storage_bucket: dict[str, Any] | None = None,
     ) -> None:
         client = self._require_launched()
-        params: dict[str, Any] = {"databaseName": database_name, "objectStoreName": object_store_name, "keyRange": key_range}
+        params: dict[str, Any] = {
+            "databaseName": database_name,
+            "objectStoreName": object_store_name,
+            "keyRange": key_range,
+        }
         if security_origin is not None:
             params["securityOrigin"] = security_origin
         if storage_key is not None:
@@ -9668,13 +9954,18 @@ class BiDiBackend(AbstractBackend):
         await client.cdp.send_command("IndexedDB.enable", {})
 
     async def indexed_db_get_metadata(
-        self, database_name: str, object_store_name: str,
+        self,
+        database_name: str,
+        object_store_name: str,
         security_origin: str | None = None,
         storage_key: str | None = None,
         storage_bucket: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         client = self._require_launched()
-        params: dict[str, Any] = {"databaseName": database_name, "objectStoreName": object_store_name}
+        params: dict[str, Any] = {
+            "databaseName": database_name,
+            "objectStoreName": object_store_name,
+        }
         if security_origin is not None:
             params["securityOrigin"] = security_origin
         if storage_key is not None:
@@ -9684,7 +9975,9 @@ class BiDiBackend(AbstractBackend):
         return dict(await client.cdp.send_command("IndexedDB.getMetadata", params))
 
     async def indexed_db_request_data(
-        self, database_name: str, object_store_name: str,
+        self,
+        database_name: str,
+        object_store_name: str,
         security_origin: str | None = None,
         storage_key: str | None = None,
         index_name: str = "",
@@ -9694,7 +9987,13 @@ class BiDiBackend(AbstractBackend):
         storage_bucket: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         client = self._require_launched()
-        params: dict[str, Any] = {"databaseName": database_name, "objectStoreName": object_store_name, "indexName": index_name, "skipCount": skip_count, "pageSize": page_size}
+        params: dict[str, Any] = {
+            "databaseName": database_name,
+            "objectStoreName": object_store_name,
+            "indexName": index_name,
+            "skipCount": skip_count,
+            "pageSize": page_size,
+        }
         if security_origin is not None:
             params["securityOrigin"] = security_origin
         if storage_key is not None:
@@ -9706,7 +10005,8 @@ class BiDiBackend(AbstractBackend):
         return dict(await client.cdp.send_command("IndexedDB.requestData", params))
 
     async def indexed_db_request_database(
-        self, database_name: str,
+        self,
+        database_name: str,
         security_origin: str | None = None,
         storage_key: str | None = None,
         storage_bucket: dict[str, Any] | None = None,
@@ -9722,7 +10022,8 @@ class BiDiBackend(AbstractBackend):
         return dict(await client.cdp.send_command("IndexedDB.requestDatabase", params))
 
     async def indexed_db_request_database_names(
-        self, security_origin: str | None = None,
+        self,
+        security_origin: str | None = None,
         storage_key: str | None = None,
         storage_bucket: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
@@ -9740,7 +10041,9 @@ class BiDiBackend(AbstractBackend):
 
     async def layer_tree_compositing_reasons(self, layer_id: str) -> dict[str, Any]:
         client = self._require_launched()
-        return dict(await client.cdp.send_command("LayerTree.compositingReasons", {"layerId": layer_id}))
+        return dict(
+            await client.cdp.send_command("LayerTree.compositingReasons", {"layerId": layer_id})
+        )
 
     async def layer_tree_disable(self) -> None:
         client = self._require_launched()
@@ -9761,7 +10064,8 @@ class BiDiBackend(AbstractBackend):
         return str(result.get("snapshotId", ""))
 
     async def layer_tree_profile_snapshot(
-        self, snapshot_id: str,
+        self,
+        snapshot_id: str,
         min_repeat_count: int | None = None,
         min_duration: float | None = None,
         clip_rect: dict[str, Any] | None = None,
@@ -9781,7 +10085,8 @@ class BiDiBackend(AbstractBackend):
         await client.cdp.send_command("LayerTree.releaseSnapshot", {"snapshotId": snapshot_id})
 
     async def layer_tree_replay_snapshot(
-        self, snapshot_id: str,
+        self,
+        snapshot_id: str,
         from_step: int | None = None,
         to_step: int | None = None,
         scale: float | None = None,
@@ -9798,13 +10103,19 @@ class BiDiBackend(AbstractBackend):
 
     async def layer_tree_snapshot_command_log(self, snapshot_id: str) -> dict[str, Any]:
         client = self._require_launched()
-        return dict(await client.cdp.send_command("LayerTree.snapshotCommandLog", {"snapshotId": snapshot_id}))
+        return dict(
+            await client.cdp.send_command(
+                "LayerTree.snapshotCommandLog", {"snapshotId": snapshot_id}
+            )
+        )
 
     # ── FedCM (CDP bridge) ────────────────────────────────
 
     async def fed_cm_click_dialog_button(self, dialog_id: str, dialog_button: str) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("FedCM.clickDialogButton", {"dialogId": dialog_id, "dialogButton": dialog_button})
+        await client.cdp.send_command(
+            "FedCM.clickDialogButton", {"dialogId": dialog_id, "dialogButton": dialog_button}
+        )
 
     async def fed_cm_disable(self) -> None:
         client = self._require_launched()
@@ -9812,17 +10123,28 @@ class BiDiBackend(AbstractBackend):
 
     async def fed_cm_dismiss_dialog(self, dialog_id: str, trigger_cooldown: bool = False) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("FedCM.dismissDialog", {"dialogId": dialog_id, "triggerCooldown": trigger_cooldown})
+        await client.cdp.send_command(
+            "FedCM.dismissDialog", {"dialogId": dialog_id, "triggerCooldown": trigger_cooldown}
+        )
 
     async def fed_cm_enable(self, disable_rejection_delay: bool = False) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("FedCM.enable", {"disableRejectionDelay": disable_rejection_delay})
+        await client.cdp.send_command(
+            "FedCM.enable", {"disableRejectionDelay": disable_rejection_delay}
+        )
 
     async def fed_cm_open_url(
         self, dialog_id: str, account_index: int, account_url_type: str
     ) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("FedCM.openURL", {"dialogId": dialog_id, "accountIndex": account_index, "accountUrlType": account_url_type})
+        await client.cdp.send_command(
+            "FedCM.openURL",
+            {
+                "dialogId": dialog_id,
+                "accountIndex": account_index,
+                "accountUrlType": account_url_type,
+            },
+        )
 
     async def fed_cm_reset_cooldown(self) -> None:
         client = self._require_launched()
@@ -9830,7 +10152,9 @@ class BiDiBackend(AbstractBackend):
 
     async def fed_cm_select_account(self, dialog_id: str, account_index: int) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("FedCM.selectAccount", {"dialogId": dialog_id, "accountIndex": account_index})
+        await client.cdp.send_command(
+            "FedCM.selectAccount", {"dialogId": dialog_id, "accountIndex": account_index}
+        )
 
     # ── CacheStorage (CDP bridge) ─────────────────────────
 
@@ -9840,10 +10164,13 @@ class BiDiBackend(AbstractBackend):
 
     async def cache_storage_delete_entry(self, cache_id: str, request: str) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("CacheStorage.deleteEntry", {"cacheId": cache_id, "request": request})
+        await client.cdp.send_command(
+            "CacheStorage.deleteEntry", {"cacheId": cache_id, "request": request}
+        )
 
     async def cache_storage_request_cache_names(
-        self, security_origin: str | None = None,
+        self,
+        security_origin: str | None = None,
         storage_key: str | None = None,
         storage_bucket: dict[str, Any] | None = None,
     ) -> list[dict[str, Any]]:
@@ -9862,12 +10189,20 @@ class BiDiBackend(AbstractBackend):
         self, cache_id: str, request_url: str, request_headers: list[dict[str, Any]]
     ) -> dict[str, Any]:
         client = self._require_launched()
-        return dict(await client.cdp.send_command("CacheStorage.requestCachedResponse", {
-            "cacheId": cache_id, "requestUrl": request_url, "requestHeaders": request_headers,
-        }))
+        return dict(
+            await client.cdp.send_command(
+                "CacheStorage.requestCachedResponse",
+                {
+                    "cacheId": cache_id,
+                    "requestUrl": request_url,
+                    "requestHeaders": request_headers,
+                },
+            )
+        )
 
     async def cache_storage_request_entries(
-        self, cache_id: str,
+        self,
+        cache_id: str,
         skip_count: int | None = None,
         page_size: int | None = None,
         path_filter: str | None = None,
@@ -9900,28 +10235,38 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         await client.cdp.send_command("DOMStorage.enable", {})
 
-    async def dom_storage_get_dom_storage_items(self, storage_id: dict[str, Any]) -> list[dict[str, Any]]:
+    async def dom_storage_get_dom_storage_items(
+        self, storage_id: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         client = self._require_launched()
-        result = await client.cdp.send_command("DOMStorage.getDOMStorageItems", {"storageId": storage_id})
+        result = await client.cdp.send_command(
+            "DOMStorage.getDOMStorageItems", {"storageId": storage_id}
+        )
         return list(result.get("items", []))
 
     async def dom_storage_remove_dom_storage_item(
         self, storage_id: dict[str, Any], key: str
     ) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("DOMStorage.removeDOMStorageItem", {"storageId": storage_id, "key": key})
+        await client.cdp.send_command(
+            "DOMStorage.removeDOMStorageItem", {"storageId": storage_id, "key": key}
+        )
 
     async def dom_storage_set_dom_storage_item(
         self, storage_id: dict[str, Any], key: str, value: str
     ) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("DOMStorage.setDOMStorageItem", {"storageId": storage_id, "key": key, "value": value})
+        await client.cdp.send_command(
+            "DOMStorage.setDOMStorageItem", {"storageId": storage_id, "key": key, "value": value}
+        )
 
     # ── EventBreakpoints (CDP bridge) ─────────────────────
 
     async def event_breakpoints_clear_instrumentation_breakpoint(self, event_name: str) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("EventBreakpoints.clearInstrumentationBreakpoint", {"eventName": event_name})
+        await client.cdp.send_command(
+            "EventBreakpoints.clearInstrumentationBreakpoint", {"eventName": event_name}
+        )
 
     async def event_breakpoints_disable(self) -> None:
         client = self._require_launched()
@@ -9929,11 +10274,15 @@ class BiDiBackend(AbstractBackend):
 
     async def event_breakpoints_remove_instrumentation_breakpoint(self, event_name: str) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("EventBreakpoints.removeInstrumentationBreakpoint", {"eventName": event_name})
+        await client.cdp.send_command(
+            "EventBreakpoints.removeInstrumentationBreakpoint", {"eventName": event_name}
+        )
 
     async def event_breakpoints_set_instrumentation_breakpoint(self, event_name: str) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("EventBreakpoints.setInstrumentationBreakpoint", {"eventName": event_name})
+        await client.cdp.send_command(
+            "EventBreakpoints.setInstrumentationBreakpoint", {"eventName": event_name}
+        )
 
     # ── Extensions (CDP bridge) ───────────────────────────
 
@@ -9946,7 +10295,11 @@ class BiDiBackend(AbstractBackend):
         self, path: str, enable_in_incognito: bool = False
     ) -> dict[str, Any]:
         client = self._require_launched()
-        return dict(await client.cdp.send_command("Extensions.loadUnpacked", {"path": path, "enableInIncognito": enable_in_incognito}))
+        return dict(
+            await client.cdp.send_command(
+                "Extensions.loadUnpacked", {"path": path, "enableInIncognito": enable_in_incognito}
+            )
+        )
 
     async def extensions_uninstall(self, extension_id: str) -> None:
         client = self._require_launched()
@@ -9955,7 +10308,8 @@ class BiDiBackend(AbstractBackend):
     # ── HeadlessExperimental (CDP bridge) ─────────────────
 
     async def headless_experimental_begin_frame(
-        self, frame_time_ticks: float | None = None,
+        self,
+        frame_time_ticks: float | None = None,
         interval: float | None = None,
         no_display_updates: bool | None = None,
         screenshot: dict[str, Any] | None = None,
@@ -9984,7 +10338,11 @@ class BiDiBackend(AbstractBackend):
 
     async def system_info_get_feature_state(self, feature_state: str) -> dict[str, Any]:
         client = self._require_launched()
-        return dict(await client.cdp.send_command("SystemInfo.getFeatureState", {"featureState": feature_state}))
+        return dict(
+            await client.cdp.send_command(
+                "SystemInfo.getFeatureState", {"featureState": feature_state}
+            )
+        )
 
     async def system_info_get_info(self) -> dict[str, Any]:
         client = self._require_launched()
@@ -10004,7 +10362,10 @@ class BiDiBackend(AbstractBackend):
         self, alpha: float, beta: float, gamma: float
     ) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("DeviceOrientation.setDeviceOrientationOverride", {"alpha": alpha, "beta": beta, "gamma": gamma})
+        await client.cdp.send_command(
+            "DeviceOrientation.setDeviceOrientationOverride",
+            {"alpha": alpha, "beta": beta, "gamma": gamma},
+        )
 
     # ── DOMDebugger (CDP bridge) ──────────────────────────
 
@@ -10022,7 +10383,9 @@ class BiDiBackend(AbstractBackend):
 
     async def dom_debugger_remove_dom_breakpoint(self, node_id: int, type: str) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("DOMDebugger.removeDOMBreakpoint", {"nodeId": node_id, "type": type})
+        await client.cdp.send_command(
+            "DOMDebugger.removeDOMBreakpoint", {"nodeId": node_id, "type": type}
+        )
 
     async def dom_debugger_remove_event_listener_breakpoint(
         self, event_name: str, target_name: str | None = None
@@ -10035,7 +10398,9 @@ class BiDiBackend(AbstractBackend):
 
     async def dom_debugger_remove_instrumentation_breakpoint(self, event_name: str) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("DOMDebugger.removeInstrumentationBreakpoint", {"eventName": event_name})
+        await client.cdp.send_command(
+            "DOMDebugger.removeInstrumentationBreakpoint", {"eventName": event_name}
+        )
 
     async def dom_debugger_remove_xhr_breakpoint(self, url: str) -> None:
         client = self._require_launched()
@@ -10043,11 +10408,15 @@ class BiDiBackend(AbstractBackend):
 
     async def dom_debugger_set_break_on_csp_violation(self, violation_types: list[str]) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("DOMDebugger.setBreakOnCSPViolation", {"violationTypes": violation_types})
+        await client.cdp.send_command(
+            "DOMDebugger.setBreakOnCSPViolation", {"violationTypes": violation_types}
+        )
 
     async def dom_debugger_set_dom_breakpoint(self, node_id: int, type: str) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("DOMDebugger.setDOMBreakpoint", {"nodeId": node_id, "type": type})
+        await client.cdp.send_command(
+            "DOMDebugger.setDOMBreakpoint", {"nodeId": node_id, "type": type}
+        )
 
     async def dom_debugger_set_event_listener_breakpoint(
         self, event_name: str, target_name: str | None = None
@@ -10060,7 +10429,9 @@ class BiDiBackend(AbstractBackend):
 
     async def dom_debugger_set_instrumentation_breakpoint(self, event_name: str) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("DOMDebugger.setInstrumentationBreakpoint", {"eventName": event_name})
+        await client.cdp.send_command(
+            "DOMDebugger.setInstrumentationBreakpoint", {"eventName": event_name}
+        )
 
     async def dom_debugger_set_xhr_breakpoint(self, url: str) -> None:
         client = self._require_launched()
@@ -10069,7 +10440,8 @@ class BiDiBackend(AbstractBackend):
     # ── DOMSnapshot (CDP bridge) ──────────────────────────
 
     async def dom_snapshot_capture_snapshot(
-        self, computed_styles: list[str] | None = None,
+        self,
+        computed_styles: list[str] | None = None,
         include_paint_order: bool = False,
         include_dom_rects: bool = False,
         include_blended_background_colors: bool = False,
@@ -10095,7 +10467,8 @@ class BiDiBackend(AbstractBackend):
         await client.cdp.send_command("DOMSnapshot.enable", {})
 
     async def dom_snapshot_get_snapshot(
-        self, computed_style_whitelist: list[str] | None = None,
+        self,
+        computed_style_whitelist: list[str] | None = None,
         include_event_listeners: bool | None = None,
         include_paint_order: bool | None = None,
         include_user_agent_shadow_tree: bool | None = None,
@@ -10128,7 +10501,9 @@ class BiDiBackend(AbstractBackend):
 
     async def device_access_select_prompt(self, request_id: str, device_id: str) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("DeviceAccess.selectPrompt", {"id": request_id, "deviceId": device_id})
+        await client.cdp.send_command(
+            "DeviceAccess.selectPrompt", {"id": request_id, "deviceId": device_id}
+        )
 
     # ── Remaining single methods (CDP bridge) ─────────────
 
@@ -10141,7 +10516,9 @@ class BiDiBackend(AbstractBackend):
 
     async def webauthn_remove_virtual_authenticator(self, authenticator_id: str) -> None:
         client = self._require_launched()
-        await client.cdp.send_command("WebAuthn.removeVirtualAuthenticator", {"authenticatorId": authenticator_id})
+        await client.cdp.send_command(
+            "WebAuthn.removeVirtualAuthenticator", {"authenticatorId": authenticator_id}
+        )
 
     async def crash_report_context_get_entries(self) -> list[dict[str, Any]]:
         client = self._require_launched()
@@ -10149,7 +10526,8 @@ class BiDiBackend(AbstractBackend):
         return list(result.get("entries", []))
 
     async def digital_credentials_set_virtual_wallet_behavior(
-        self, action: str,
+        self,
+        action: str,
         protocol: str | None = None,
         response: dict[str, Any] | None = None,
         frame_id: str | None = None,
@@ -10168,9 +10546,16 @@ class BiDiBackend(AbstractBackend):
         self, storage_key: str, path_components: list[str], bucket_name: str = ""
     ) -> dict[str, Any]:
         client = self._require_launched()
-        return dict(await client.cdp.send_command("FileSystem.getDirectory", {
-            "storageKey": storage_key, "pathComponents": path_components, "bucketName": bucket_name,
-        }))
+        return dict(
+            await client.cdp.send_command(
+                "FileSystem.getDirectory",
+                {
+                    "storageKey": storage_key,
+                    "pathComponents": path_components,
+                    "bucketName": bucket_name,
+                },
+            )
+        )
 
 
 class BiDiTabHandle(BiDiBackend):

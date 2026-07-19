@@ -91,9 +91,7 @@ class TestPerfBackend:
         backend = MagicMock()
         backend.launch = AsyncMock()
         backend.navigate = AsyncMock()
-        backend.perf_metrics = AsyncMock(
-            return_value={"LargestContentfulPaint": 2500}
-        )
+        backend.perf_metrics = AsyncMock(return_value={"LargestContentfulPaint": 2500})
         backend.close = AsyncMock()
 
         original_get_backend = _perf_module._get_backend
@@ -161,12 +159,8 @@ class TestConsoleEnhancements:
         backend = MagicMock()
         backend.launch = AsyncMock()
         backend.navigate = AsyncMock()
-        backend.capture_console = AsyncMock(
-            return_value=[{"level": "error", "text": "JS error"}]
-        )
-        backend.capture_logs = AsyncMock(
-            return_value=[{"level": "info", "message": "log entry"}]
-        )
+        backend.capture_console = AsyncMock(return_value=[{"level": "error", "text": "JS error"}])
+        backend.capture_logs = AsyncMock(return_value=[{"level": "info", "message": "log entry"}])
         backend.close = AsyncMock()
 
         original_get_backend = _nav_module._get_backend
@@ -190,9 +184,7 @@ class TestConsoleEnhancements:
         backend.launch = AsyncMock()
         backend.navigate = AsyncMock()
         backend.capture_console = AsyncMock(return_value=[])
-        backend.capture_logs = AsyncMock(
-            return_value=[{"level": "info", "message": "log"}]
-        )
+        backend.capture_logs = AsyncMock(return_value=[{"level": "info", "message": "log"}])
         backend.close = AsyncMock()
 
         original_get_backend = _nav_module._get_backend

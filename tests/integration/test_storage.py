@@ -20,9 +20,7 @@ def browser_opts() -> BrowserOptions:
     return BrowserOptions(headless=True)
 
 
-async def test_storage_set_and_get(
-    backend: CDPBackend, browser_opts: BrowserOptions
-) -> None:
+async def test_storage_set_and_get(backend: CDPBackend, browser_opts: BrowserOptions) -> None:
     """Test storage set and get in a single browser session."""
     await backend.launch(browser_opts)
     try:
@@ -34,9 +32,7 @@ async def test_storage_set_and_get(
         await backend.close()
 
 
-async def test_storage_list(
-    backend: CDPBackend, browser_opts: BrowserOptions
-) -> None:
+async def test_storage_list(backend: CDPBackend, browser_opts: BrowserOptions) -> None:
     """Test storage list in a single browser session."""
     await backend.launch(browser_opts)
     try:
@@ -49,9 +45,7 @@ async def test_storage_list(
         await backend.close()
 
 
-async def test_storage_clear(
-    backend: CDPBackend, browser_opts: BrowserOptions
-) -> None:
+async def test_storage_clear(backend: CDPBackend, browser_opts: BrowserOptions) -> None:
     """Test storage clear in a single browser session."""
     await backend.launch(browser_opts)
     try:

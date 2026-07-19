@@ -135,9 +135,7 @@ class TestStealthCDPLaunch:
             asyncio.run(backend.launch(opts))
 
         evaluate_calls = mock_session.runtime.evaluate.call_args_list
-        stealth_calls = [
-            c for c in evaluate_calls if "webdriver" in str(c.args)
-        ]
+        stealth_calls = [c for c in evaluate_calls if "webdriver" in str(c.args)]
         assert len(stealth_calls) == 0
 
 
@@ -156,9 +154,7 @@ class TestStealthBiDiLaunch:
         mock_client.session = MagicMock()
         mock_client.session.new = AsyncMock()
         mock_client.browsing = MagicMock()
-        mock_client.browsing.create_context = AsyncMock(
-            return_value="ctx-123"
-        )
+        mock_client.browsing.create_context = AsyncMock(return_value="ctx-123")
         mock_client.browsing.set_viewport = AsyncMock()
         mock_client.script = MagicMock()
         mock_client.script.evaluate = AsyncMock()

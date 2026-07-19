@@ -19,9 +19,7 @@ def _make_cdp_backend() -> Any:
     backend = CDPBackend()
     backend._session = MagicMock()
     backend._session.runtime = MagicMock()
-    backend._session.runtime.evaluate = AsyncMock(
-        return_value={"result": {"value": None}}
-    )
+    backend._session.runtime.evaluate = AsyncMock(return_value={"result": {"value": None}})
     return backend
 
 
@@ -68,9 +66,7 @@ class TestSuggestLocatorCDP:
     def test_raises_on_element_not_found(self) -> None:
         """Test that suggest_locator raises ElementNotFoundError when element missing."""
         backend = _make_cdp_backend()
-        backend._session.runtime.evaluate = AsyncMock(
-            return_value={"result": {"value": None}}
-        )
+        backend._session.runtime.evaluate = AsyncMock(return_value={"result": {"value": None}})
         with pytest.raises(ElementNotFoundError):
             asyncio.run(backend.suggest_locator("#missing"))
 

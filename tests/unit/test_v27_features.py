@@ -122,12 +122,14 @@ class TestExtensionList:
 
         backend = CDPBackend()
         mock_session = MagicMock()
-        mock_session.send = AsyncMock(return_value={
-            "extensions": [
-                {"id": "ext1", "name": "AdBlock", "version": "1.0", "enabled": True},
-                {"id": "ext2", "name": "DarkMode", "version": "2.0", "enabled": False},
-            ]
-        })
+        mock_session.send = AsyncMock(
+            return_value={
+                "extensions": [
+                    {"id": "ext1", "name": "AdBlock", "version": "1.0", "enabled": True},
+                    {"id": "ext2", "name": "DarkMode", "version": "2.0", "enabled": False},
+                ]
+            }
+        )
         backend._session = mock_session
 
         result = asyncio.run(backend.extension_list())
@@ -229,11 +231,13 @@ class TestLiveEventStreaming:
     def test_dom_mutation_stream_function_exists(self) -> None:
         """_stream_dom_mutations function should exist in serve.py."""
         from wavexis.serve import _stream_dom_mutations
+
         assert callable(_stream_dom_mutations)
 
     def test_perf_metrics_stream_function_exists(self) -> None:
         """_stream_perf_metrics function should exist in serve.py."""
         from wavexis.serve import _stream_perf_metrics
+
         assert callable(_stream_perf_metrics)
 
     def test_websocket_handler_supports_new_events(self) -> None:
@@ -241,6 +245,7 @@ class TestLiveEventStreaming:
         import inspect
 
         from wavexis.serve import handle_websocket
+
         source = inspect.getsource(handle_websocket)
         assert "dom_mutation" in source
         assert "perf_metrics" in source

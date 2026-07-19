@@ -20,9 +20,7 @@ def browser_opts() -> BrowserOptions:
     return BrowserOptions(headless=True)
 
 
-async def test_raw_cdp_command(
-    backend: CDPBackend, browser_opts: BrowserOptions
-) -> None:
+async def test_raw_cdp_command(backend: CDPBackend, browser_opts: BrowserOptions) -> None:
     """Test raw cdp command."""
     await backend.launch(browser_opts)
     try:
@@ -33,9 +31,7 @@ async def test_raw_cdp_command(
         await backend.close()
 
 
-async def test_raw_page_reload(
-    backend: CDPBackend, browser_opts: BrowserOptions
-) -> None:
+async def test_raw_page_reload(backend: CDPBackend, browser_opts: BrowserOptions) -> None:
     """Test raw page reload."""
     await backend.launch(browser_opts)
     try:
@@ -45,9 +41,7 @@ async def test_raw_page_reload(
         await backend.close()
 
 
-async def test_raw_network_enable(
-    backend: CDPBackend, browser_opts: BrowserOptions
-) -> None:
+async def test_raw_network_enable(backend: CDPBackend, browser_opts: BrowserOptions) -> None:
     """Test raw network enable."""
     await backend.launch(browser_opts)
     try:
@@ -57,9 +51,7 @@ async def test_raw_network_enable(
         await backend.close()
 
 
-async def test_raw_get_cookies(
-    backend: CDPBackend, browser_opts: BrowserOptions
-) -> None:
+async def test_raw_get_cookies(backend: CDPBackend, browser_opts: BrowserOptions) -> None:
     """Test raw get cookies."""
     await backend.launch(browser_opts)
     try:

@@ -80,15 +80,14 @@ class TestBatchTabsMode:
         urls = ["https://a.com", "https://b.com", "https://c.com"]
         fake_backend = FakeBackend()
 
-        with patch("wavexis.cli._workflow._get_backend", return_value=fake_backend), \
-             patch("wavexis.cli._workflow._browser_options", return_value=MagicMock()), \
-             patch("wavexis.cli._workflow._batch_single_on", new_callable=AsyncMock) as mock_single:
-
+        with (
+            patch("wavexis.cli._workflow._get_backend", return_value=fake_backend),
+            patch("wavexis.cli._workflow._browser_options", return_value=MagicMock()),
+            patch("wavexis.cli._workflow._batch_single_on", new_callable=AsyncMock) as mock_single,
+        ):
             mock_single.return_value = b"result"
 
-            results = await _batch_tabs(
-                urls, "screenshot", MagicMock(), "document.title", 4
-            )
+            results = await _batch_tabs(urls, "screenshot", MagicMock(), "document.title", 4)
 
             assert len(results) == 3
             assert fake_backend._tabs_created == 3
@@ -108,9 +107,7 @@ class TestBatchTabsMode:
             return f"result:{url}"
 
         with patch("wavexis.cli._workflow._batch_single", side_effect=fake_single):
-            results = await _batch_processes(
-                urls, "screenshot", MagicMock(), "document.title", 2
-            )
+            results = await _batch_processes(urls, "screenshot", MagicMock(), "document.title", 2)
 
             assert len(results) == 2
             assert call_count == 2
@@ -136,10 +133,11 @@ class TestBatchTabsMode:
                 concurrent -= 1
             return b"ok"
 
-        with patch("wavexis.cli._workflow._get_backend", return_value=fake_backend), \
-             patch("wavexis.cli._workflow._browser_options", return_value=MagicMock()), \
-             patch("wavexis.cli._workflow._batch_single_on", side_effect=track_single):
-
+        with (
+            patch("wavexis.cli._workflow._get_backend", return_value=fake_backend),
+            patch("wavexis.cli._workflow._browser_options", return_value=MagicMock()),
+            patch("wavexis.cli._workflow._batch_single_on", side_effect=track_single),
+        ):
             await _batch_tabs(urls, "screenshot", MagicMock(), "document.title", 3)
 
             assert max_concurrent <= 3
@@ -200,8 +198,10 @@ class TestScrapeConcurrency:
 
         fake_backend = FakeBackend()
 
-        with patch("wavexis.cli._capture._get_backend", return_value=fake_backend), \
-             patch("wavexis.cli._capture._browser_options", return_value=MagicMock()):
+        with (
+            patch("wavexis.cli._capture._get_backend", return_value=fake_backend),
+            patch("wavexis.cli._capture._browser_options", return_value=MagicMock()),
+        ):
 
             async def fake_execute(self, backend):
                 return [{"url": "test", "result": "ok"}]
@@ -225,8 +225,10 @@ class TestScrapeConcurrency:
 
         fake_backend = FakeBackend()
 
-        with patch("wavexis.cli._capture._get_backend", return_value=fake_backend), \
-             patch("wavexis.cli._capture._browser_options", return_value=MagicMock()):
+        with (
+            patch("wavexis.cli._capture._get_backend", return_value=fake_backend),
+            patch("wavexis.cli._capture._browser_options", return_value=MagicMock()),
+        ):
 
             async def fake_execute(self, backend):
                 return [{"url": "test", "result": "ok"}]

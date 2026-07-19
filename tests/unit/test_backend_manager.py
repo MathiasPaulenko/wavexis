@@ -6,7 +6,6 @@ from typing import Any
 
 import pytest
 
-from wavexis.backend.base import AbstractBackend
 from wavexis.backend.manager import BackendManager
 from wavexis.exceptions import BackendNotAvailableError, BackendNotSupportedError
 
@@ -15,7 +14,7 @@ class DummyBackend:
     """Dummy backend for testing."""
 
     def __init__(self) -> None:
-        """  init  ."""
+        """init  ."""
         pass
 
     async def launch(self, options: object) -> None:
@@ -138,15 +137,11 @@ class DummyBackend:
         """Dom scroll."""
         pass
 
-    async def suggest_locator(
-        self, selector: str, all: bool = False
-    ) -> list[str] | str:
+    async def suggest_locator(self, selector: str, all: bool = False) -> list[str] | str:
         """Suggest locator."""
         return selector
 
-    async def find_by_text(
-        self, query: str, all: bool = False
-    ) -> list[str] | str:
+    async def find_by_text(self, query: str, all: bool = False) -> list[str] | str:
         """Find by text."""
         return query
 
@@ -154,9 +149,7 @@ class DummyBackend:
         """NL click."""
         pass
 
-    async def nl_fill(
-        self, query: str, value: str, auto_wait: bool = True
-    ) -> None:
+    async def nl_fill(self, query: str, value: str, auto_wait: bool = True) -> None:
         """NL fill."""
         pass
 
@@ -248,9 +241,7 @@ class DummyBackend:
         """Type text."""
         pass
 
-    async def fill(
-        self, selector: str, value: str, auto_wait: bool = True
-    ) -> None:
+    async def fill(self, selector: str, value: str, auto_wait: bool = True) -> None:
         """Fill."""
         pass
 
@@ -302,15 +293,11 @@ class DummyBackend:
         """Shadow eval."""
         return None
 
-    async def shadow_click(
-        self, selectors: list[str], auto_wait: bool = True
-    ) -> None:
+    async def shadow_click(self, selectors: list[str], auto_wait: bool = True) -> None:
         """Shadow click."""
         pass
 
-    async def shadow_fill(
-        self, selectors: list[str], value: str, auto_wait: bool = True
-    ) -> None:
+    async def shadow_fill(self, selectors: list[str], value: str, auto_wait: bool = True) -> None:
         """Shadow fill."""
         pass
 
@@ -430,9 +417,7 @@ class DummyBackend:
         """Css get computed."""
         return {}
 
-    async def debug_set_breakpoint(
-        self, url: str, line: int, condition: str | None = None
-    ) -> str:
+    async def debug_set_breakpoint(self, url: str, line: int, condition: str | None = None) -> str:
         """Debug set breakpoint."""
         return ""
 
@@ -472,9 +457,7 @@ class DummyBackend:
         """Dom snapshot."""
         return {}
 
-    async def overlay_highlight(
-        self, selector: str, color: str = "rgba(255,0,0,0.5)"
-    ) -> None:
+    async def overlay_highlight(self, selector: str, color: str = "rgba(255,0,0,0.5)") -> None:
         """Overlay highlight."""
         pass
 
@@ -486,9 +469,7 @@ class DummyBackend:
         """Storage get."""
         return ""
 
-    async def storage_set(
-        self, key: str, value: str, storage_type: str = "local"
-    ) -> None:
+    async def storage_set(self, key: str, value: str, storage_type: str = "local") -> None:
         """Storage set."""
         pass
 
@@ -552,9 +533,7 @@ class DummyBackend:
         """Animation seek."""
         pass
 
-    async def webauthn_add_virtual_authenticator(
-        self, protocol: str, transport: str
-    ) -> str:
+    async def webauthn_add_virtual_authenticator(self, protocol: str, transport: str) -> str:
         """Webauthn add virtual authenticator."""
         return ""
 
@@ -562,9 +541,7 @@ class DummyBackend:
         """Webauthn remove authenticator."""
         pass
 
-    async def webauthn_add_credential(
-        self, authenticator_id: str, credential: dict
-    ) -> None:
+    async def webauthn_add_credential(self, authenticator_id: str, credential: dict) -> None:
         """Webauthn add credential."""
         pass
 
@@ -600,9 +577,7 @@ class DummyBackend:
         """Cast stop."""
         pass
 
-    async def bluetooth_emulate(
-        self, name: str, address: str = "00:00:00:00:00:01"
-    ) -> None:
+    async def bluetooth_emulate(self, name: str, address: str = "00:00:00:00:00:01") -> None:
         """Bluetooth emulate."""
         pass
 
@@ -618,15 +593,11 @@ class DummyBackend:
         """Get response body."""
         return None
 
-    async def modify_request(
-        self, pattern: dict[str, Any], modifications: dict[str, Any]
-    ) -> None:
+    async def modify_request(self, pattern: dict[str, Any], modifications: dict[str, Any]) -> None:
         """Modify request."""
         pass
 
-    async def modify_response(
-        self, pattern: dict[str, Any], modifications: dict[str, Any]
-    ) -> None:
+    async def modify_response(self, pattern: dict[str, Any], modifications: dict[str, Any]) -> None:
         """Modify response."""
         pass
 
@@ -651,9 +622,7 @@ class DummyBackend:
         """Axe audit."""
         return {}
 
-    async def subscribe_events(
-        self, event_types: list[str], callback: Any
-    ) -> str:
+    async def subscribe_events(self, event_types: list[str], callback: Any) -> str:
         """Subscribe events."""
         return "sub-dummy"
 
@@ -685,6 +654,7 @@ class DummyBackend:
 @pytest.mark.unit
 class TestBackendManager:
     """Test suite for backendmanager."""
+
     def test_list_available(self) -> None:
         """Test list available."""
         manager = BackendManager()

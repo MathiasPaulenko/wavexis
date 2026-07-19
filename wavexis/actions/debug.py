@@ -75,25 +75,17 @@ class DebugAction(BaseAction[DebugActionParams, Any]):
         action = self.params.action
         if action == "breakpoint":
             if self.params.script_url is None or self.params.line is None:
-                raise ValueError(
-                    "script_url and line are required for breakpoint action"
-                )
+                raise ValueError("script_url and line are required for breakpoint action")
             return await backend.debug_set_breakpoint(
                 self.params.script_url, self.params.line, self.params.condition
             )
         if action == "function_breakpoint":
             if not self.params.function_name:
-                raise ValueError(
-                    "function_name is required for function_breakpoint action"
-                )
-            return await backend.debug_set_breakpoint_function(
-                self.params.function_name
-            )
+                raise ValueError("function_name is required for function_breakpoint action")
+            return await backend.debug_set_breakpoint_function(self.params.function_name)
         if action == "remove_breakpoint":
             if not self.params.breakpoint_id:
-                raise ValueError(
-                    "breakpoint_id is required for remove_breakpoint action"
-                )
+                raise ValueError("breakpoint_id is required for remove_breakpoint action")
             await backend.debug_remove_breakpoint(self.params.breakpoint_id)
             return None
         if action == "step_over":

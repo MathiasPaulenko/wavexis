@@ -306,8 +306,12 @@ class TestCLIExecutionAdvanced:
             result = runner.invoke(
                 app,
                 [
-                    "modify", "https://example.com", "--pattern", "*api*",
-                    "--header", "X-Custom: value",
+                    "modify",
+                    "https://example.com",
+                    "--pattern",
+                    "*api*",
+                    "--header",
+                    "X-Custom: value",
                 ],
             )
         assert result.exit_code == 0
@@ -315,7 +319,9 @@ class TestCLIExecutionAdvanced:
     def test_har_replay_executes(self) -> None:
         backend = _make_mock_backend()
         with patch("wavexis.cli._network_inspect._get_backend", return_value=backend):
-            result = runner.invoke(app, ["har-replay", "/tmp/test.har", "--url", "https://example.com"])
+            result = runner.invoke(
+                app, ["har-replay", "/tmp/test.har", "--url", "https://example.com"]
+            )
         assert result.exit_code == 0
 
     def test_trace_executes(self) -> None:
@@ -398,7 +404,8 @@ class TestCLIExecutionShadow:
         backend.eval = AsyncMock(return_value="{}")
         with patch("wavexis.cli._shadow._get_backend", return_value=backend):
             result = runner.invoke(
-                app, ["shadow", "eval", "https://example.com", "-s", "#host", "-e", "1+1"],
+                app,
+                ["shadow", "eval", "https://example.com", "-s", "#host", "-e", "1+1"],
             )
         assert result.exit_code == 0
 
@@ -415,8 +422,13 @@ class TestCLIExecutionIframe:
             result = runner.invoke(
                 app,
                 [
-                    "iframe", "eval", "https://example.com",
-                    "--iframe", "iframe#myframe", "-e", "1+1",
+                    "iframe",
+                    "eval",
+                    "https://example.com",
+                    "--iframe",
+                    "iframe#myframe",
+                    "-e",
+                    "1+1",
                 ],
             )
         assert result.exit_code == 0
@@ -429,7 +441,9 @@ class TestCLIExecutionExperimental:
     def test_webauthn_executes(self) -> None:
         backend = _make_mock_backend()
         with patch("wavexis.cli._experimental._get_backend", return_value=backend):
-            result = runner.invoke(app, ["webauthn", "add-virtual-authenticator", "https://example.com"])
+            result = runner.invoke(
+                app, ["webauthn", "add-virtual-authenticator", "https://example.com"]
+            )
         assert result.exit_code == 0
 
     def test_webaudio_executes(self) -> None:
@@ -452,11 +466,7 @@ class TestCLIExecutionWorkflow:
     def test_multi_executes(self, tmp_path: Path) -> None:
         backend = _make_mock_backend()
         yaml_file = tmp_path / "test.yaml"
-        yaml_file.write_text(
-            "actions:\n"
-            "  - screenshot:\n"
-            "      url: https://example.com\n"
-        )
+        yaml_file.write_text("actions:\n  - screenshot:\n      url: https://example.com\n")
         with patch("wavexis.cli._workflow._get_backend", return_value=backend):
             result = runner.invoke(app, ["multi", str(yaml_file)])
         assert result.exit_code == 0
@@ -470,8 +480,12 @@ class TestCLIExecutionWorkflow:
             result = runner.invoke(
                 app,
                 [
-                    "batch", str(urls_file), "screenshot",
-                    "--output-dir", str(tmp_path / "out"), "--dry-run",
+                    "batch",
+                    str(urls_file),
+                    "screenshot",
+                    "--output-dir",
+                    str(tmp_path / "out"),
+                    "--dry-run",
                 ],
             )
         assert result.exit_code == 0
@@ -545,7 +559,9 @@ class TestCLIExecutionAdvancedFull:
     def test_security_ignore_cert(self) -> None:
         backend = _make_mock_backend()
         with patch("wavexis.cli._debug._get_backend", return_value=backend):
-            result = runner.invoke(app, ["security", "set-ignore-certificate-errors", "https://example.com", "true"])
+            result = runner.invoke(
+                app, ["security", "set-ignore-certificate-errors", "https://example.com", "true"]
+            )
         assert result.exit_code == 0
 
     def test_lighthouse_executes(self) -> None:
@@ -646,7 +662,8 @@ class TestCLIExecutionEmulationFull:
         backend = _make_mock_backend()
         with patch("wavexis.cli._emulation._get_backend", return_value=backend):
             result = runner.invoke(
-                app, ["emulation", "device", "https://example.com", "--device", "iPhone 12"],
+                app,
+                ["emulation", "device", "https://example.com", "--device", "iPhone 12"],
             )
         assert result.exit_code == 0
 
@@ -719,7 +736,8 @@ class TestCLIExecutionSessionFull:
         session_file.write_text('{"cookies":[],"local_storage":{},"session_storage":{},"url":""}')
         with patch("wavexis.cli._session._get_backend", return_value=backend):
             result = runner.invoke(
-                app, ["session", "load", "https://example.com", "-o", str(session_file)],
+                app,
+                ["session", "load", "https://example.com", "-o", str(session_file)],
             )
         assert result.exit_code == 0
 
@@ -754,10 +772,13 @@ class TestCLIExecutionSessionFull:
 
     def test_session_save_named(self, tmp_path: Path) -> None:
         backend = _make_mock_backend()
-        with patch("wavexis.cli._session._get_backend", return_value=backend), \
-             patch("pathlib.Path.home", return_value=tmp_path):
+        with (
+            patch("wavexis.cli._session._get_backend", return_value=backend),
+            patch("pathlib.Path.home", return_value=tmp_path),
+        ):
             result = runner.invoke(
-                app, ["session", "save", "https://example.com", "--name", "test"],
+                app,
+                ["session", "save", "https://example.com", "--name", "test"],
             )
         assert result.exit_code == 0
 
@@ -845,7 +866,8 @@ class TestCLIExecutionCSS:
         backend.dom_query = AsyncMock(return_value=[])
         with patch("wavexis.cli._debug._get_backend", return_value=backend):
             result = runner.invoke(
-                app, ["css", "rules", "https://example.com", "--stylesheet-id", "1"],
+                app,
+                ["css", "rules", "https://example.com", "--stylesheet-id", "1"],
             )
         assert result.exit_code == 0
 
@@ -867,8 +889,13 @@ class TestCLIExecutionDebugFull:
             result = runner.invoke(
                 app,
                 [
-                    "debug", "breakpoint", "https://example.com",
-                    "--url", "script.js", "--line", "10",
+                    "debug",
+                    "breakpoint",
+                    "https://example.com",
+                    "--url",
+                    "script.js",
+                    "--line",
+                    "10",
                 ],
             )
         assert result.exit_code == 0
@@ -937,7 +964,8 @@ class TestCLIExecutionOverlay:
         backend = _make_mock_backend()
         with patch("wavexis.cli._debug._get_backend", return_value=backend):
             result = runner.invoke(
-                app, ["overlay", "highlight", "https://example.com", "-s", "div"],
+                app,
+                ["overlay", "highlight", "https://example.com", "-s", "div"],
             )
         assert result.exit_code == 0
 
@@ -958,8 +986,13 @@ class TestCLIExecutionEmulationExtra:
             result = runner.invoke(
                 app,
                 [
-                    "emulation", "viewport", "https://example.com",
-                    "--width", "800", "--height", "600",
+                    "emulation",
+                    "viewport",
+                    "https://example.com",
+                    "--width",
+                    "800",
+                    "--height",
+                    "600",
                 ],
             )
         assert result.exit_code == 0
@@ -971,8 +1004,13 @@ class TestCLIExecutionEmulationExtra:
             result = runner.invoke(
                 app,
                 [
-                    "emulation", "geolocation", "https://example.com",
-                    "--lat", "37.7", "--lon", "-122.4",
+                    "emulation",
+                    "geolocation",
+                    "https://example.com",
+                    "--lat",
+                    "37.7",
+                    "--lon",
+                    "-122.4",
                 ],
             )
         assert result.exit_code == 0
@@ -982,7 +1020,8 @@ class TestCLIExecutionEmulationExtra:
         backend.screenshot = AsyncMock(return_value=b"\x89PNG\r\n\x1a\n")
         with patch("wavexis.cli._emulation._get_backend", return_value=backend):
             result = runner.invoke(
-                app, ["emulation", "timezone", "https://example.com", "--tz", "America/New_York"],
+                app,
+                ["emulation", "timezone", "https://example.com", "--tz", "America/New_York"],
             )
         assert result.exit_code == 0
 

@@ -8,9 +8,10 @@ from wavexis.backend.base import AbstractBackend
 
 
 def _has_aiohttp() -> bool:
-    """ has aiohttp."""
+    """has aiohttp."""
     try:
         import aiohttp  # noqa: F401
+
         return True
     except ImportError:
         return False
@@ -22,6 +23,7 @@ pytestmark = pytest.mark.skipif(not _has_aiohttp(), reason="aiohttp not installe
 @pytest.mark.unit
 class TestServeImport:
     """Test suite for serveimport."""
+
     def test_import_aiohttp_raises_without_install(self) -> None:
         """Test that import aiohttp raises without install raises an appropriate error."""
         from wavexis.serve import _import_aiohttp
@@ -33,6 +35,7 @@ class TestServeImport:
 @pytest.mark.unit
 class TestServeCreateApp:
     """Test suite for servecreateapp."""
+
     def test_create_app_returns_application(self) -> None:
         """Test create app returns application."""
         from wavexis.serve import create_app
@@ -76,6 +79,7 @@ class TestServeCreateApp:
 @pytest.mark.unit
 class TestServeHandlers:
     """Test suite for servehandlers."""
+
     async def test_health_endpoint(self) -> None:
         """Test health endpoint."""
         from aiohttp.test_utils import TestClient, TestServer
@@ -131,7 +135,7 @@ class TestServeHandlerMocks:
     """Test handlers with mocked backend to avoid real browser."""
 
     def _make_mock_backend(self) -> MagicMock:
-        """ make mock backend."""
+        """make mock backend."""
         backend = MagicMock(spec=AbstractBackend)
         backend.launch = AsyncMock()
         backend.close = AsyncMock()
@@ -139,14 +143,10 @@ class TestServeHandlerMocks:
         backend.screenshot = AsyncMock(return_value=b"\x89PNG\r\n\x1a\n")
         backend.pdf = AsyncMock(return_value=b"%PDF-1.4")
         backend.eval = AsyncMock(return_value=42)
-        backend.get_cookies = AsyncMock(
-            return_value=[{"name": "foo", "value": "bar"}]
-        )
+        backend.get_cookies = AsyncMock(return_value=[{"name": "foo", "value": "bar"}])
         backend.set_cookie = AsyncMock()
         backend.perf_metrics = AsyncMock(return_value={"Timestamp": 1.0})
-        backend.perf_trace = AsyncMock(
-            return_value={"traceEvents": [{"name": "X"}]}
-        )
+        backend.perf_trace = AsyncMock(return_value={"traceEvents": [{"name": "X"}]})
         return backend
 
     async def test_screenshot_endpoint(self) -> None:
@@ -391,11 +391,13 @@ class TestServeHandlerMocks:
             return_value=mock_backend,
         ):
             ws = await client.ws_connect("/ws")
-            await ws.send_json({
-                "url": "https://example.com",
-                "events": ["screenshot"],
-                "interval": 0.1,
-            })
+            await ws.send_json(
+                {
+                    "url": "https://example.com",
+                    "events": ["screenshot"],
+                    "interval": 0.1,
+                }
+            )
             ready = await ws.receive_json(timeout=2)
             assert ready["type"] == "ready"
             screenshot = await ws.receive_json(timeout=2)
@@ -425,11 +427,13 @@ class TestServeHandlerMocks:
             return_value=mock_backend,
         ):
             ws = await client.ws_connect("/ws")
-            await ws.send_json({
-                "url": "https://example.com",
-                "events": [],
-                "interval": 1.0,
-            })
+            await ws.send_json(
+                {
+                    "url": "https://example.com",
+                    "events": [],
+                    "interval": 1.0,
+                }
+            )
             ready = await ws.receive_json(timeout=2)
             assert ready["type"] == "ready"
             await ws.send_json({"action": "eval", "expression": "document.title"})
@@ -463,6 +467,41 @@ class TestServeHandlerMocks:
                 json={"url": "https://example.com"},
             )
         assert resp.status == 200
+        await client.close()
+
+    async def test_scrape_csv_endpoint(self) -> None:
+        """Test that scrape with output_format=csv returns CSV text."""
+        from unittest.mock import patch
+
+        from aiohttp.test_utils import TestClient, TestServer
+
+        from wavexis.serve import create_app
+
+        mock_backend = self._make_mock_backend()
+        mock_backend.navigate = AsyncMock()
+        mock_backend.eval = AsyncMock(return_value="Test Title")
+        app = create_app()
+        server = TestServer(app)
+        client = TestClient(server)
+        await client.start_server()
+        with patch(
+            "wavexis.backend.manager.BackendManager.select_with_fallback",
+            new_callable=AsyncMock,
+            return_value=mock_backend,
+        ):
+            resp = await client.post(
+                "/scrape",
+                json={
+                    "url": "https://example.com",
+                    "output_format": "csv",
+                    "urls": ["https://example.com"],
+                },
+            )
+        assert resp.status == 200
+        text = await resp.text()
+        assert "url" in text
+        assert "result" in text
+        assert "text/csv" in resp.headers.get("Content-Type", "")
         await client.close()
 
     async def test_dom_get_endpoint(self) -> None:
@@ -520,9 +559,7 @@ class TestServeHandlerMocks:
         from wavexis.serve import create_app
 
         mock_backend = self._make_mock_backend()
-        mock_backend.capture_har = AsyncMock(
-            return_value={"log": {"entries": []}}
-        )
+        mock_backend.capture_har = AsyncMock(return_value={"log": {"entries": []}})
         app = create_app()
         server = TestServer(app)
         client = TestClient(server)
@@ -609,9 +646,7 @@ class TestServeHandlerMocks:
             new_callable=AsyncMock,
             return_value=mock_backend,
         ):
-            resp = await client.post(
-                "/cwv", json={"url": "https://example.com", "observe_ms": 100}
-            )
+            resp = await client.post("/cwv", json={"url": "https://example.com", "observe_ms": 100})
         assert resp.status == 200
         await client.close()
 

@@ -12,19 +12,18 @@ from wavexis.actions.cast import CastAction, CastParams
 @pytest.mark.unit
 class TestCastAction:
     """Test suite for castaction."""
+
     def _make_backend(self) -> MagicMock:
         """Create a mock backend for testing.
 
-            Returns:
-                A MagicMock backend instance.
-            """
+        Returns:
+            A MagicMock backend instance.
+        """
         backend = MagicMock()
         backend.launch = AsyncMock()
         backend.navigate = AsyncMock()
         backend.close = AsyncMock()
-        backend.cast_list = AsyncMock(
-            return_value=[{"name": "Chromecast", "id": "sink1"}]
-        )
+        backend.cast_list = AsyncMock(return_value=[{"name": "Chromecast", "id": "sink1"}])
         backend.cast_start_tab = AsyncMock()
         backend.cast_stop = AsyncMock()
         backend.cast_enable = AsyncMock()

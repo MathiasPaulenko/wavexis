@@ -75,12 +75,8 @@ class SmartCardEmulationAction(BaseAction[SmartCardEmulationParams, Any]):
 
         if action == "report-error":
             if not self.params.request_id or not self.params.error:
-                raise ValueError(
-                    "request_id and error are required for report-error"
-                )
-            await backend.smart_card_report_error(
-                self.params.request_id, self.params.error
-            )
+                raise ValueError("request_id and error are required for report-error")
+            await backend.smart_card_report_error(self.params.request_id, self.params.error)
             return None
 
         if action == "report-plain":
@@ -93,9 +89,7 @@ class SmartCardEmulationAction(BaseAction[SmartCardEmulationParams, Any]):
 
         if action == "report-connect":
             if not self.params.request_id or not self.params.connection_id:
-                raise ValueError(
-                    "request_id and connection_id are required for report-connect"
-                )
+                raise ValueError("request_id and connection_id are required for report-connect")
             await backend.smart_card_report_connect_result(
                 self.params.request_id,
                 self.params.result_code,
@@ -105,9 +99,7 @@ class SmartCardEmulationAction(BaseAction[SmartCardEmulationParams, Any]):
 
         if action == "report-data":
             if not self.params.request_id or self.params.data is None:
-                raise ValueError(
-                    "request_id and data are required for report-data"
-                )
+                raise ValueError("request_id and data are required for report-data")
             await backend.smart_card_report_data_result(
                 self.params.request_id,
                 self.params.result_code,
@@ -117,9 +109,7 @@ class SmartCardEmulationAction(BaseAction[SmartCardEmulationParams, Any]):
 
         if action == "report-status":
             if not self.params.request_id or not self.params.status:
-                raise ValueError(
-                    "request_id and status are required for report-status"
-                )
+                raise ValueError("request_id and status are required for report-status")
             await backend.smart_card_report_status_result(
                 self.params.request_id, self.params.status
             )
@@ -127,9 +117,7 @@ class SmartCardEmulationAction(BaseAction[SmartCardEmulationParams, Any]):
 
         if action == "report-begin-transaction":
             if not self.params.request_id:
-                raise ValueError(
-                    "request_id is required for report-begin-transaction"
-                )
+                raise ValueError("request_id is required for report-begin-transaction")
             await backend.smart_card_report_begin_transaction_result(
                 self.params.request_id, self.params.result_code
             )
@@ -138,8 +126,7 @@ class SmartCardEmulationAction(BaseAction[SmartCardEmulationParams, Any]):
         if action == "report-establish-context":
             if not self.params.request_id or not self.params.context_id:
                 raise ValueError(
-                    "request_id and context_id are required "
-                    "for report-establish-context"
+                    "request_id and context_id are required for report-establish-context"
                 )
             await backend.smart_card_report_establish_context_result(
                 self.params.request_id,
@@ -150,9 +137,7 @@ class SmartCardEmulationAction(BaseAction[SmartCardEmulationParams, Any]):
 
         if action == "report-release-context":
             if not self.params.request_id:
-                raise ValueError(
-                    "request_id is required for report-release-context"
-                )
+                raise ValueError("request_id is required for report-release-context")
             await backend.smart_card_report_release_context_result(
                 self.params.request_id, self.params.result_code
             )
@@ -160,9 +145,7 @@ class SmartCardEmulationAction(BaseAction[SmartCardEmulationParams, Any]):
 
         if action == "report-list-readers":
             if not self.params.request_id or self.params.readers is None:
-                raise ValueError(
-                    "request_id and readers are required for report-list-readers"
-                )
+                raise ValueError("request_id and readers are required for report-list-readers")
             await backend.smart_card_report_list_readers_result(
                 self.params.request_id,
                 self.params.result_code,
@@ -172,10 +155,7 @@ class SmartCardEmulationAction(BaseAction[SmartCardEmulationParams, Any]):
 
         if action == "report-get-status-change":
             if not self.params.request_id or self.params.readers is None:
-                raise ValueError(
-                    "request_id and readers are required "
-                    "for report-get-status-change"
-                )
+                raise ValueError("request_id and readers are required for report-get-status-change")
             await backend.smart_card_report_get_status_change_result(
                 self.params.request_id,
                 self.params.result_code,

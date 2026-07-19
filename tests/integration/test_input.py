@@ -11,6 +11,7 @@ pytestmark = [pytest.mark.integration, pytest.mark.chrome]
 @pytest.mark.integration
 class TestInputIntegration:
     """Test suite for inputintegration."""
+
     async def test_click_and_type(self) -> None:
         """Test click and type."""
         backend = CDPBackend()
@@ -40,8 +41,7 @@ class TestInputIntegration:
     async def test_hover_and_key(self) -> None:
         """Test hover and key."""
         html = (
-            "data:text/html,"
-            "<div id='d' onmouseover='this.textContent=\"hovered\"'>Hover me</div>"
+            "data:text/html,<div id='d' onmouseover='this.textContent=\"hovered\"'>Hover me</div>"
         )
         backend = CDPBackend()
         async with backend:

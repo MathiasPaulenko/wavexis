@@ -10,7 +10,13 @@ class HeadlessExperimentalBackend(ABC):
     """Headless experimental operations."""
 
     @abstractmethod
-    async def headless_experimental_begin_frame(self, frame_time_ticks: float | None = None, interval: float | None = None, no_display_updates: bool = False, screenshot: dict[str, Any] | None = None) -> dict[str, Any]:
+    async def headless_experimental_begin_frame(
+        self,
+        frame_time_ticks: float | None = None,
+        interval: float | None = None,
+        no_display_updates: bool = False,
+        screenshot: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Begin a new frame in headless mode."""
 
     @abstractmethod

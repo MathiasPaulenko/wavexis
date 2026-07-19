@@ -13,6 +13,7 @@ from wavexis.record import Recorder, record_to_yaml, replay_from_yaml
 @pytest.mark.unit
 class TestRecorder:
     """Test suite for recorder."""
+
     def test_init(self) -> None:
         """Test init."""
         backend = MagicMock(spec=AbstractBackend)
@@ -41,6 +42,7 @@ class TestRecorder:
 @pytest.mark.unit
 class TestRecordToYaml:
     """Test suite for recordtoyaml."""
+
     def test_save_and_load(self, tmp_path: Path) -> None:
         """Test save and load."""
         actions = [
@@ -66,6 +68,7 @@ class TestRecordToYaml:
 @pytest.mark.unit
 class TestReplayFromYaml:
     """Test suite for replayfromyaml."""
+
     async def test_replay_valid(self, tmp_path: Path) -> None:
         """Test replay valid."""
         actions = [

@@ -79,6 +79,12 @@ class TestCheckAssertion:
         assert passed is True
         assert msg == ""
 
+    def test_matches_invalid_regex(self) -> None:
+        """Test matches assertion with invalid regex returns error message."""
+        passed, msg = _check_assertion("test", "matches [unclosed")
+        assert passed is False
+        assert "Invalid regex pattern" in msg
+
 
 @pytest.mark.unit
 class TestMultiDispatchCookies:

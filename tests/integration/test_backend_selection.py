@@ -11,6 +11,7 @@ from wavexis.exceptions import BackendNotAvailableError
 @pytest.mark.integration
 class TestBackendSelectionIntegration:
     """Test suite for backendselectionintegration."""
+
     def test_list_available_includes_cdp(self) -> None:
         """Test list available includes cdp."""
         manager = BackendManager()

@@ -90,9 +90,7 @@ def generate_config(
         ValueError: If the template name is not recognized.
     """
     if template not in TEMPLATES:
-        raise ValueError(
-            f"Unknown template: {template}. Available: {', '.join(TEMPLATE_NAMES)}"
-        )
+        raise ValueError(f"Unknown template: {template}. Available: {', '.join(TEMPLATE_NAMES)}")
 
     config = TEMPLATES[template]
     actions: list[dict[str, Any]] = []
@@ -114,11 +112,13 @@ def generate_config(
 
         actions.append({action_type: params})
 
-    return yaml.dump(
-        {"actions": actions},
-        default_flow_style=False,
-        sort_keys=False,
-        allow_unicode=True,
+    return str(
+        yaml.dump(
+            {"actions": actions},
+            default_flow_style=False,
+            sort_keys=False,
+            allow_unicode=True,
+        )
     )
 
 
@@ -159,9 +159,7 @@ def interactive_init(
     elif choice in TEMPLATES:
         template = choice
     else:
-        raise ValueError(
-            f"Unknown template: {choice}. Available: {', '.join(TEMPLATE_NAMES)}"
-        )
+        raise ValueError(f"Unknown template: {choice}. Available: {', '.join(TEMPLATE_NAMES)}")
 
     url = input_fn("URL [https://example.com]: ").strip() or None
     expression: str | None = None
@@ -169,9 +167,7 @@ def interactive_init(
     text: str | None = None
 
     if template in ("scrape", "eval"):
-        expression = input_fn(
-            "JS expression [document.title]: "
-        ).strip() or None
+        expression = input_fn("JS expression [document.title]: ").strip() or None
 
     if template in ("multi-step",):
         selector = input_fn("CSS selector for click [#button]: ").strip() or None

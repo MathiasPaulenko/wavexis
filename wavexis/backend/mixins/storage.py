@@ -22,9 +22,7 @@ class StorageBackend(ABC):
         """
 
     @abstractmethod
-    async def storage_set(
-        self, key: str, value: str, storage_type: str = "local"
-    ) -> None:
+    async def storage_set(self, key: str, value: str, storage_type: str = "local") -> None:
         """Set a value in DOM storage (local or session).
 
         Args:
@@ -88,9 +86,7 @@ class StorageBackend(ABC):
         """
 
     @abstractmethod
-    async def cache_storage_delete_entry(
-        self, cache_id: str, request: str
-    ) -> None:
+    async def cache_storage_delete_entry(self, cache_id: str, request: str) -> None:
         """Delete a specific entry from a cache.
 
         Args:
@@ -150,9 +146,7 @@ class StorageBackend(ABC):
         """
 
     @abstractmethod
-    async def indexeddb_get_data(
-        self, database: str, store: str, key: str = ""
-    ) -> Any:
+    async def indexeddb_get_data(self, database: str, store: str, key: str = "") -> Any:
         """Get data from an IndexedDB object store.
 
         Args:
@@ -208,11 +202,15 @@ class StorageBackend(ABC):
         """Clear all shared storage entries for an owner origin."""
 
     @abstractmethod
-    async def storage_get_interest_group_details(self, owner_origin: str, name: str) -> dict[str, Any]:
+    async def storage_get_interest_group_details(
+        self, owner_origin: str, name: str
+    ) -> dict[str, Any]:
         """Get interest group details."""
 
     @abstractmethod
-    async def storage_override_quota_for_origin(self, origin: str, quota_size: float | None = None) -> None:
+    async def storage_override_quota_for_origin(
+        self, origin: str, quota_size: float | None = None
+    ) -> None:
         """Override quota for a given origin. Pass None to reset."""
 
     @abstractmethod
@@ -227,9 +225,7 @@ class StorageBackend(ABC):
         """
 
     @abstractmethod
-    async def storage_delete_storage_bucket(
-        self, storage_key: str, bucket_name: str
-    ) -> None:
+    async def storage_delete_storage_bucket(self, storage_key: str, bucket_name: str) -> None:
         """Delete a storage bucket.
 
         Args:
@@ -246,9 +242,7 @@ class StorageBackend(ABC):
         """
 
     @abstractmethod
-    async def storage_get_shared_storage_metadata(
-        self, owner_origin: str
-    ) -> dict[str, Any]:
+    async def storage_get_shared_storage_metadata(self, owner_origin: str) -> dict[str, Any]:
         """Get shared storage metadata for an owner origin.
 
         Args:

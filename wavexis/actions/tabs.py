@@ -50,4 +50,4 @@ class TabsAction(BaseAction[TabsParams, Any]):
         if params.action == "activate":
             await backend.activate_tab(params.tab_id)
             return None
-        return None
+        raise ValueError(f"Unknown tabs action: {params.action}")

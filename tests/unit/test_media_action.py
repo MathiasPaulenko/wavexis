@@ -12,12 +12,13 @@ from wavexis.actions.media import MediaAction, MediaParams
 @pytest.mark.unit
 class TestMediaAction:
     """Test suite for mediaaction."""
+
     def _make_backend(self) -> MagicMock:
         """Create a mock backend for testing.
 
-            Returns:
-                A MagicMock backend instance.
-            """
+        Returns:
+            A MagicMock backend instance.
+        """
         backend = MagicMock()
         backend.launch = AsyncMock()
         backend.navigate = AsyncMock()
@@ -42,9 +43,7 @@ class TestMediaAction:
     async def test_get_messages(self) -> None:
         """Test get messages."""
         backend = self._make_backend()
-        params = MediaParams(
-            url="https://example.com", action="messages", player_id="p1"
-        )
+        params = MediaParams(url="https://example.com", action="messages", player_id="p1")
         result = await MediaAction(params).execute(backend)
         assert len(result) == 1
         assert result[0]["message"] == "loaded"

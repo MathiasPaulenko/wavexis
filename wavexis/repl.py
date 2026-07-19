@@ -129,6 +129,7 @@ async def execute_repl_command(
 
     if command == "cookies":
         import json
+
         cookies_data = await backend.get_cookies()
         return json.dumps(cookies_data, indent=2, default=str)
 
@@ -148,6 +149,7 @@ async def execute_repl_command(
 
     if command in ("back", "forward", "reload"):
         from wavexis.actions.navigate import BackAction, ForwardAction, ReloadAction
+
         if command == "back":
             await BackAction(None).execute(backend)
         elif command == "forward":

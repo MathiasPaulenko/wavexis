@@ -30,7 +30,9 @@ class HeapProfilerBackend(ABC):
         """Get the heap object ID for a remote object."""
 
     @abstractmethod
-    async def heap_profiler_get_object_by_heap_object_id(self, object_id: str, object_group: str = "") -> dict[str, Any]:
+    async def heap_profiler_get_object_by_heap_object_id(
+        self, object_id: str, object_group: str = ""
+    ) -> dict[str, Any]:
         """Get an object by heap object ID."""
 
     @abstractmethod
@@ -42,7 +44,9 @@ class HeapProfilerBackend(ABC):
         """Start heap sampling."""
 
     @abstractmethod
-    async def heap_profiler_start_tracking_heap_objects(self, track_allocations: bool = False) -> None:
+    async def heap_profiler_start_tracking_heap_objects(
+        self, track_allocations: bool = False
+    ) -> None:
         """Start tracking heap objects."""
 
     @abstractmethod

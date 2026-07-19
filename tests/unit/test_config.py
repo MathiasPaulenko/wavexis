@@ -183,8 +183,13 @@ class TestDevicePresets:
     def test_all_presets_present(self):
         """Test all presets present."""
         expected = {
-            "iphone-15", "iphone-se", "pixel-8", "ipad-pro",
-            "galaxy-s23", "desktop-1080p", "desktop-1440p",
+            "iphone-15",
+            "iphone-se",
+            "pixel-8",
+            "ipad-pro",
+            "galaxy-s23",
+            "desktop-1080p",
+            "desktop-1440p",
         }
         assert set(DEVICE_PRESETS.keys()) == expected
 
@@ -308,9 +313,7 @@ class TestCookieParams:
 
     def test_with_values(self):
         """Test with values."""
-        params = CookieParams(
-            name="session", value="abc123", domain=".example.com"
-        )
+        params = CookieParams(name="session", value="abc123", domain=".example.com")
         assert params.name == "session"
         assert params.domain == ".example.com"
 
@@ -327,7 +330,5 @@ class TestNetworkParams:
 
     def test_with_headers(self):
         """Test with headers."""
-        params = NetworkParams(
-            action="headers", headers={"X-Test": "val"}
-        )
+        params = NetworkParams(action="headers", headers={"X-Test": "val"})
         assert params.headers == {"X-Test": "val"}

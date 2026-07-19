@@ -15,6 +15,7 @@ from wavexis.config import (
 @pytest.mark.unit
 class TestInputParams:
     """Test suite for inputparams."""
+
     def test_defaults(self) -> None:
         """Test defaults."""
         p = InputParams()
@@ -55,6 +56,7 @@ class TestInputParams:
 @pytest.mark.unit
 class TestThrottleParams:
     """Test suite for throttleparams."""
+
     def test_defaults(self) -> None:
         """Test defaults."""
         p = ThrottleParams()
@@ -75,6 +77,7 @@ class TestThrottleParams:
 @pytest.mark.unit
 class TestSensorParams:
     """Test suite for sensorparams."""
+
     def test_defaults(self) -> None:
         """Test defaults."""
         p = SensorParams()
@@ -92,6 +95,7 @@ class TestSensorParams:
 @pytest.mark.unit
 class TestScreencastParams:
     """Test suite for screencastparams."""
+
     def test_defaults(self) -> None:
         """Test defaults."""
         p = ScreencastParams()

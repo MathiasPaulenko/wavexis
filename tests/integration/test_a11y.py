@@ -11,6 +11,7 @@ pytestmark = [pytest.mark.integration, pytest.mark.chrome]
 @pytest.mark.integration
 class TestA11yIntegration:
     """Test suite for a11yintegration."""
+
     async def test_a11y_tree(self) -> None:
         """Test a11y tree."""
         backend = CDPBackend()

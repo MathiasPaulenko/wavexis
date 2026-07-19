@@ -92,9 +92,7 @@ class TokenBucket:
         async with self._lock:
             now = time.monotonic()
             elapsed = now - self._last_refill
-            self._tokens = min(
-                self._capacity, self._tokens + elapsed * self._refill_rate
-            )
+            self._tokens = min(self._capacity, self._tokens + elapsed * self._refill_rate)
             self._last_refill = now
             if self._tokens >= 1:
                 self._tokens -= 1
@@ -124,13 +122,15 @@ async def _request_logging_middleware(request: Any, handler: Any) -> Any:
         response = await handler(request)
         elapsed_ms = round((time.monotonic() - start) * 1000, 2)
         logger.info(
-            json.dumps({
-                "request_id": request_id,
-                "method": request.method,
-                "path": request.path,
-                "status": getattr(response, "status", 200),
-                "elapsed_ms": elapsed_ms,
-            })
+            json.dumps(
+                {
+                    "request_id": request_id,
+                    "method": request.method,
+                    "path": request.path,
+                    "status": getattr(response, "status", 200),
+                    "elapsed_ms": elapsed_ms,
+                }
+            )
         )
         if hasattr(response, "headers"):
             response.headers["X-Request-ID"] = request_id
@@ -138,14 +138,16 @@ async def _request_logging_middleware(request: Any, handler: Any) -> Any:
     except Exception:
         elapsed_ms = round((time.monotonic() - start) * 1000, 2)
         logger.error(
-            json.dumps({
-                "request_id": request_id,
-                "method": request.method,
-                "path": request.path,
-                "status": 500,
-                "elapsed_ms": elapsed_ms,
-                "error": "unhandled exception",
-            })
+            json.dumps(
+                {
+                    "request_id": request_id,
+                    "method": request.method,
+                    "path": request.path,
+                    "status": 500,
+                    "elapsed_ms": elapsed_ms,
+                    "error": "unhandled exception",
+                }
+            )
         )
         raise
 
@@ -159,15 +161,16 @@ async def _json_error_middleware(request: Any, handler: Any) -> Any:
     web = _import_aiohttp()
     try:
         return await handler(request)
-    except (json.JSONDecodeError, ValueError):
+    except (json.JSONDecodeError, ValueError, TypeError):
         return web.Response(
             status=400,
             text='{"error": "invalid JSON body"}',
             content_type="application/json",
         )
     except Exception as exc:
-        web = _import_aiohttp()
-        if isinstance(exc, web.ContentTypeError):
+        from aiohttp import ContentTypeError  # type: ignore[import-not-found,unused-ignore]
+
+        if isinstance(exc, ContentTypeError):
             return web.Response(
                 status=400,
                 text='{"error": "invalid or missing JSON content-type"}',
@@ -185,6 +188,7 @@ def _rate_limit_middleware(bucket: TokenBucket) -> Any:
     Returns:
         A middleware factory function for aiohttp.
     """
+
     async def middleware(request: Any, handler: Any) -> Any:
         allowed = await bucket.acquire()
         if not allowed:
@@ -193,8 +197,7 @@ def _rate_limit_middleware(bucket: TokenBucket) -> Any:
             return web.Response(
                 status=429,
                 headers={"Retry-After": f"{retry_after:.1f}"},
-                text='{"error": "rate limited", "retry_after": '
-                     f'"{retry_after:.1f}s"}}',
+                text=f'{{"error": "rate limited", "retry_after": "{retry_after:.1f}s"}}',
                 content_type="application/json",
             )
         return await handler(request)
@@ -238,9 +241,7 @@ def _validate_path(raw_path: str) -> Path:
     try:
         resolved.relative_to(_ALLOWED_BASE_DIR)
     except ValueError:
-        raise WavexisError(
-            f"Path '{raw_path}' is outside the allowed base directory."
-        ) from None
+        raise WavexisError(f"Path '{raw_path}' is outside the allowed base directory.") from None
     return resolved
 
 
@@ -256,6 +257,7 @@ def _auth_middleware(api_key: str) -> Any:
     Returns:
         A middleware factory function for aiohttp.
     """
+
     async def middleware(request: Any, handler: Any) -> Any:
         web = _import_aiohttp()
 
@@ -300,12 +302,8 @@ def _cors_middleware(allowed_origins: list[str]) -> Any:
 
         if origin and (allow_all or origin in allowed_origins):
             resp.headers["Access-Control-Allow-Origin"] = origin if not allow_all else "*"
-            resp.headers["Access-Control-Allow-Methods"] = (
-                "GET, POST, PUT, DELETE, OPTIONS"
-            )
-            resp.headers["Access-Control-Allow-Headers"] = (
-                "Content-Type, Authorization, X-API-Key"
-            )
+            resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+            resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-API-Key"
             resp.headers["Access-Control-Max-Age"] = "3600"
         return resp
 
@@ -319,9 +317,7 @@ def _import_aiohttp() -> Any:
 
         return web
     except ImportError as exc:
-        raise WavexisError(
-            "aiohttp is not installed. Run: pip install wavexis[serve]"
-        ) from exc
+        raise WavexisError("aiohttp is not installed. Run: pip install wavexis[serve]") from exc
 
 
 # ── Handlers ───────────────────────────────────────────────
@@ -426,12 +422,14 @@ async def _run_action(request: Any, action: Any) -> Any:
         The result of action.execute().
     """
     pool = _get_pool(request)
-    backend = await _get_backend(request)
+    await pool.acquire()
     try:
+        backend = await pool.get_backend(request.app.get("backend_name"))
         await backend.launch(BrowserOptions())
         return await action.execute(backend)
     finally:
-        await pool.return_backend(backend)
+        if "backend" in locals():
+            await pool.return_backend(backend)
         pool.release()
 
 
@@ -462,26 +460,36 @@ def with_backend(
     Returns:
         A decorator function.
     """
+
     def decorator(handler: Any) -> Any:
         async def wrapper(request: Any) -> Any:
             web = _import_aiohttp()
             opts = launch_options or BrowserOptions()
-            backend = await _get_backend(request)
-            await backend.launch(opts)
+            pool = _get_pool(request)
+            await pool.acquire()
+            backend: AbstractBackend | None = None
             try:
+                backend = await pool.get_backend(request.app.get("backend_name"))
+                await backend.launch(opts)
                 return await handler(request, backend)
             except WavexisError as exc:
                 return web.json_response(
-                    {"error": str(exc)}, status=500,
+                    {"error": str(exc)},
+                    status=500,
                 )
             except Exception as exc:
                 logger.exception("Unhandled error in %s: %s", handler.__name__, exc)
                 return web.json_response(
-                    {"error": "internal server error"}, status=500,
+                    {"error": "internal server error"},
+                    status=500,
                 )
             finally:
-                await _release_backend(request, backend)
+                if backend is not None:
+                    await pool.return_backend(backend)
+                pool.release()
+
         return wrapper
+
     return decorator
 
 
@@ -530,8 +538,16 @@ async def handle_scrape(request: Any) -> Any:
 
     action = ScrapeAction(params)
     result = await _run_action(request, action)
-    if params.output_format == "csv":
-        return web.Response(body=result, content_type="text/csv")
+    if params.output_format == "csv" and isinstance(result, list) and result:
+        import csv
+        import io
+
+        buf = io.StringIO()
+        writer = csv.DictWriter(buf, fieldnames=result[0].keys())
+        writer.writeheader()
+        for row in result:
+            writer.writerow(row)
+        return web.Response(body=buf.getvalue(), content_type="text/csv")
     return web.json_response({"result": result})
 
 
@@ -566,9 +582,11 @@ async def handle_navigate(request: Any, backend: AbstractBackend) -> Any:
     data = await request.json()
     url = data.get("url", "")
     wait_for = data.get("wait_for")
-    strategy = WaitStrategy(
-        strategy="selector", selector=wait_for
-    ) if wait_for else WaitStrategy(strategy="load")
+    strategy = (
+        WaitStrategy(strategy="selector", selector=wait_for)
+        if wait_for
+        else WaitStrategy(strategy="load")
+    )
     await backend.navigate(url, strategy)
     return web.json_response({"status": "ok", "url": url})
 
@@ -671,10 +689,12 @@ async def handle_backends(request: Any) -> Any:
     web = _import_aiohttp()
     manager = get_manager()
     available = manager.list_available()
-    return web.json_response({
-        "cdp": "cdp" in available,
-        "bidi": "bidi" in available,
-    })
+    return web.json_response(
+        {
+            "cdp": "cdp" in available,
+            "bidi": "bidi" in available,
+        }
+    )
 
 
 async def handle_version(request: Any) -> Any:
@@ -771,13 +791,9 @@ async def handle_modify_request(request: Any, backend: AbstractBackend) -> Any:
     url = data.get("url", "")
     pattern_input = data.get("pattern", "*")
     modifications = data.get("modifications", {})
-    
-    # Build pattern dict - accept either string or dict
-    if isinstance(pattern_input, str):
-        pattern = {"urlPattern": pattern_input}
-    else:
-        pattern = pattern_input
-    
+
+    pattern = {"urlPattern": pattern_input} if isinstance(pattern_input, str) else pattern_input
+
     await backend.modify_request(pattern, modifications)
     if url:
         await backend.navigate(url, WaitStrategy(strategy="load"))
@@ -811,21 +827,24 @@ async def handle_multi(request: Any, backend: AbstractBackend) -> Any:
     data = await request.json()
     yaml_path = _validate_path(data.get("config", ""))
     results = await replay_from_yaml(yaml_path, backend)
-    return web.json_response({
-        "status": "ok",
-        "actions": len(results),
-        "results": [
-            len(r) if isinstance(r, bytes) else str(r)[:200]
-            for r in results
-        ],
-    })
+    return web.json_response(
+        {
+            "status": "ok",
+            "actions": len(results),
+            "results": [len(r) if isinstance(r, bytes) else str(r)[:200] for r in results],
+        }
+    )
 
 
 # ── WebSocket handler ──────────────────────────────────────
 
 
 async def _stream_screenshots(
-    ws: Any, backend: AbstractBackend, interval: float, fmt: str, quality: int,
+    ws: Any,
+    backend: AbstractBackend,
+    interval: float,
+    fmt: str,
+    quality: int,
 ) -> None:
     """Periodically capture and stream screenshots."""
     while True:
@@ -833,24 +852,30 @@ async def _stream_screenshots(
             params = ScreenshotParams(url="", format=fmt, quality=quality)
             img = await backend.screenshot(params)
             b64 = base64.b64encode(img).decode("ascii")
-            await ws.send_json({
-                "type": "screenshot",
-                "data": b64,
-                "timestamp": time.time(),
-            })
+            await ws.send_json(
+                {
+                    "type": "screenshot",
+                    "data": b64,
+                    "timestamp": time.time(),
+                }
+            )
         except WavexisError as exc:
-            await ws.send_json({
-                "type": "error",
-                "source": "screenshot",
-                "message": str(exc),
-            })
+            await ws.send_json(
+                {
+                    "type": "error",
+                    "source": "screenshot",
+                    "message": str(exc),
+                }
+            )
         except (ConnectionError, OSError):
             break
         await asyncio.sleep(interval)
 
 
 async def _stream_console(
-    ws: Any, backend: AbstractBackend, interval: float,
+    ws: Any,
+    backend: AbstractBackend,
+    interval: float,
 ) -> None:
     """Poll console messages and stream new ones."""
     seen: set[str] = set()
@@ -861,24 +886,30 @@ async def _stream_console(
                 key = json.dumps(msg, sort_keys=True)
                 if key not in seen:
                     seen.add(key)
-                    await ws.send_json({
-                        "type": "console",
-                        "data": msg,
-                        "timestamp": time.time(),
-                    })
+                    await ws.send_json(
+                        {
+                            "type": "console",
+                            "data": msg,
+                            "timestamp": time.time(),
+                        }
+                    )
         except WavexisError as exc:
-            await ws.send_json({
-                "type": "error",
-                "source": "console",
-                "message": str(exc),
-            })
+            await ws.send_json(
+                {
+                    "type": "error",
+                    "source": "console",
+                    "message": str(exc),
+                }
+            )
         except (ConnectionError, OSError):
             break
         await asyncio.sleep(interval)
 
 
 async def _stream_navigation(
-    ws: Any, backend: AbstractBackend, interval: float,
+    ws: Any,
+    backend: AbstractBackend,
+    interval: float,
 ) -> None:
     """Poll URL changes and stream navigation events."""
     last_url: str = ""
@@ -888,24 +919,30 @@ async def _stream_navigation(
             current_url = str(result) if result else ""
             if current_url != last_url:
                 last_url = current_url
-                await ws.send_json({
-                    "type": "navigation",
-                    "url": current_url,
-                    "timestamp": time.time(),
-                })
+                await ws.send_json(
+                    {
+                        "type": "navigation",
+                        "url": current_url,
+                        "timestamp": time.time(),
+                    }
+                )
         except WavexisError as exc:
-            await ws.send_json({
-                "type": "error",
-                "source": "navigation",
-                "message": str(exc),
-            })
+            await ws.send_json(
+                {
+                    "type": "error",
+                    "source": "navigation",
+                    "message": str(exc),
+                }
+            )
         except (ConnectionError, OSError):
             break
         await asyncio.sleep(interval)
 
 
 async def _stream_dom_mutations(
-    ws: Any, backend: AbstractBackend, interval: float,
+    ws: Any,
+    backend: AbstractBackend,
+    interval: float,
 ) -> None:
     """Stream DOM mutations using a MutationObserver.
 
@@ -944,50 +981,60 @@ async def _stream_dom_mutations(
                 )
                 installed = True
 
-            mutations = await backend.eval(
-                "window.__wavexisMutations.splice(0, 50)"
-            )
+            mutations = await backend.eval("window.__wavexisMutations.splice(0, 50)")
             if mutations:
-                await ws.send_json({
-                    "type": "dom_mutation",
-                    "data": {"mutations": mutations[:50]},
-                    "timestamp": time.time(),
-                })
+                await ws.send_json(
+                    {
+                        "type": "dom_mutation",
+                        "data": {"mutations": mutations[:50]},
+                        "timestamp": time.time(),
+                    }
+                )
         except WavexisError as exc:
-            await ws.send_json({
-                "type": "error",
-                "source": "dom_mutation",
-                "message": str(exc),
-            })
+            await ws.send_json(
+                {
+                    "type": "error",
+                    "source": "dom_mutation",
+                    "message": str(exc),
+                }
+            )
         except (ConnectionError, OSError):
             break
         await asyncio.sleep(interval)
 
 
 async def _stream_perf_metrics(
-    ws: Any, backend: AbstractBackend, interval: float,
+    ws: Any,
+    backend: AbstractBackend,
+    interval: float,
 ) -> None:
     """Poll performance metrics and stream them."""
     while True:
         try:
             metrics = await backend.perf_metrics()
-            await ws.send_json({
-                "type": "perf_metrics",
-                "data": metrics,
-                "timestamp": time.time(),
-            })
+            await ws.send_json(
+                {
+                    "type": "perf_metrics",
+                    "data": metrics,
+                    "timestamp": time.time(),
+                }
+            )
         except WavexisError as exc:
-            await ws.send_json({
-                "type": "error",
-                "source": "perf_metrics",
-                "message": str(exc),
-            })
+            await ws.send_json(
+                {
+                    "type": "error",
+                    "source": "perf_metrics",
+                    "message": str(exc),
+                }
+            )
         except (ConnectionError, OSError) as exc:
-            await ws.send_json({
-                "type": "error",
-                "source": "perf_metrics",
-                "message": str(exc),
-            })
+            await ws.send_json(
+                {
+                    "type": "error",
+                    "source": "perf_metrics",
+                    "message": str(exc),
+                }
+            )
         await asyncio.sleep(interval)
 
 
@@ -1036,6 +1083,8 @@ async def handle_websocket(request: Any) -> Any:
     ws = web.WebSocketResponse()
     await ws.prepare(request)
 
+    tasks: list[asyncio.Task[None]] = []
+    backend: AbstractBackend | None = None
     try:
         try:
             msg = await ws.receive()
@@ -1048,11 +1097,22 @@ async def handle_websocket(request: Any) -> Any:
             await ws.close()
             return ws
 
-        url = config.get("url", "about:blank")
-        events = config.get("events", ["screenshot"])
-        interval = float(config.get("interval", 1.0))
-        fmt = config.get("format", "png")
-        quality = int(config.get("quality", 80))
+        try:
+            url = config.get("url", "about:blank")
+            events = config.get("events", ["screenshot"])
+            interval = float(config.get("interval", 1.0))
+            fmt = config.get("format", "png")
+            quality = int(config.get("quality", 80))
+        except (TypeError, ValueError):
+            await ws.send_json(
+                {
+                    "type": "error",
+                    "message": "Invalid config: interval and quality must be numbers",
+                    "timestamp": time.time(),
+                }
+            )
+            await ws.close()
+            return ws
 
         backend = await _get_backend(request)
         try:
@@ -1062,62 +1122,76 @@ async def handle_websocket(request: Any) -> Any:
             await _release_backend(request, backend)
             raise
 
-        await ws.send_json({
-            "type": "ready",
-            "url": url,
-            "events": events,
-            "timestamp": time.time(),
-        })
+        await ws.send_json(
+            {
+                "type": "ready",
+                "url": url,
+                "events": events,
+                "timestamp": time.time(),
+            }
+        )
 
-        tasks: list[asyncio.Task[None]] = []
         if "screenshot" in events:
-            tasks.append(asyncio.create_task(
-                _stream_screenshots(ws, backend, interval, fmt, quality),
-            ))
+            tasks.append(
+                asyncio.create_task(
+                    _stream_screenshots(ws, backend, interval, fmt, quality),
+                )
+            )
         if "console" in events:
-            tasks.append(asyncio.create_task(
-                _stream_console(ws, backend, max(interval, 0.5)),
-            ))
+            tasks.append(
+                asyncio.create_task(
+                    _stream_console(ws, backend, max(interval, 0.5)),
+                )
+            )
         if "navigation" in events:
-            tasks.append(asyncio.create_task(
-                _stream_navigation(ws, backend, max(interval, 0.5)),
-            ))
+            tasks.append(
+                asyncio.create_task(
+                    _stream_navigation(ws, backend, max(interval, 0.5)),
+                )
+            )
         if "dom_mutation" in events:
-            tasks.append(asyncio.create_task(
-                _stream_dom_mutations(ws, backend, max(interval, 0.5)),
-            ))
+            tasks.append(
+                asyncio.create_task(
+                    _stream_dom_mutations(ws, backend, max(interval, 0.5)),
+                )
+            )
         if "perf_metrics" in events:
-            tasks.append(asyncio.create_task(
-                _stream_perf_metrics(ws, backend, max(interval, 1.0)),
-            ))
+            tasks.append(
+                asyncio.create_task(
+                    _stream_perf_metrics(ws, backend, max(interval, 1.0)),
+                )
+            )
 
         subscribe_types = [
             e for e in events if e in ("network_request", "network_response", "dialog")
         ]
         if subscribe_types:
+
             async def _on_event(event: dict[str, Any]) -> None:
-                await ws.send_json({
-                    "type": event.get("type", "event"),
-                    "data": event.get("data", {}),
-                    "timestamp": time.time(),
-                })
+                await ws.send_json(
+                    {
+                        "type": event.get("type", "event"),
+                        "data": event.get("data", {}),
+                        "timestamp": time.time(),
+                    }
+                )
 
             await backend.subscribe_events(subscribe_types, _on_event)
 
-        ws_bucket = TokenBucket(
-            capacity=_ws_max_messages_per_minute, refill_period=60.0
-        )
+        ws_bucket = TokenBucket(capacity=_ws_max_messages_per_minute, refill_period=60.0)
 
         try:
             async for msg in ws:
                 if msg.type == web.WSMsgType.TEXT:
                     allowed = await ws_bucket.acquire()
                     if not allowed:
-                        await ws.send_json({
-                            "type": "error",
-                            "message": "rate limited: too many messages",
-                            "timestamp": time.time(),
-                        })
+                        await ws.send_json(
+                            {
+                                "type": "error",
+                                "message": "rate limited: too many messages",
+                                "timestamp": time.time(),
+                            }
+                        )
                         continue
                     try:
                         cmd = json.loads(msg.data)
@@ -1127,38 +1201,49 @@ async def handle_websocket(request: Any) -> Any:
                     if action == "navigate":
                         new_url = cmd.get("url", "")
                         await backend.navigate(new_url, WaitStrategy(strategy="load"))
-                        await ws.send_json({
-                            "type": "navigated",
-                            "url": new_url,
-                            "timestamp": time.time(),
-                        })
+                        await ws.send_json(
+                            {
+                                "type": "navigated",
+                                "url": new_url,
+                                "timestamp": time.time(),
+                            }
+                        )
                     elif action == "eval":
                         expr = cmd.get("expression", "")
                         result = await backend.eval(expr)
-                        await ws.send_json({
-                            "type": "eval_result",
-                            "result": result,
-                            "timestamp": time.time(),
-                        })
+                        await ws.send_json(
+                            {
+                                "type": "eval_result",
+                                "result": result,
+                                "timestamp": time.time(),
+                            }
+                        )
                     elif action == "screenshot":
                         params = ScreenshotParams(url="", format=fmt, quality=quality)
                         img = await backend.screenshot(params)
                         b64 = base64.b64encode(img).decode("ascii")
-                        await ws.send_json({
-                            "type": "screenshot",
-                            "data": b64,
-                            "timestamp": time.time(),
-                        })
+                        await ws.send_json(
+                            {
+                                "type": "screenshot",
+                                "data": b64,
+                                "timestamp": time.time(),
+                            }
+                        )
                     elif action == "close":
                         break
-                elif msg.type in (web.WSMsgType.CLOSE, web.WSMsgType.CLOSING,
-                                   web.WSMsgType.CLOSED, web.WSMsgType.ERROR):
+                elif msg.type in (
+                    web.WSMsgType.CLOSE,
+                    web.WSMsgType.CLOSING,
+                    web.WSMsgType.CLOSED,
+                    web.WSMsgType.ERROR,
+                ):
                     break
         finally:
             for task in tasks:
                 task.cancel()
             await asyncio.gather(*tasks, return_exceptions=True)
-            await _release_backend(request, backend)
+            if backend is not None:
+                await _release_backend(request, backend)
             await ws.close()
     finally:
         async with _ws_lock:
@@ -1173,11 +1258,13 @@ async def handle_plugins(request: Any) -> Any:
 
     registry = get_registry()
     web = _import_aiohttp()
-    return web.json_response({
-        "actions": registry.list_actions(),
-        "backends": registry.list_backends(),
-        "middleware": registry.list_middleware(),
-    })
+    return web.json_response(
+        {
+            "actions": registry.list_actions(),
+            "backends": registry.list_backends(),
+            "middleware": registry.list_middleware(),
+        }
+    )
 
 
 # ── App factory ─────────────────────────────────────────────

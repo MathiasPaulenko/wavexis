@@ -1,6 +1,5 @@
 """Unit tests for CLI Phase 5 commands."""
 
-
 import pytest
 from typer.testing import CliRunner
 
@@ -12,6 +11,7 @@ runner = CliRunner()
 @pytest.mark.unit
 class TestCLIInputCommands:
     """Test suite for cliinputcommands."""
+
     def test_input_click_help(self) -> None:
         """Test input click help."""
         result = runner.invoke(app, ["input", "click", "--help"])
@@ -40,6 +40,7 @@ class TestCLIInputCommands:
 @pytest.mark.unit
 class TestCLINetworkCommands:
     """Test suite for clinetworkcommands."""
+
     def test_network_block_help(self) -> None:
         """Test network block help."""
         result = runner.invoke(app, ["network", "block", "--help"])
@@ -62,6 +63,7 @@ class TestCLINetworkCommands:
 @pytest.mark.unit
 class TestCLIA11yCommand:
     """Test suite for clia11ycommand."""
+
     def test_a11y_help(self) -> None:
         """Test a11y help."""
         result = runner.invoke(app, ["a11y", "--help"])
@@ -72,6 +74,7 @@ class TestCLIA11yCommand:
 @pytest.mark.unit
 class TestCLIDialogCommand:
     """Test suite for clidialogcommand."""
+
     def test_dialog_help(self) -> None:
         """Test dialog help."""
         result = runner.invoke(app, ["dialog", "--help"])
@@ -82,6 +85,7 @@ class TestCLIDialogCommand:
 @pytest.mark.unit
 class TestCLIPermissionsCommand:
     """Test suite for clipermissionscommand."""
+
     def test_permissions_help(self) -> None:
         """Test permissions help."""
         result = runner.invoke(app, ["permissions", "--help"])
@@ -92,6 +96,7 @@ class TestCLIPermissionsCommand:
 @pytest.mark.unit
 class TestCLISecurityCommand:
     """Test suite for clisecuritycommand."""
+
     def test_security_help(self) -> None:
         """Test security help."""
         result = runner.invoke(app, ["security", "--help"])
@@ -102,6 +107,7 @@ class TestCLISecurityCommand:
 @pytest.mark.unit
 class TestCLIScreencastCommand:
     """Test suite for cliscreencastcommand."""
+
     def test_screencast_help(self) -> None:
         """Test screencast help."""
         result = runner.invoke(app, ["screencast", "--help"])
@@ -112,6 +118,7 @@ class TestCLIScreencastCommand:
 @pytest.mark.unit
 class TestCLIDownloadCommand:
     """Test suite for clidownloadcommand."""
+
     def test_download_help(self) -> None:
         """Test download help."""
         result = runner.invoke(app, ["download", "--help"])

@@ -10,6 +10,8 @@ import typer
 from wavexis.cli._shared import (
     Output,
     WavexisError,
+    _browser_options,
+    _close_backend,
     _get_backend,
     _get_ctx,
     _handle_error,
@@ -45,26 +47,28 @@ def install_check() -> None:
 def serve(
     port: int = typer.Option(8080, "--port", "-p", help="Port to listen on"),
     host: str = typer.Option("localhost", "--host", help="Host to bind to"),
-    backend: str = typer.Option(
-        None, "--backend", help="Preferred backend (cdp or bidi)"
-    ),
+    backend: str = typer.Option(None, "--backend", help="Preferred backend (cdp or bidi)"),
     rate_limit: int = typer.Option(
         0, "--rate-limit", help="Max requests per minute (0 = no limit)"
     ),
     base_dir: str = typer.Option(
-        None, "--base-dir",
+        None,
+        "--base-dir",
         help="Base directory for validating file paths in /multi and /auth requests",
     ),
     api_key: str = typer.Option(
-        None, "--api-key",
+        None,
+        "--api-key",
         help="API key for authenticating requests (Bearer token or api_key query param)",
     ),
     cors_origins: str = typer.Option(
-        "", "--cors-origins",
+        "",
+        "--cors-origins",
         help="Comma-separated allowed CORS origins (e.g. 'https://app.com,*')",
     ),
     max_concurrent: int = typer.Option(
-        5, "--max-concurrent",
+        5,
+        "--max-concurrent",
         help="Max concurrent browser backends (default 5)",
     ),
 ) -> None:
@@ -101,8 +105,7 @@ def plugins() -> None:
     if not actions and not backends and not middleware:
         typer.echo("No plugins discovered.")
         typer.echo(
-            "\nInstall a plugin package with entry point group "
-            "'wavexis.plugins' to extend wavexis."
+            "\nInstall a plugin package with entry point group 'wavexis.plugins' to extend wavexis."
         )
         return
 
@@ -127,19 +130,14 @@ def plugins() -> None:
 @app.command()
 def ws(
     url: str = typer.Argument(..., help="URL to navigate to"),
-    duration: int = typer.Option(
-        5000, "--duration", help="How long to capture WS frames (ms)"
-    ),
+    duration: int = typer.Option(5000, "--duration", help="How long to capture WS frames (ms)"),
     pattern: str = typer.Option(
         "", "--pattern", help="Regex pattern to filter WS URLs (empty = all)"
     ),
     mock: str = typer.Option(
-        "", "--mock",
-        help='JSON mapping request payloads to mock response payloads'
+        "", "--mock", help="JSON mapping request payloads to mock response payloads"
     ),
-    output: str | None = typer.Option(
-        None, "--output", "-o", help="Output file path (.json)"
-    ),
+    output: str | None = typer.Option(None, "--output", "-o", help="Output file path (.json)"),
     format: str = typer.Option("json", "--format", "-f", help="Output format (json)"),
 ) -> None:
     """Intercept WebSocket frames on a page. Capture sent/received or mock responses.
@@ -162,15 +160,19 @@ def ws(
 
     async def _ws() -> dict[str, Any]:
         backend = _get_backend()
-        params = WebSocketParams(
-            url=url,
-            url_pattern=pattern,
-            duration_ms=duration,
-            mock_responses=mock_dict,
-            wait=WaitStrategy(strategy="load"),
-        )
-        action = WebSocketInterceptAction(params)
-        return await action.execute(backend)
+        await backend.launch(_browser_options())
+        try:
+            params = WebSocketParams(
+                url=url,
+                url_pattern=pattern,
+                duration_ms=duration,
+                mock_responses=mock_dict,
+                wait=WaitStrategy(strategy="load"),
+            )
+            action = WebSocketInterceptAction(params)
+            return await action.execute(backend)
+        finally:
+            await _close_backend(backend)
 
     result = _run_async(_ws())
     if result is None:

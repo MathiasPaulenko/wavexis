@@ -21,9 +21,7 @@ def _make_backend(
     backend.launch = AsyncMock()
     backend.close = AsyncMock()
     backend.navigate = AsyncMock()
-    backend.perf_metrics = AsyncMock(
-        return_value=perf_metrics or {"js_heap_used": 10_000_000}
-    )
+    backend.perf_metrics = AsyncMock(return_value=perf_metrics or {"js_heap_used": 10_000_000})
 
     eval_call_count = [0]
 
@@ -188,9 +186,7 @@ class TestLighthousePerformanceAudit:
         result = asyncio.run(action.execute(backend))
         perf = result["categories"]["performance"]
         assert perf["budgets"]["pass"] is False
-        ttfb_r = next(
-            r for r in perf["budgets"]["results"] if r["metric"] == "ttfb_ms"
-        )
+        ttfb_r = next(r for r in perf["budgets"]["results"] if r["metric"] == "ttfb_ms")
         assert ttfb_r["pass"] is False
 
     def test_performance_score_zero_for_very_slow(self) -> None:

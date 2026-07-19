@@ -11,19 +11,18 @@ from wavexis.backend.base import AbstractBackend
 @pytest.mark.unit
 class TestDOMSnapshotAction:
     """Test suite for domsnapshotaction."""
+
     def _make_backend(self) -> MagicMock:
         """Create a mock backend for testing.
 
-            Returns:
-                A MagicMock backend instance.
-            """
+        Returns:
+            A MagicMock backend instance.
+        """
         backend = MagicMock(spec=AbstractBackend)
         backend.launch = AsyncMock()
         backend.close = AsyncMock()
         backend.navigate = AsyncMock()
-        backend.dom_snapshot = AsyncMock(
-            return_value={"documents": [], "strings": []}
-        )
+        backend.dom_snapshot = AsyncMock(return_value={"documents": [], "strings": []})
         return backend
 
     async def test_dom_snapshot_action(self) -> None:

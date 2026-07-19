@@ -21,9 +21,7 @@ from wavexis.config import WaitStrategy
 
 @app.command()
 def iframe(
-    action: str = typer.Argument(
-        ..., help="iframe action: click, fill, eval"
-    ),
+    action: str = typer.Argument(..., help="iframe action: click, fill, eval"),
     url: str = typer.Argument(..., help="URL to navigate to"),
     iframe_selector: str = typer.Option(
         ..., "--iframe", help="CSS selector for the <iframe> element"
@@ -31,9 +29,7 @@ def iframe(
     selector: str = typer.Option(
         "", "--selector", "-s", help="CSS selector inside the iframe (for click/fill)"
     ),
-    value: str = typer.Option(
-        "", "--value", "-v", help="Value to fill (for fill)"
-    ),
+    value: str = typer.Option("", "--value", "-v", help="Value to fill (for fill)"),
     expression: str = typer.Option(
         "", "--expression", "-e", help="JavaScript expression (for eval)"
     ),
@@ -43,9 +39,7 @@ def iframe(
     no_wait: bool = typer.Option(
         False, "--no-wait", help="Skip auto-waiting for element visibility"
     ),
-    output: str | None = typer.Option(
-        None, "--output", "-o", help="Output file path (for eval)"
-    ),
+    output: str | None = typer.Option(None, "--output", "-o", help="Output file path (for eval)"),
     format: str = typer.Option(
         "json", "--format", "-f", help="Output format: json, csv, yaml (for eval)"
     ),
@@ -90,9 +84,7 @@ def iframe(
         raise typer.Exit(1)
 
 
-async def _iframe_click(
-    url: str, iframe_selector: str, selector: str, auto_wait: bool
-) -> None:
+async def _iframe_click(url: str, iframe_selector: str, selector: str, auto_wait: bool) -> None:
     """Async helper for iframe click."""
     backend = _get_backend()
     try:
@@ -120,9 +112,7 @@ async def _iframe_fill(
         await _close_backend(backend)
 
 
-async def _iframe_eval(
-    url: str, iframe_selector: str, expression: str, await_promise: bool
-) -> Any:
+async def _iframe_eval(url: str, iframe_selector: str, expression: str, await_promise: bool) -> Any:
     """Async helper for iframe eval."""
     backend = _get_backend()
     try:

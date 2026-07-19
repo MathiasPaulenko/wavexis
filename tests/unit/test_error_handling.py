@@ -29,6 +29,7 @@ runner = CliRunner()
 @pytest.mark.unit
 class TestExitCodes:
     """Test suite for exitcodes."""
+
     def test_exit_code_constants(self) -> None:
         """Test exit code constants."""
         assert EXIT_SUCCESS == 0
@@ -40,6 +41,7 @@ class TestExitCodes:
 @pytest.mark.unit
 class TestVersionFlag:
     """Test suite for versionflag."""
+
     def test_version_flag(self) -> None:
         """Test version flag."""
         result = runner.invoke(app, ["--version"])
@@ -50,6 +52,7 @@ class TestVersionFlag:
 @pytest.mark.unit
 class TestErrorHandling:
     """Test suite for errorhandling."""
+
     def test_backend_not_available_error(self) -> None:
         """Test backend not available error."""
         with patch(

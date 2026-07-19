@@ -64,9 +64,7 @@ def _make_mock_backend() -> tuple[Any, Any, Any]:
     mock_session.page.close = AsyncMock()
 
     mock_session.runtime.enable = AsyncMock()
-    mock_session.runtime.evaluate = AsyncMock(
-        return_value={"result": {"value": "result"}}
-    )
+    mock_session.runtime.evaluate = AsyncMock(return_value={"result": {"value": "result"}})
     mock_session.runtime.compile_script = AsyncMock(return_value={"scriptId": "1"})
     mock_session.runtime.run_script = AsyncMock(return_value={"result": {}})
     mock_session.runtime.call_function_on = AsyncMock(return_value={"result": {}})
@@ -78,15 +76,9 @@ def _make_mock_backend() -> tuple[Any, Any, Any]:
     mock_session.runtime.global_lexical_scope_names = AsyncMock(return_value={"names": []})
 
     mock_session.dom = MagicMock()
-    mock_session.dom.get_document = AsyncMock(
-        return_value={"root": {"nodeId": 1}}
-    )
-    mock_session.dom.query_selector = AsyncMock(
-        return_value={"nodeId": 2}
-    )
-    mock_session.dom.query_selector_all = AsyncMock(
-        return_value={"nodeIds": [3, 4]}
-    )
+    mock_session.dom.get_document = AsyncMock(return_value={"root": {"nodeId": 1}})
+    mock_session.dom.query_selector = AsyncMock(return_value={"nodeId": 2})
+    mock_session.dom.query_selector_all = AsyncMock(return_value={"nodeIds": [3, 4]})
     mock_session.dom.get_box_model = AsyncMock(
         return_value={"model": {"border": [0, 0, 100, 0, 100, 50, 0, 50]}}
     )
@@ -99,7 +91,9 @@ def _make_mock_backend() -> tuple[Any, Any, Any]:
     mock_session.dom.describe_node = AsyncMock(return_value={"node": {}})
     mock_session.dom.get_outer_html = AsyncMock(return_value={"outerHTML": "<h1>Test</h1>"})
     mock_session.dom.get_flattened_document = AsyncMock(return_value={"nodes": []})
-    mock_session.dom.get_content_quads = AsyncMock(return_value={"quads": [[0, 0, 1, 0, 1, 1, 0, 1]]})
+    mock_session.dom.get_content_quads = AsyncMock(
+        return_value={"quads": [[0, 0, 1, 0, 1, 1, 0, 1]]}
+    )
     mock_session.dom.get_node_for_location = AsyncMock(return_value={"nodeId": 5})
     mock_session.dom.perform_search = AsyncMock(return_value={"searchId": "s1", "resultCount": 1})
     mock_session.dom.get_search_results = AsyncMock(return_value={"nodeIds": [6, 7]})
@@ -253,9 +247,7 @@ def _make_mock_backend() -> tuple[Any, Any, Any]:
 
     mock_session.debugger = MagicMock()
     mock_session.debugger.enable = AsyncMock()
-    mock_session.debugger.set_breakpoint_by_url = AsyncMock(
-        return_value={"breakpointId": "bp-1"}
-    )
+    mock_session.debugger.set_breakpoint_by_url = AsyncMock(return_value={"breakpointId": "bp-1"})
     mock_session.debugger.set_breakpoint_on_function = AsyncMock(
         return_value={"breakpointId": "bp-2"}
     )
@@ -267,7 +259,9 @@ def _make_mock_backend() -> tuple[Any, Any, Any]:
     mock_session.debugger.resume = AsyncMock()
     mock_session.debugger.get_event_listeners = AsyncMock(return_value={"listeners": []})
     mock_session.debugger.evaluate_on_call_frame = AsyncMock(return_value={"result": {}})
-    mock_session.debugger.get_script_source = AsyncMock(return_value={"scriptSource": "console.log(1)"})
+    mock_session.debugger.get_script_source = AsyncMock(
+        return_value={"scriptSource": "console.log(1)"}
+    )
     mock_session.debugger.get_stack_trace = AsyncMock(return_value={"callFrames": []})
     mock_session.debugger.get_possible_breakpoints = AsyncMock(return_value={"locations": []})
     mock_session.debugger.search_in_content = AsyncMock(return_value={"result": []})
@@ -433,6 +427,7 @@ class TestCDPMethodBodies:
 
     async def test_wait_for_selector_timeout(self) -> None:
         from wavexis.exceptions import WaitTimeoutError
+
         backend, _, mock = _make_mock_backend()
         mock.wait_for_selector = AsyncMock(side_effect=TimeoutError())
         with pytest.raises(WaitTimeoutError):
@@ -1111,6 +1106,7 @@ class TestCDPMethodBodies:
 
     async def test_close_without_client(self) -> None:
         from wavexis.backend.cdp import CDPBackend
+
         backend = CDPBackend()
         await backend.close()
 
@@ -1121,6 +1117,7 @@ class TestCDPMethodBodies:
 
     async def test_launch_with_browser_url(self) -> None:
         from wavexis.backend.cdp import CDPBackend
+
         backend = CDPBackend()
         mock_session = MagicMock()
         mock_session.emulation.set_user_agent_override = AsyncMock()
@@ -1138,6 +1135,7 @@ class TestCDPMethodBodies:
 
     async def test_launch_with_remote_url(self) -> None:
         from wavexis.backend.cdp import CDPBackend
+
         backend = CDPBackend()
         mock_session = MagicMock()
         mock_session.emulation.set_user_agent_override = AsyncMock()
@@ -1158,8 +1156,11 @@ class TestCDPMethodBodies:
             await backend.launch(opts)
 
     async def test_launch_already_launched(self) -> None:
-        backend, _, _ = _make_mock_backend()
-        await backend.launch(BrowserOptions())
+        backend, mock_client, mock_session = _make_mock_backend()
+        with patch("wavexis.backend.cdp.CDPClient") as mock_client_cls:
+            mock_client_cls.launch = AsyncMock(return_value=mock_client)
+            mock_client_cls.connect = AsyncMock(return_value=mock_client)
+            await backend.launch(BrowserOptions())
 
     async def test_context_manager(self) -> None:
         backend, _, _ = _make_mock_backend()
@@ -1780,7 +1781,9 @@ class TestCDPMethodBodies:
 
     async def test_css_set_container_query_condition_text(self) -> None:
         backend, _, mock = _make_mock_backend()
-        await backend.css_set_container_query_condition_text("ss-1", {"styleSheetId": "ss-1", "ordinal": 0}, "(min-width: 600px)")
+        await backend.css_set_container_query_condition_text(
+            "ss-1", {"styleSheetId": "ss-1", "ordinal": 0}, "(min-width: 600px)"
+        )
         mock.send.assert_awaited_once()
         assert mock.send.call_args.args[0] == "CSS.setContainerQueryConditionText"
 
@@ -1804,19 +1807,25 @@ class TestCDPMethodBodies:
 
     async def test_css_set_navigation_text(self) -> None:
         backend, _, mock = _make_mock_backend()
-        await backend.css_set_navigation_text("ss-1", {"styleSheetId": "ss-1", "ordinal": 0}, "@media (nav)")
+        await backend.css_set_navigation_text(
+            "ss-1", {"styleSheetId": "ss-1", "ordinal": 0}, "@media (nav)"
+        )
         mock.send.assert_awaited_once()
         assert mock.send.call_args.args[0] == "CSS.setNavigationText"
 
     async def test_css_set_property_rule_property_name(self) -> None:
         backend, _, mock = _make_mock_backend()
-        await backend.css_set_property_rule_property_name("ss-1", {"styleSheetId": "ss-1", "ordinal": 0}, "color")
+        await backend.css_set_property_rule_property_name(
+            "ss-1", {"styleSheetId": "ss-1", "ordinal": 0}, "color"
+        )
         mock.send.assert_awaited_once()
         assert mock.send.call_args.args[0] == "CSS.setPropertyRulePropertyName"
 
     async def test_css_set_rule_style(self) -> None:
         backend, _, mock = _make_mock_backend()
-        await backend.css_set_rule_style("ss-1", {"styleSheetId": "ss-1", "ordinal": 0}, "color: red;")
+        await backend.css_set_rule_style(
+            "ss-1", {"styleSheetId": "ss-1", "ordinal": 0}, "color: red;"
+        )
         mock.send.assert_awaited_once()
         assert mock.send.call_args.args[0] == "CSS.setRuleStyle"
 
@@ -1835,7 +1844,9 @@ class TestCDPMethodBodies:
     async def test_css_set_style_text(self) -> None:
         backend, _, mock = _make_mock_backend()
         mock.send.return_value = {"styles": [{"styleId": {"styleSheetId": "ss-1", "ordinal": 0}}]}
-        result = await backend.css_set_style_text([{"styleSheetId": "ss-1", "ordinal": 0, "text": "color: red;"}])
+        result = await backend.css_set_style_text(
+            [{"styleSheetId": "ss-1", "ordinal": 0, "text": "color: red;"}]
+        )
         mock.send.assert_awaited_once()
         assert mock.send.call_args.args[0] == "CSS.setStyleTexts"
         assert isinstance(result, list)
@@ -1843,7 +1854,9 @@ class TestCDPMethodBodies:
     async def test_css_set_style_texts(self) -> None:
         backend, _, mock = _make_mock_backend()
         mock.send.return_value = {"styles": [{"styleId": {"styleSheetId": "ss-1", "ordinal": 0}}]}
-        result = await backend.css_set_style_texts([{"styleSheetId": "ss-1", "ordinal": 0, "text": "color: blue;"}])
+        result = await backend.css_set_style_texts(
+            [{"styleSheetId": "ss-1", "ordinal": 0, "text": "color: blue;"}]
+        )
         mock.send.assert_awaited_once()
         assert mock.send.call_args.args[0] == "CSS.setStyleTexts"
         assert isinstance(result, list)
@@ -1856,7 +1869,9 @@ class TestCDPMethodBodies:
 
     async def test_css_set_supports_text(self) -> None:
         backend, _, mock = _make_mock_backend()
-        await backend.css_set_supports_text("ss-1", {"styleSheetId": "ss-1", "ordinal": 0}, "(display: flex)")
+        await backend.css_set_supports_text(
+            "ss-1", {"styleSheetId": "ss-1", "ordinal": 0}, "(display: flex)"
+        )
         mock.send.assert_awaited_once()
         assert mock.send.call_args.args[0] == "CSS.setSupportsText"
 
@@ -2016,7 +2031,9 @@ class TestCDPMethodBodies:
 
     async def test_debug_set_blackboxed_ranges(self) -> None:
         backend, _, mock = _make_mock_backend()
-        await backend.debug_set_blackboxed_ranges("script-1", [{"lineNumber": 0, "columnNumber": 0}])
+        await backend.debug_set_blackboxed_ranges(
+            "script-1", [{"lineNumber": 0, "columnNumber": 0}]
+        )
         mock.send.assert_awaited_once()
         assert mock.send.call_args.args[0] == "Debugger.setBlackboxedRanges"
 
@@ -3002,7 +3019,9 @@ class TestCDPMethodBodies:
 
     async def test_set_emulated_media_feature(self) -> None:
         backend, _, mock = _make_mock_backend()
-        await backend.set_emulated_media_feature([{"name": "prefers-color-scheme", "value": "dark"}])
+        await backend.set_emulated_media_feature(
+            [{"name": "prefers-color-scheme", "value": "dark"}]
+        )
         mock.send.assert_awaited_once()
         assert mock.send.call_args.args[0] == "Emulation.setEmulatedMediaFeature"
 
@@ -3088,7 +3107,9 @@ class TestCDPMethodBodies:
 
     async def test_set_sensor_override_readings(self) -> None:
         backend, _, mock = _make_mock_backend()
-        await backend.set_sensor_override_readings("accelerometer", [{"x": 1.0, "y": 0.0, "z": 0.0}])
+        await backend.set_sensor_override_readings(
+            "accelerometer", [{"x": 1.0, "y": 0.0, "z": 0.0}]
+        )
         mock.send.assert_awaited_once()
         assert mock.send.call_args.args[0] == "Emulation.setSensorOverrideReadings"
 
@@ -3210,13 +3231,17 @@ class TestCDPMethodBodies:
 
     async def test_dom_storage_clear(self) -> None:
         backend, _, mock = _make_mock_backend()
-        await backend.dom_storage_clear({"securityOrigin": "https://example.com", "isLocalStorage": True})
+        await backend.dom_storage_clear(
+            {"securityOrigin": "https://example.com", "isLocalStorage": True}
+        )
         mock.send.assert_awaited_once()
         assert mock.send.call_args.args[0] == "DOMStorage.clear"
 
     async def test_dom_storage_clear_items(self) -> None:
         backend, _, mock = _make_mock_backend()
-        await backend.dom_storage_clear_items({"securityOrigin": "https://example.com", "isLocalStorage": True})
+        await backend.dom_storage_clear_items(
+            {"securityOrigin": "https://example.com", "isLocalStorage": True}
+        )
         mock.send.assert_awaited_once()
         assert mock.send.call_args.args[0] == "DOMStorage.clear"
 
@@ -3235,20 +3260,26 @@ class TestCDPMethodBodies:
     async def test_dom_storage_get_items(self) -> None:
         backend, _, mock = _make_mock_backend()
         mock.send.return_value = {"items": [{"key": "k", "value": "v"}]}
-        result = await backend.dom_storage_get_items({"securityOrigin": "https://example.com", "isLocalStorage": True})
+        result = await backend.dom_storage_get_items(
+            {"securityOrigin": "https://example.com", "isLocalStorage": True}
+        )
         mock.send.assert_awaited_once()
         assert mock.send.call_args.args[0] == "DOMStorage.getDOMStorageItems"
         assert isinstance(result, list)
 
     async def test_dom_storage_remove_item(self) -> None:
         backend, _, mock = _make_mock_backend()
-        await backend.dom_storage_remove_item({"securityOrigin": "https://example.com", "isLocalStorage": True}, "key1")
+        await backend.dom_storage_remove_item(
+            {"securityOrigin": "https://example.com", "isLocalStorage": True}, "key1"
+        )
         mock.send.assert_awaited_once()
         assert mock.send.call_args.args[0] == "DOMStorage.removeDOMStorageItem"
 
     async def test_dom_storage_set_item(self) -> None:
         backend, _, mock = _make_mock_backend()
-        await backend.dom_storage_set_item({"securityOrigin": "https://example.com", "isLocalStorage": True}, "key1", "val1")
+        await backend.dom_storage_set_item(
+            {"securityOrigin": "https://example.com", "isLocalStorage": True}, "key1", "val1"
+        )
         mock.send.assert_awaited_once()
         assert mock.send.call_args.args[0] == "DOMStorage.setDOMStorageItem"
 
@@ -3720,7 +3751,9 @@ class TestCDPMethodBodies:
 
     async def test_indexed_db_delete_object_store_entries(self) -> None:
         backend, _, mock = _make_mock_backend()
-        await backend.indexed_db_delete_object_store_entries("https://example.com", "db1", "store1", {"lower": 0})
+        await backend.indexed_db_delete_object_store_entries(
+            "https://example.com", "db1", "store1", {"lower": 0}
+        )
         mock.send.assert_awaited_once()
         assert mock.send.call_args.args[0] == "IndexedDB.deleteObjectStoreEntries"
 
@@ -3747,7 +3780,9 @@ class TestCDPMethodBodies:
     async def test_indexed_db_request_data(self) -> None:
         backend, _, mock = _make_mock_backend()
         mock.send.return_value = {"data": []}
-        result = await backend.indexed_db_request_data("https://example.com", "db1", "store1", "idx1")
+        result = await backend.indexed_db_request_data(
+            "https://example.com", "db1", "store1", "idx1"
+        )
         mock.send.assert_awaited_once()
         assert mock.send.call_args.args[0] == "IndexedDB.requestData"
         assert isinstance(result, dict)
@@ -4590,13 +4625,20 @@ class TestCDPMethodBodies:
 
     async def test_bluetooth_emulation_simulate_characteristic_operation_response(self) -> None:
         backend, _, mock = _make_mock_backend()
-        await backend.bluetooth_emulation_simulate_characteristic_operation_response("c1", "read", 0)
-        assert mock.send.call_args.args[0] == "BluetoothEmulation.simulateCharacteristicOperationResponse"
+        await backend.bluetooth_emulation_simulate_characteristic_operation_response(
+            "c1", "read", 0
+        )
+        assert (
+            mock.send.call_args.args[0]
+            == "BluetoothEmulation.simulateCharacteristicOperationResponse"
+        )
 
     async def test_bluetooth_emulation_simulate_descriptor_operation_response(self) -> None:
         backend, _, mock = _make_mock_backend()
         await backend.bluetooth_emulation_simulate_descriptor_operation_response("d1", "read", 0)
-        assert mock.send.call_args.args[0] == "BluetoothEmulation.simulateDescriptorOperationResponse"
+        assert (
+            mock.send.call_args.args[0] == "BluetoothEmulation.simulateDescriptorOperationResponse"
+        )
 
     async def test_bluetooth_emulation_simulate_gatt_disconnection(self) -> None:
         backend, _, mock = _make_mock_backend()
@@ -4762,7 +4804,9 @@ class TestCDPMethodBodies:
 
     async def test_debugger_set_blackboxed_ranges(self) -> None:
         backend, _, mock = _make_mock_backend()
-        await backend.debugger_set_blackboxed_ranges("script-1", [{"lineNumber": 0, "columnNumber": 0}])
+        await backend.debugger_set_blackboxed_ranges(
+            "script-1", [{"lineNumber": 0, "columnNumber": 0}]
+        )
         assert mock.send.call_args.args[0] == "Debugger.setBlackboxedRanges"
 
     async def test_debugger_set_breakpoint(self) -> None:
@@ -5116,12 +5160,16 @@ class TestCDPMethodBodies:
 
     async def test_dom_storage_clear(self) -> None:
         backend, _, mock = _make_mock_backend()
-        await backend.dom_storage_clear({"securityOrigin": "http://example.com", "isLocalStorage": True})
+        await backend.dom_storage_clear(
+            {"securityOrigin": "http://example.com", "isLocalStorage": True}
+        )
         assert mock.send.call_args.args[0] == "DOMStorage.clear"
 
     async def test_dom_storage_clear_dom_storage_items(self) -> None:
         backend, _, mock = _make_mock_backend()
-        await backend.dom_storage_clear_dom_storage_items({"securityOrigin": "http://example.com", "isLocalStorage": True})
+        await backend.dom_storage_clear_dom_storage_items(
+            {"securityOrigin": "http://example.com", "isLocalStorage": True}
+        )
         assert mock.send.call_args.args[0] == "DOMStorage.clear"
 
     async def test_dom_storage_disable(self) -> None:
@@ -5136,17 +5184,23 @@ class TestCDPMethodBodies:
 
     async def test_dom_storage_get_dom_storage_items(self) -> None:
         backend, _, mock = _make_mock_backend()
-        await backend.dom_storage_get_dom_storage_items({"securityOrigin": "http://example.com", "isLocalStorage": True})
+        await backend.dom_storage_get_dom_storage_items(
+            {"securityOrigin": "http://example.com", "isLocalStorage": True}
+        )
         assert mock.send.call_args.args[0] == "DOMStorage.getDOMStorageItems"
 
     async def test_dom_storage_remove_dom_storage_item(self) -> None:
         backend, _, mock = _make_mock_backend()
-        await backend.dom_storage_remove_dom_storage_item({"securityOrigin": "http://example.com", "isLocalStorage": True}, "key")
+        await backend.dom_storage_remove_dom_storage_item(
+            {"securityOrigin": "http://example.com", "isLocalStorage": True}, "key"
+        )
         assert mock.send.call_args.args[0] == "DOMStorage.removeDOMStorageItem"
 
     async def test_dom_storage_set_dom_storage_item(self) -> None:
         backend, _, mock = _make_mock_backend()
-        await backend.dom_storage_set_dom_storage_item({"securityOrigin": "http://example.com", "isLocalStorage": True}, "key", "val")
+        await backend.dom_storage_set_dom_storage_item(
+            {"securityOrigin": "http://example.com", "isLocalStorage": True}, "key", "val"
+        )
         assert mock.send.call_args.args[0] == "DOMStorage.setDOMStorageItem"
 
     # ── EventBreakpoints ──────────────────────────────────

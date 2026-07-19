@@ -223,9 +223,7 @@ def _discover_entry_points() -> PluginRegistry:
         elif isinstance(obj, type) and issubclass(obj, AbstractBackend):
             registry.register_backend(ep.name, obj)
         else:
-            logger.warning(
-                "Plugin %s has unknown type %s, skipping", ep.name, type(obj)
-            )
+            logger.warning("Plugin %s has unknown type %s, skipping", ep.name, type(obj))
 
     return registry
 

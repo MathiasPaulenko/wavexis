@@ -28,13 +28,10 @@ class BackendNotAvailableError(WavexisError):
         """
         if backend:
             super().__init__(
-                f"Backend '{backend}' is not installed. "
-                f"Run: pip install wavexis[{backend}]"
+                f"Backend '{backend}' is not installed. Run: pip install wavexis[{backend}]"
             )
         else:
-            super().__init__(
-                "No backend available. Install cdpwave or bidiwave."
-            )
+            super().__init__("No backend available. Install cdpwave or bidiwave.")
 
 
 class BackendNotSupportedError(WavexisError):

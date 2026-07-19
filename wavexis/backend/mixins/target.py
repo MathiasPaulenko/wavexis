@@ -122,9 +122,7 @@ class TargetBackend(ABC):
         """
 
     @abstractmethod
-    async def target_dispose_browser_context(
-        self, browser_context_id: str
-    ) -> None:
+    async def target_dispose_browser_context(self, browser_context_id: str) -> None:
         """Dispose a browser context by ID.
 
         Args:
@@ -132,9 +130,7 @@ class TargetBackend(ABC):
         """
 
     @abstractmethod
-    async def target_expose_dev_tools_protocol(
-        self, target_id: str, binding_name: str
-    ) -> None:
+    async def target_expose_dev_tools_protocol(self, target_id: str, binding_name: str) -> None:
         """Expose DevTools protocol API to the target.
 
         Args:
@@ -170,9 +166,7 @@ class TargetBackend(ABC):
         """
 
     @abstractmethod
-    async def target_send_message_to_target(
-        self, session_id: str, message: str
-    ) -> None:
+    async def target_send_message_to_target(self, session_id: str, message: str) -> None:
         """Send a message to a target via session ID.
 
         Args:

@@ -137,7 +137,9 @@ class RuntimeBackend(ABC):
         """
 
     @abstractmethod
-    async def runtime_add_binding(self, name: str, execution_context_name: str | None = None) -> None:
+    async def runtime_add_binding(
+        self, name: str, execution_context_name: str | None = None
+    ) -> None:
         """Add a binding with the given name on the global objects of all execution contexts.
 
         Args:
@@ -146,7 +148,9 @@ class RuntimeBackend(ABC):
         """
 
     @abstractmethod
-    async def runtime_await_promise(self, promise_object_id: str, return_by_value: bool = False) -> dict[str, Any]:
+    async def runtime_await_promise(
+        self, promise_object_id: str, return_by_value: bool = False
+    ) -> dict[str, Any]:
         """Await a promise by its remote object ID.
 
         Args:

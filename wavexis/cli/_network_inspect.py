@@ -22,9 +22,7 @@ from wavexis.config import WaitStrategy
 @app.command()
 def inspect(
     url: str = typer.Argument(..., help="URL to navigate to"),
-    request_id: str = typer.Option(
-        "", "--request-id", "-r", help="Network request ID to inspect"
-    ),
+    request_id: str = typer.Option("", "--request-id", "-r", help="Network request ID to inspect"),
     body_type: str = typer.Option(
         "response",
         "--type",
@@ -75,9 +73,7 @@ def modify(
         "-h",
         help='Header to add/modify (e.g. "X-Custom: value")',
     ),
-    method: str = typer.Option(
-        "", "--method", "-m", help="Override HTTP method"
-    ),
+    method: str = typer.Option("", "--method", "-m", help="Override HTTP method"),
     post_data: str = typer.Option(
         "", "--post-data", "-d", help="Override request body (POST data)"
     ),
@@ -104,9 +100,7 @@ def modify(
     typer.echo(f"Request interception active for pattern: {pattern}")
 
 
-async def _modify(
-    url: str, pattern: str, modifications: dict[str, Any], wait: float = 5.0
-) -> None:
+async def _modify(url: str, pattern: str, modifications: dict[str, Any], wait: float = 5.0) -> None:
     """Async helper for request modification.
 
     Args:
@@ -120,9 +114,7 @@ async def _modify(
     backend = _get_backend()
     try:
         await backend.launch(_browser_options())
-        await backend.modify_request(
-            {"urlPattern": pattern}, modifications
-        )
+        await backend.modify_request({"urlPattern": pattern}, modifications)
         await backend.navigate(url, WaitStrategy(strategy="load"))
         if wait > 0:
             await asyncio.sleep(wait)
@@ -139,12 +131,8 @@ def modify_response(
         "-p",
         help='URL pattern to match (e.g. "*/api/*")',
     ),
-    body: str = typer.Option(
-        "", "--body", "-b", help="Replacement response body (string or JSON)"
-    ),
-    status: int = typer.Option(
-        200, "--status", "-s", help="Override HTTP status code"
-    ),
+    body: str = typer.Option("", "--body", "-b", help="Replacement response body (string or JSON)"),
+    status: int = typer.Option(200, "--status", "-s", help="Override HTTP status code"),
     content_type: str = typer.Option(
         "application/json", "--content-type", "-c", help="Content-Type header"
     ),
@@ -197,9 +185,7 @@ async def _modify_response(
     backend = _get_backend()
     try:
         await backend.launch(_browser_options())
-        await backend.modify_response(
-            {"urlPattern": pattern}, modifications
-        )
+        await backend.modify_response({"urlPattern": pattern}, modifications)
         await backend.navigate(url, WaitStrategy(strategy="load"))
         if wait > 0:
             await asyncio.sleep(wait)
@@ -210,12 +196,8 @@ async def _modify_response(
 @app.command()
 def har_replay(
     har_path: str = typer.Argument(..., help="Path to HAR file"),
-    url: str = typer.Option(
-        "", "--url", "-u", help="Optional URL to navigate to first"
-    ),
-    filter: str = typer.Option(
-        "", "--filter", "-f", help="URL filter pattern to select entries"
-    ),
+    url: str = typer.Option("", "--url", "-u", help="Optional URL to navigate to first"),
+    filter: str = typer.Option("", "--filter", "-f", help="URL filter pattern to select entries"),
 ) -> None:
     """Replay network requests from a HAR file.
 
@@ -241,27 +223,15 @@ async def _har_replay(har_path: str, url: str, url_filter: str) -> None:
 
 @app.command()
 def trace(
-    action: str = typer.Argument(
-        ..., help="Trace action: start or stop"
-    ),
-    url: str = typer.Argument(
-        "", help="URL to navigate to (for start)"
-    ),
-    trace_id: str = typer.Option(
-        "", "--trace-id", "-t", help="Trace ID (for stop)"
-    ),
+    action: str = typer.Argument(..., help="Trace action: start or stop"),
+    url: str = typer.Argument("", help="URL to navigate to (for start)"),
+    trace_id: str = typer.Option("", "--trace-id", "-t", help="Trace ID (for stop)"),
     no_screenshots: bool = typer.Option(
         False, "--no-screenshots", help="Disable screenshot capture"
     ),
-    no_network: bool = typer.Option(
-        False, "--no-network", help="Disable network capture"
-    ),
-    no_console: bool = typer.Option(
-        False, "--no-console", help="Disable console capture"
-    ),
-    output: str | None = typer.Option(
-        None, "--output", "-o", help="Output file path (for stop)"
-    ),
+    no_network: bool = typer.Option(False, "--no-network", help="Disable network capture"),
+    no_console: bool = typer.Option(False, "--no-console", help="Disable console capture"),
+    output: str | None = typer.Option(None, "--output", "-o", help="Output file path (for stop)"),
 ) -> None:
     """Combined tracing: screenshots + network + console + trace events.
 
@@ -338,9 +308,7 @@ async def _trace_stop(trace_id: str) -> dict[str, Any]:
 @app.command()
 def axe(
     url: str = typer.Argument(..., help="URL to navigate to"),
-    output: str | None = typer.Option(
-        None, "--output", "-o", help="Output file path (.json)"
-    ),
+    output: str | None = typer.Option(None, "--output", "-o", help="Output file path (.json)"),
 ) -> None:
     """Run axe-core accessibility audit on a page.
 
@@ -374,12 +342,8 @@ async def _axe(url: str) -> dict[str, Any]:
 
 @app.command()
 def events(
-    action: str = typer.Argument(
-        ..., help="Events action: subscribe or unsubscribe"
-    ),
-    url: str = typer.Argument(
-        "", help="URL to navigate to (for subscribe)"
-    ),
+    action: str = typer.Argument(..., help="Events action: subscribe or unsubscribe"),
+    url: str = typer.Argument("", help="URL to navigate to (for subscribe)"),
     types: str = typer.Option(
         "console,network_request,network_response",
         "--types",
@@ -406,9 +370,7 @@ def events(
         raise typer.Exit(1)
 
 
-async def _events_subscribe(
-    url: str, event_types: list[str], duration: int
-) -> None:
+async def _events_subscribe(url: str, event_types: list[str], duration: int) -> None:
     """Async helper for event subscription."""
     import asyncio
 

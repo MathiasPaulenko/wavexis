@@ -14,6 +14,7 @@ from wavexis.multi import execute_actions, parse_yaml
 @pytest.mark.unit
 class TestParseYaml:
     """Test suite for parseyaml."""
+
     def test_valid_config(self, tmp_path: Path) -> None:
         """Test valid config."""
         config = tmp_path / "config.yml"
@@ -92,6 +93,7 @@ actions:
 @pytest.mark.unit
 class TestExecuteActions:
     """Test suite for executeactions."""
+
     async def test_execute_screenshot(self) -> None:
         """Test execute screenshot."""
         backend = MagicMock()

@@ -34,15 +34,11 @@ class PageBackend(ABC):
         """Wait for the debugger to attach."""
 
     @abstractmethod
-    async def page_get_resource_content(
-        self, frame_id: str, url: str
-    ) -> dict[str, Any]:
+    async def page_get_resource_content(self, frame_id: str, url: str) -> dict[str, Any]:
         """Get the content of a page resource by frame ID and URL."""
 
     @abstractmethod
-    async def page_set_download_behavior(
-        self, behavior: str, download_path: str = ""
-    ) -> None:
+    async def page_set_download_behavior(self, behavior: str, download_path: str = "") -> None:
         """Set page download behavior (allow/deny and path)."""
 
     @abstractmethod
@@ -90,9 +86,7 @@ class PageBackend(ABC):
         """Add a script to evaluate on every new document. Returns script ID."""
 
     @abstractmethod
-    async def page_remove_script_to_evaluate_on_new_document(
-        self, script_id: str
-    ) -> None:
+    async def page_remove_script_to_evaluate_on_new_document(self, script_id: str) -> None:
         """Remove a previously added script by ID."""
 
     @abstractmethod
@@ -108,15 +102,11 @@ class PageBackend(ABC):
         """Get the resource tree for the current page."""
 
     @abstractmethod
-    async def page_add_compilation_cache(
-        self, url: str, data: str
-    ) -> None:
+    async def page_add_compilation_cache(self, url: str, data: str) -> None:
         """Add data to the compilation cache for the given URL."""
 
     @abstractmethod
-    async def page_add_script_to_evaluate_on_load(
-        self, source: str
-    ) -> str:
+    async def page_add_script_to_evaluate_on_load(self, source: str) -> str:
         """Add a script to evaluate on page load. Returns script ID."""
 
     @abstractmethod
@@ -161,9 +151,7 @@ class PageBackend(ABC):
         """Enable the page domain."""
 
     @abstractmethod
-    async def page_get_ad_script_ancestry(
-        self, frame_id: str
-    ) -> dict[str, Any]:
+    async def page_get_ad_script_ancestry(self, frame_id: str) -> dict[str, Any]:
         """Get the ad script ancestry for a frame."""
 
     @abstractmethod
@@ -187,33 +175,23 @@ class PageBackend(ABC):
         """Get origin trials for the current page."""
 
     @abstractmethod
-    async def page_get_permissions_policy_state(
-        self, frame_id: str
-    ) -> dict[str, Any]:
+    async def page_get_permissions_policy_state(self, frame_id: str) -> dict[str, Any]:
         """Get permissions policy state for a frame."""
 
     @abstractmethod
-    async def page_handle_java_script_dialog(
-        self, accept: bool, prompt_text: str = ""
-    ) -> None:
+    async def page_handle_java_script_dialog(self, accept: bool, prompt_text: str = "") -> None:
         """Handle a JavaScript dialog (alias for handle_javascript_dialog)."""
 
     @abstractmethod
-    async def page_handle_javascript_dialog(
-        self, accept: bool, prompt_text: str = ""
-    ) -> None:
+    async def page_handle_javascript_dialog(self, accept: bool, prompt_text: str = "") -> None:
         """Handle a JavaScript dialog."""
 
     @abstractmethod
-    async def page_produce_compilation_cache(
-        self, url: str
-    ) -> dict[str, Any]:
+    async def page_produce_compilation_cache(self, url: str) -> dict[str, Any]:
         """Produce compilation cache for the given URL."""
 
     @abstractmethod
-    async def page_remove_script_to_evaluate_on_load(
-        self, script_id: str
-    ) -> None:
+    async def page_remove_script_to_evaluate_on_load(self, script_id: str) -> None:
         """Remove a script previously added to evaluate on load."""
 
     @abstractmethod
@@ -221,9 +199,7 @@ class PageBackend(ABC):
         """Reset the navigation history."""
 
     @abstractmethod
-    async def page_screencast_frame_ack(
-        self, session_id: int
-    ) -> None:
+    async def page_screencast_frame_ack(self, session_id: int) -> None:
         """Acknowledge a screencast frame."""
 
     @abstractmethod
@@ -244,21 +220,15 @@ class PageBackend(ABC):
         """Override the device orientation."""
 
     @abstractmethod
-    async def page_set_document_content(
-        self, frame_id: str, html: str
-    ) -> None:
+    async def page_set_document_content(self, frame_id: str, html: str) -> None:
         """Set the document content for a frame."""
 
     @abstractmethod
-    async def page_set_font_families(
-        self, font_families: dict[str, Any]
-    ) -> None:
+    async def page_set_font_families(self, font_families: dict[str, Any]) -> None:
         """Set font families for the page."""
 
     @abstractmethod
-    async def page_set_font_sizes(
-        self, font_sizes: dict[str, Any]
-    ) -> None:
+    async def page_set_font_sizes(self, font_sizes: dict[str, Any]) -> None:
         """Set font sizes for the page."""
 
     @abstractmethod
@@ -268,33 +238,23 @@ class PageBackend(ABC):
         """Override the geolocation."""
 
     @abstractmethod
-    async def page_set_intercept_file_chooser_dialog(
-        self, enabled: bool
-    ) -> None:
+    async def page_set_intercept_file_chooser_dialog(self, enabled: bool) -> None:
         """Intercept file chooser dialogs."""
 
     @abstractmethod
-    async def page_set_lifecycle_events_enabled(
-        self, enabled: bool
-    ) -> None:
+    async def page_set_lifecycle_events_enabled(self, enabled: bool) -> None:
         """Enable or disable lifecycle events."""
 
     @abstractmethod
-    async def page_set_prerendering_allowed(
-        self, is_allowed: bool
-    ) -> None:
+    async def page_set_prerendering_allowed(self, is_allowed: bool) -> None:
         """Set whether prerendering is allowed."""
 
     @abstractmethod
-    async def page_set_rph_registration_mode(
-        self, mode: str
-    ) -> None:
+    async def page_set_rph_registration_mode(self, mode: str) -> None:
         """Set the RPH registration mode."""
 
     @abstractmethod
-    async def page_set_spc_transaction_mode(
-        self, mode: str
-    ) -> None:
+    async def page_set_spc_transaction_mode(self, mode: str) -> None:
         """Set the SPC transaction mode."""
 
     @abstractmethod
@@ -304,9 +264,7 @@ class PageBackend(ABC):
         """Enable or disable touch emulation."""
 
     @abstractmethod
-    async def page_set_web_lifecycle_state(
-        self, state: str
-    ) -> None:
+    async def page_set_web_lifecycle_state(self, state: str) -> None:
         """Set the web lifecycle state."""
 
     @abstractmethod

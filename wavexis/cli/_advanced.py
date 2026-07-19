@@ -51,14 +51,15 @@ async def _a11y(url: str, action: str, node_id: str) -> Any:
     from wavexis.actions.accessibility import AccessibilityAction
 
     backend = _get_backend()
-    act = AccessibilityAction(
-        params=None,
-        action=action,
-        node_id=node_id,
-        url=url,
-        wait=WaitStrategy(strategy="load"),
-    )
     try:
+        await backend.launch(_browser_options())
+        act = AccessibilityAction(
+            params=None,
+            action=action,
+            node_id=node_id,
+            url=url,
+            wait=WaitStrategy(strategy="load"),
+        )
         return await act.execute(backend)
     finally:
         await _close_backend(backend)
@@ -92,12 +93,13 @@ async def _download(url: str, pattern: str) -> bytes:
     from wavexis.actions.download import DownloadAction
 
     backend = _get_backend()
-    act = DownloadAction(
-        params=pattern,
-        url=url,
-        wait=WaitStrategy(strategy="load"),
-    )
     try:
+        await backend.launch(_browser_options())
+        act = DownloadAction(
+            params=pattern,
+            url=url,
+            wait=WaitStrategy(strategy="load"),
+        )
         return await act.execute(backend)
     finally:
         await _close_backend(backend)
@@ -125,14 +127,15 @@ async def _dialog(url: str, action: str, prompt_text: str | None) -> None:
     from wavexis.actions.dialog import DialogAction
 
     backend = _get_backend()
-    act = DialogAction(
-        params="",
-        action=action,
-        prompt_text=prompt_text,
-        url=url,
-        wait=WaitStrategy(strategy="load"),
-    )
     try:
+        await backend.launch(_browser_options())
+        act = DialogAction(
+            params="",
+            action=action,
+            prompt_text=prompt_text,
+            url=url,
+            wait=WaitStrategy(strategy="load"),
+        )
         await act.execute(backend)
     finally:
         await _close_backend(backend)
@@ -142,7 +145,8 @@ async def _dialog(url: str, action: str, prompt_text: str | None) -> None:
 def permissions(
     action: str = typer.Argument("grant", help="Permissions action: grant, reset"),
     permission: str = typer.Option(
-        "geolocation", "--permission",
+        "geolocation",
+        "--permission",
         help="Permission name (e.g. geolocation, notifications)",
     ),
     url: str = typer.Option("", "--url", help="URL to navigate to (optional)"),
@@ -163,14 +167,15 @@ async def _permissions(action: str, permission: str, url: str) -> None:
     from wavexis.actions.permissions import PermissionsAction
 
     backend = _get_backend()
-    act = PermissionsAction(
-        params="",
-        action=action,
-        permission=permission,
-        url=url,
-        wait=WaitStrategy(strategy="load") if url else None,
-    )
     try:
+        await backend.launch(_browser_options())
+        act = PermissionsAction(
+            params="",
+            action=action,
+            permission=permission,
+            url=url,
+            wait=WaitStrategy(strategy="load") if url else None,
+        )
         await act.execute(backend)
     finally:
         await _close_backend(backend)
@@ -212,13 +217,14 @@ async def _security(url: str, action: str) -> Any:
     from wavexis.actions.security import SecurityAction
 
     backend = _get_backend()
-    act = SecurityAction(
-        params="",
-        action=action,
-        url=url,
-        wait=WaitStrategy(strategy="load"),
-    )
     try:
+        await backend.launch(_browser_options())
+        act = SecurityAction(
+            params="",
+            action=action,
+            url=url,
+            wait=WaitStrategy(strategy="load"),
+        )
         return await act.execute(backend)
     finally:
         await _close_backend(backend)
@@ -230,22 +236,21 @@ def lighthouse(
     categories: Annotated[
         list[str] | None,
         typer.Option(
-            "--category", "-c",
+            "--category",
+            "-c",
             help=(
                 "Audit category: performance, accessibility, seo, "
                 "best-practices (repeatable, empty=all)"
             ),
         ),
     ] = None,
-    output: str | None = typer.Option(
-        None, "--output", "-o", help="Output file path (.json)"
-    ),
+    output: str | None = typer.Option(None, "--output", "-o", help="Output file path (.json)"),
     format: str = typer.Option("json", "--format", "-f", help="Output format (json)"),
     budget: str | None = typer.Option(
         None,
         "--budget",
         "-b",
-        help="Path to JSON file with performance budgets (e.g. {\"ttfb_ms\": 800})",
+        help='Path to JSON file with performance budgets (e.g. {"ttfb_ms": 800})',
     ),
     threshold: Annotated[
         list[str] | None,
@@ -276,27 +281,40 @@ def lighthouse(
     if budget:
         from pathlib import Path
 
-        budget_text = Path(budget).read_text(encoding="utf-8")
-        loaded = json.loads(budget_text)
+        try:
+            budget_text = Path(budget).read_text(encoding="utf-8")
+            loaded = json.loads(budget_text)
+        except json.JSONDecodeError as e:
+            typer.echo(f"Error: invalid JSON in budget file: {e}", err=True)
+            raise typer.Exit(1)
         if isinstance(loaded, dict):
-            budgets = {k: float(v) for k, v in loaded.items()}
+            try:
+                budgets = {k: float(v) for k, v in loaded.items()}
+            except (ValueError, TypeError) as e:
+                typer.echo(f"Error: invalid budget value: {e}", err=True)
+                raise typer.Exit(1)
 
     if threshold:
         for t in threshold:
             if "=" in t:
                 key, val = t.split("=", 1)
-                budgets[key.strip()] = float(val.strip())
+                try:
+                    budgets[key.strip()] = float(val.strip())
+                except ValueError:
+                    typer.echo(f"Error: invalid threshold value '{val.strip()}' for '{key.strip()}'", err=True)
+                    raise typer.Exit(1)
 
     async def _lighthouse() -> dict[str, Any]:
         backend = _get_backend()
-        params = LighthouseParams(
-            url=url,
-            categories=cats,
-            wait=WaitStrategy(strategy="load"),
-            budgets=budgets,
-        )
-        action = LighthouseAction(params)
+        await backend.launch(_browser_options())
         try:
+            params = LighthouseParams(
+                url=url,
+                categories=cats,
+                wait=WaitStrategy(strategy="load"),
+                budgets=budgets,
+            )
+            action = LighthouseAction(params)
             return await action.execute(backend)
         finally:
             await _close_backend(backend)
@@ -306,10 +324,7 @@ def lighthouse(
         return
 
     Output.write_formatted(result, format, output)
-    scores = {
-        cat: data.get("score", 0)
-        for cat, data in result.get("categories", {}).items()
-    }
+    scores = {cat: data.get("score", 0) for cat, data in result.get("categories", {}).items()}
     score_str = ", ".join(f"{k}: {v}" for k, v in scores.items())
 
     budget_str = ""
@@ -320,10 +335,7 @@ def lighthouse(
         budget_str = f", budgets: {status}"
         for br in budget_result.get("results", []):
             mark = "✓" if br.get("pass") else "✗"
-            budget_str += (
-                f"\n  {mark} {br['metric']}: "
-                f"{br['actual']} / {br['budget']}"
-            )
+            budget_str += f"\n  {mark} {br['metric']}: {br['actual']} / {br['budget']}"
 
     if output:
         typer.echo(f"Audit complete ({score_str}){budget_str}, saved to {output}")
@@ -336,6 +348,7 @@ def extension_install(
     path: str = typer.Argument(..., help="Path to .crx file or unpacked extension directory"),
 ) -> None:
     """Install a browser extension."""
+
     async def _run() -> str:
         backend = _get_backend()
         await backend.launch(_browser_options())
@@ -355,6 +368,7 @@ def extension_uninstall(
     extension_id: str = typer.Argument(..., help="Extension ID to uninstall"),
 ) -> None:
     """Uninstall a browser extension by ID."""
+
     async def _run() -> None:
         backend = _get_backend()
         await backend.launch(_browser_options())
@@ -370,6 +384,7 @@ def extension_uninstall(
 @app.command()
 def extension_list() -> None:
     """List installed browser extensions."""
+
     async def _run() -> list[dict[str, Any]]:
         backend = _get_backend()
         await backend.launch(_browser_options())
@@ -387,9 +402,7 @@ def extension_list() -> None:
         return
     for ext in extensions:
         status = "enabled" if ext.get("enabled") else "disabled"
-        typer.echo(
-            f"  {ext['id']}  {ext['name']} v{ext['version']}  ({status})"
-        )
+        typer.echo(f"  {ext['id']}  {ext['name']} v{ext['version']}  ({status})")
 
 
 @app.command()
@@ -397,6 +410,7 @@ def pref_get(
     key: str = typer.Argument(..., help="Preference key (e.g. download.default_directory)"),
 ) -> None:
     """Get a browser preference value."""
+
     async def _run() -> Any:
         backend = _get_backend()
         await backend.launch(_browser_options())
@@ -416,6 +430,7 @@ def pref_set(
     value: str = typer.Argument(..., help="Preference value"),
 ) -> None:
     """Set a browser preference value."""
+
     async def _run() -> None:
         backend = _get_backend()
         await backend.launch(_browser_options())

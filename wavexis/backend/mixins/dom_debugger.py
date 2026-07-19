@@ -10,7 +10,9 @@ class DOMDebuggerBackend(ABC):
     """DOM debugger operations for breakpoints on DOM mutations, events, and XHR."""
 
     @abstractmethod
-    async def dom_debugger_get_event_listeners(self, object_id: str, depth: int = 0, pierce: bool = False) -> list[dict[str, Any]]:
+    async def dom_debugger_get_event_listeners(
+        self, object_id: str, depth: int = 0, pierce: bool = False
+    ) -> list[dict[str, Any]]:
         """Get event listeners for an object by its remote object ID."""
 
     @abstractmethod
@@ -18,7 +20,9 @@ class DOMDebuggerBackend(ABC):
         """Remove a DOM breakpoint from a node by ID."""
 
     @abstractmethod
-    async def dom_debugger_remove_event_listener_breakpoint(self, event_name: str, target_name: str | None = None) -> None:
+    async def dom_debugger_remove_event_listener_breakpoint(
+        self, event_name: str, target_name: str | None = None
+    ) -> None:
         """Remove an event listener breakpoint."""
 
     @abstractmethod
@@ -38,7 +42,9 @@ class DOMDebuggerBackend(ABC):
         """Set a DOM breakpoint on a node by ID."""
 
     @abstractmethod
-    async def dom_debugger_set_event_listener_breakpoint(self, event_name: str, target_name: str | None = None) -> None:
+    async def dom_debugger_set_event_listener_breakpoint(
+        self, event_name: str, target_name: str | None = None
+    ) -> None:
         """Set an event listener breakpoint."""
 
     @abstractmethod

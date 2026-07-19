@@ -21,9 +21,7 @@ def browser_opts() -> BrowserOptions:
     return BrowserOptions(headless=True)
 
 
-async def test_media_get_players(
-    backend: CDPBackend, browser_opts: BrowserOptions
-) -> None:
+async def test_media_get_players(backend: CDPBackend, browser_opts: BrowserOptions) -> None:
     """Test media get players."""
     params = MediaParams(
         url="https://example.com",

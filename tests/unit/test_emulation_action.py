@@ -13,6 +13,7 @@ from wavexis.config import EmulationParams
 @pytest.mark.unit
 class TestEmulationAction:
     """Test suite for emulationaction."""
+
     async def test_device_action(self) -> None:
         """Test device action."""
         backend = MagicMock()
@@ -26,9 +27,7 @@ class TestEmulationAction:
         """Test viewport action."""
         backend = MagicMock()
         backend.set_viewport = AsyncMock()
-        params = EmulationParams(
-            action="viewport", width=375, height=812, device_scale_factor=3.0
-        )
+        params = EmulationParams(action="viewport", width=375, height=812, device_scale_factor=3.0)
         action = EmulationAction(params)
         await action.execute(backend)
         backend.set_viewport.assert_called_once_with(375, 812, 3.0)

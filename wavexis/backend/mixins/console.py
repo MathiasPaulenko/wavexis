@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from abc import abstractmethod
 
-from typing import Any
-
 
 class ConsoleBackend:
     """Console domain for message inspection and control."""

@@ -10,7 +10,9 @@ class PwaBackend(ABC):
     """Progressive Web App operations for installation and management."""
 
     @abstractmethod
-    async def pwa_change_app_user_settings(self, app_id: str, user_settings: dict[str, Any]) -> None:
+    async def pwa_change_app_user_settings(
+        self, app_id: str, user_settings: dict[str, Any]
+    ) -> None:
         """Change PWA user settings.
 
         Args:

@@ -12,12 +12,13 @@ from wavexis.actions.webaudio import WebAudioAction, WebAudioParams
 @pytest.mark.unit
 class TestWebAudioAction:
     """Test suite for webaudioaction."""
+
     def _make_backend(self) -> MagicMock:
         """Create a mock backend for testing.
 
-            Returns:
-                A MagicMock backend instance.
-            """
+        Returns:
+            A MagicMock backend instance.
+        """
         backend = MagicMock()
         backend.launch = AsyncMock()
         backend.navigate = AsyncMock()
@@ -47,9 +48,7 @@ class TestWebAudioAction:
     async def test_get_context(self) -> None:
         """Test get context."""
         backend = self._make_backend()
-        params = WebAudioParams(
-            url="https://example.com", action="get", context_id="ctx1"
-        )
+        params = WebAudioParams(url="https://example.com", action="get", context_id="ctx1")
         result = await WebAudioAction(params).execute(backend)
         assert result["contextId"] == "ctx1"
         backend.webaudio_get_context.assert_called_once_with("ctx1")

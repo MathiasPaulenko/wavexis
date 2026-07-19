@@ -11,12 +11,13 @@ from wavexis.backend.base import AbstractBackend
 @pytest.mark.unit
 class TestOverlayAction:
     """Test suite for overlayaction."""
+
     def _make_backend(self) -> MagicMock:
         """Create a mock backend for testing.
 
-            Returns:
-                A MagicMock backend instance.
-            """
+        Returns:
+            A MagicMock backend instance.
+        """
         backend = MagicMock(spec=AbstractBackend)
         backend.launch = AsyncMock()
         backend.close = AsyncMock()
@@ -28,13 +29,9 @@ class TestOverlayAction:
     async def test_highlight_action(self) -> None:
         """Test highlight action."""
         backend = self._make_backend()
-        params = OverlayParams(
-            url="https://example.com", action="highlight", selector="#hero"
-        )
+        params = OverlayParams(url="https://example.com", action="highlight", selector="#hero")
         await OverlayAction(params).execute(backend)
-        backend.overlay_highlight.assert_called_once_with(
-            "#hero", "rgba(255,0,0,0.5)"
-        )
+        backend.overlay_highlight.assert_called_once_with("#hero", "rgba(255,0,0,0.5)")
 
     async def test_highlight_custom_color(self) -> None:
         """Test highlight custom color."""
@@ -46,9 +43,7 @@ class TestOverlayAction:
             color="rgba(0,255,0,0.3)",
         )
         await OverlayAction(params).execute(backend)
-        backend.overlay_highlight.assert_called_once_with(
-            "#hero", "rgba(0,255,0,0.3)"
-        )
+        backend.overlay_highlight.assert_called_once_with("#hero", "rgba(0,255,0,0.3)")
 
     async def test_clear_action(self) -> None:
         """Test clear action."""

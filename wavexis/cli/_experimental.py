@@ -37,17 +37,17 @@ def storage(
     action: str = typer.Argument(
         ...,
         help="Storage action: get, set, clear, list, cache-list, "
-             "cache-entries, cache-delete, indexeddb-list, indexeddb-get, "
-             "indexeddb-clear, clear-data-for-storage-key, delete-bucket, "
-             "related-website-sets, shared-storage-metadata, "
-             "get-storage-key, get-storage-key-for-frame, "
-             "reset-shared-storage-budget, run-bounce-tracking, "
-             "set-cookies, set-ig-auction-tracking, set-ig-tracking, "
-             "set-protected-audience-k-anonymity, set-shared-storage-tracking, "
-             "set-bucket-tracking, track-cache-origin, track-cache-key, "
-             "track-idb-origin, track-idb-key, "
-             "untrack-cache-origin, untrack-cache-key, "
-             "untrack-idb-origin, untrack-idb-key",
+        "cache-entries, cache-delete, indexeddb-list, indexeddb-get, "
+        "indexeddb-clear, clear-data-for-storage-key, delete-bucket, "
+        "related-website-sets, shared-storage-metadata, "
+        "get-storage-key, get-storage-key-for-frame, "
+        "reset-shared-storage-budget, run-bounce-tracking, "
+        "set-cookies, set-ig-auction-tracking, set-ig-tracking, "
+        "set-protected-audience-k-anonymity, set-shared-storage-tracking, "
+        "set-bucket-tracking, track-cache-origin, track-cache-key, "
+        "track-idb-origin, track-idb-key, "
+        "untrack-cache-origin, untrack-cache-key, "
+        "untrack-idb-origin, untrack-idb-key",
     ),
     url: str = typer.Argument(..., help="URL to navigate to"),
     key: str = typer.Option("", "--key", help="Storage key"),
@@ -57,7 +57,9 @@ def storage(
     database: str = typer.Option("", "--database", help="IndexedDB database name"),
     store: str = typer.Option("", "--store", help="IndexedDB object store name"),
     origin: str = typer.Option("", "--origin", help="Origin for origin-based operations"),
-    storage_key: str = typer.Option("", "--storage-key", help="Storage key for key-based operations"),
+    storage_key: str = typer.Option(
+        "", "--storage-key", help="Storage key for key-based operations"
+    ),
     bucket_name: str = typer.Option("", "--bucket-name", help="Storage bucket name"),
     owner_origin: str = typer.Option("", "--owner-origin", help="Owner origin for shared storage"),
     frame_id: str = typer.Option("", "--frame-id", help="Frame ID for storage key operations"),
@@ -67,7 +69,9 @@ def storage(
     hashed_mac_key: str = typer.Option("", "--hashed-mac-key", help="Hashed MAC key"),
     storage_types: str = typer.Option("all", "--storage-types", help="Storage types to clear"),
     cache_id: str = typer.Option("", "--cache-id", help="CDP cache ID for cache operations"),
-    request_url: str = typer.Option("", "--request-url", help="Request URL for cache entry operations"),
+    request_url: str = typer.Option(
+        "", "--request-url", help="Request URL for cache entry operations"
+    ),
     request_headers: str = typer.Option("", "--request-headers", help="Request headers JSON array"),
     skip_count: int = typer.Option(0, "--skip-count", help="Number of entries to skip"),
     page_size: int = typer.Option(100, "--page-size", help="Maximum entries to return"),
@@ -120,37 +124,44 @@ def storage(
     async def _storage_action() -> Any:
         backend = _get_backend()
         try:
+            await backend.launch(_browser_options())
             return await StorageAction(params).execute(backend)
         finally:
             await _close_backend(backend)
 
     result = _run_async(_storage_action())
     if result is None:
-        return
-
-    if result is None:
         _echo("OK")
     elif isinstance(result, str):
         if output == "-":
             typer.echo(result)
         else:
-            with open(output, "w") as f:
+            with open(output, "w", encoding="utf-8") as f:
                 f.write(result)
             _echo(f"Saved to {output}")
     else:
         _write_json_output(result, output, "storage result")
 
+
 @app.command()
 def storage_clear_origin(
     url: str = typer.Argument(..., help="URL to navigate to"),
     origin: str = typer.Option("", "--origin", help="Origin to clear (empty = page origin)"),
-    storage_types: str = typer.Option("all", "--types", help="Storage types to clear (comma-separated)"),
+    storage_types: str = typer.Option(
+        "all", "--types", help="Storage types to clear (comma-separated)"
+    ),
 ) -> None:
     """Clear storage data for a given origin."""
-    _run_async(_storage_direct(url, lambda b: b.storage_clear_data_for_origin(
-        origin or _extract_origin(url), storage_types
-    )))
+    _run_async(
+        _storage_direct(
+            url,
+            lambda b: b.storage_clear_data_for_origin(
+                origin or _extract_origin(url), storage_types
+            ),
+        )
+    )
     _echo("Storage cleared for origin")
+
 
 @app.command()
 def storage_quota(
@@ -159,12 +170,15 @@ def storage_quota(
     output: str = typer.Option("-", "-o", "--output", help="Output file (- for stdout)"),
 ) -> None:
     """Get usage and quota for a given origin."""
-    result = _run_async(_storage_direct(url, lambda b: b.storage_get_usage_and_quota(
-        origin or _extract_origin(url)
-    )))
+    result = _run_async(
+        _storage_direct(
+            url, lambda b: b.storage_get_usage_and_quota(origin or _extract_origin(url))
+        )
+    )
     if result is None:
         return
     _write_json_output(result, output, "usage and quota")
+
 
 @app.command()
 def storage_trust_tokens(
@@ -177,6 +191,7 @@ def storage_trust_tokens(
         return
     _write_json_output(result, output, "trust tokens")
 
+
 @app.command()
 def storage_shared_storage(
     url: str = typer.Argument(..., help="URL to navigate to"),
@@ -184,10 +199,13 @@ def storage_shared_storage(
     output: str = typer.Option("-", "-o", "--output", help="Output file (- for stdout)"),
 ) -> None:
     """Get shared storage entries for an owner origin."""
-    result = _run_async(_storage_direct(url, lambda b: b.storage_get_shared_storage_entries(owner_origin)))
+    result = _run_async(
+        _storage_direct(url, lambda b: b.storage_get_shared_storage_entries(owner_origin))
+    )
     if result is None:
         return
     _write_json_output(result, output, "shared storage entries")
+
 
 @app.command()
 def storage_shared_storage_set(
@@ -197,8 +215,11 @@ def storage_shared_storage_set(
     value: str = typer.Option(..., "--value", help="Entry value"),
 ) -> None:
     """Set a shared storage entry."""
-    _run_async(_storage_direct(url, lambda b: b.storage_set_shared_storage_entry(owner_origin, key, value)))
+    _run_async(
+        _storage_direct(url, lambda b: b.storage_set_shared_storage_entry(owner_origin, key, value))
+    )
     _echo("Shared storage entry set")
+
 
 @app.command()
 def storage_shared_storage_delete(
@@ -207,8 +228,11 @@ def storage_shared_storage_delete(
     key: str = typer.Option(..., "--key", help="Entry key"),
 ) -> None:
     """Delete a shared storage entry."""
-    _run_async(_storage_direct(url, lambda b: b.storage_delete_shared_storage_entry(owner_origin, key)))
+    _run_async(
+        _storage_direct(url, lambda b: b.storage_delete_shared_storage_entry(owner_origin, key))
+    )
     _echo("Shared storage entry deleted")
+
 
 @app.command()
 def storage_shared_storage_clear(
@@ -219,6 +243,7 @@ def storage_shared_storage_clear(
     _run_async(_storage_direct(url, lambda b: b.storage_clear_shared_storage_entries(owner_origin)))
     _echo("Shared storage entries cleared")
 
+
 @app.command()
 def storage_interest_group(
     url: str = typer.Argument(..., help="URL to navigate to"),
@@ -227,10 +252,13 @@ def storage_interest_group(
     output: str = typer.Option("-", "-o", "--output", help="Output file (- for stdout)"),
 ) -> None:
     """Get interest group details."""
-    result = _run_async(_storage_direct(url, lambda b: b.storage_get_interest_group_details(owner_origin, name)))
+    result = _run_async(
+        _storage_direct(url, lambda b: b.storage_get_interest_group_details(owner_origin, name))
+    )
     if result is None:
         return
     _write_json_output(result, output, "interest group details")
+
 
 @app.command()
 def storage_override_quota(
@@ -239,10 +267,16 @@ def storage_override_quota(
     quota_size: float = typer.Option(0, "--size", help="Quota size in bytes (0 = reset)"),
 ) -> None:
     """Override quota for a given origin."""
-    _run_async(_storage_direct(url, lambda b: b.storage_override_quota_for_origin(
-        origin or _extract_origin(url), quota_size if quota_size > 0 else None
-    )))
+    _run_async(
+        _storage_direct(
+            url,
+            lambda b: b.storage_override_quota_for_origin(
+                origin or _extract_origin(url), quota_size if quota_size > 0 else None
+            ),
+        )
+    )
     _echo("Quota overridden")
+
 
 async def _storage_direct(url: str, action_fn: Any) -> Any:
     """Launch backend, navigate, and run a direct storage action."""
@@ -254,19 +288,22 @@ async def _storage_direct(url: str, action_fn: Any) -> Any:
     finally:
         await _close_backend(backend)
 
+
 def _extract_origin(url: str) -> str:
     """Extract origin from URL."""
     from urllib.parse import urlparse
+
     parsed = urlparse(url)
     return f"{parsed.scheme}://{parsed.netloc}"
+
 
 @app.command()
 def sw(
     action: str = typer.Argument(
         ...,
         help="SW action: list, unregister, update, enable, disable, "
-             "deliver-push, dispatch-sync, get-messages, inspect, "
-             "skip-waiting, start-worker, stop-worker",
+        "deliver-push, dispatch-sync, get-messages, inspect, "
+        "skip-waiting, start-worker, stop-worker",
     ),
     url: str = typer.Argument(..., help="URL to navigate to"),
     registration_id: str = typer.Option("", "--id", help="Service worker registration ID"),
@@ -295,18 +332,17 @@ def sw(
     async def _sw_action() -> Any:
         backend = _get_backend()
         try:
+            await backend.launch(_browser_options())
             return await ServiceWorkerAction(params).execute(backend)
         finally:
             await _close_backend(backend)
 
     result = _run_async(_sw_action())
     if result is None:
-        return
-
-    if result is None:
         _echo("OK")
     else:
         _write_json_output(result, output, "service worker result")
+
 
 @app.command()
 def animation(
@@ -328,29 +364,28 @@ def animation(
     async def _animation_action() -> Any:
         backend = _get_backend()
         try:
+            await backend.launch(_browser_options())
             return await AnimationAction(params).execute(backend)
         finally:
             await _close_backend(backend)
 
     result = _run_async(_animation_action())
     if result is None:
-        return
-
-    if result is None:
         _echo("OK")
     else:
         _write_json_output(result, output, "animation result")
+
 
 @app.command()
 def webauthn(
     action: str = typer.Argument(
         ...,
         help="WebAuthn action: add-virtual-authenticator, "
-             "remove-authenticator, add-credential, get-credentials, "
-             "enable, disable, get-credential, remove-credential, "
-             "clear-credentials, set-user-verified, "
-             "set-automatic-presence-simulation, "
-             "set-credential-properties, set-response-override-bits",
+        "remove-authenticator, add-credential, get-credentials, "
+        "enable, disable, get-credential, remove-credential, "
+        "clear-credentials, set-user-verified, "
+        "set-automatic-presence-simulation, "
+        "set-credential-properties, set-response-override-bits",
     ),
     url: str = typer.Argument(..., help="URL to navigate to"),
     protocol: str = typer.Option("ctap2", "--protocol", help="Authenticator protocol"),
@@ -361,8 +396,12 @@ def webauthn(
     is_user_verified: bool = typer.Option(False, "--user-verified", help="User verified flag"),
     enabled: bool = typer.Option(False, "--enabled", help="Enabled flag for presence simulation"),
     backup_state: bool = typer.Option(False, "--backup-state", help="Backup state"),
-    backup_eligibility: bool = typer.Option(False, "--backup-eligibility", help="Backup eligibility"),
-    is_bogus_signature: bool = typer.Option(False, "--bogus-signature", help="Bogus signature flag"),
+    backup_eligibility: bool = typer.Option(
+        False, "--backup-eligibility", help="Backup eligibility"
+    ),
+    is_bogus_signature: bool = typer.Option(
+        False, "--bogus-signature", help="Bogus signature flag"
+    ),
     is_bad_uv: bool = typer.Option(False, "--bad-uv", help="Bad UV flag"),
     is_bad_up: bool = typer.Option(False, "--bad-up", help="Bad UP flag"),
     output: str = typer.Option("-", "-o", "--output", help="Output file (- for stdout)"),
@@ -398,20 +437,19 @@ def webauthn(
     async def _webauthn_action() -> Any:
         backend = _get_backend()
         try:
+            await backend.launch(_browser_options())
             return await WebAuthnAction(params).execute(backend)
         finally:
             await _close_backend(backend)
 
     result = _run_async(_webauthn_action())
     if result is None:
-        return
-
-    if result is None:
         _echo("OK")
     elif isinstance(result, str):
         typer.echo(result)
     else:
         _write_json_output(result, output, "webauthn result")
+
 
 @app.command()
 def webaudio(
@@ -433,24 +471,21 @@ def webaudio(
     async def _webaudio_action() -> Any:
         backend = _get_backend()
         try:
+            await backend.launch(_browser_options())
             return await WebAudioAction(params).execute(backend)
         finally:
             await _close_backend(backend)
 
     result = _run_async(_webaudio_action())
     if result is None:
-        return
-
-    if result is None:
         _echo("OK")
     else:
         _write_json_output(result, output, "webaudio result")
 
+
 @app.command()
 def media(
-    action: str = typer.Argument(
-        ..., help="Media action: list, messages"
-    ),
+    action: str = typer.Argument(..., help="Media action: list, messages"),
     url: str = typer.Argument(..., help="URL to navigate to"),
     player_id: str = typer.Option("", "--player-id", help="Media player ID"),
     output: str = typer.Option("-", "-o", "--output", help="Output file (- for stdout)"),
@@ -466,26 +501,25 @@ def media(
     async def _media_action() -> Any:
         backend = _get_backend()
         try:
+            await backend.launch(_browser_options())
             return await MediaAction(params).execute(backend)
         finally:
             await _close_backend(backend)
 
     result = _run_async(_media_action())
     if result is None:
-        return
-
-    if result is None:
         _echo("OK")
     else:
         _write_json_output(result, output, "media result")
+
 
 @app.command()
 def cast(
     action: str = typer.Argument(
         ...,
         help="Cast action: list, start-tab, stop, enable, disable, "
-             "set-sink, start-desktop-mirroring, start-tab-mirroring, "
-             "stop-casting",
+        "set-sink, start-desktop-mirroring, start-tab-mirroring, "
+        "stop-casting",
     ),
     url: str = typer.Argument("", help="URL to navigate to (optional for list)"),
     sink_name: str = typer.Option("", "--sink-name", help="Cast sink name"),
@@ -502,29 +536,24 @@ def cast(
     async def _cast_action() -> Any:
         backend = _get_backend()
         try:
+            await backend.launch(_browser_options())
             return await CastAction(params).execute(backend)
         finally:
             await _close_backend(backend)
 
     result = _run_async(_cast_action())
     if result is None:
-        return
-
-    if result is None:
         _echo("OK")
     else:
         _write_json_output(result, output, "cast result")
 
+
 @app.command()
 def bluetooth(
-    action: str = typer.Argument(
-        ..., help="Bluetooth action: emulate, stop"
-    ),
+    action: str = typer.Argument(..., help="Bluetooth action: emulate, stop"),
     url: str = typer.Argument(..., help="URL to navigate to"),
     name: str = typer.Option("", "--name", help="Device name"),
-    address: str = typer.Option(
-        "00:00:00:00:00:01", "--address", help="Device MAC address"
-    ),
+    address: str = typer.Option("00:00:00:00:00:01", "--address", help="Device MAC address"),
 ) -> None:
     """Bluetooth BLE emulation operations (experimental)."""
     params = BluetoothParams(
@@ -538,6 +567,7 @@ def bluetooth(
     async def _bluetooth_action() -> None:
         backend = _get_backend()
         try:
+            await backend.launch(_browser_options())
             await BluetoothAction(params).execute(backend)
         finally:
             await _close_backend(backend)
@@ -545,15 +575,16 @@ def bluetooth(
     _run_async(_bluetooth_action())
     _echo("OK")
 
+
 @app.command()
 def smartcard(
     action: str = typer.Argument(
         ...,
         help="SmartCard action: enable, disable, report-error, report-plain, "
-             "report-connect, report-data, report-status, "
-             "report-begin-transaction, report-establish-context, "
-             "report-release-context, report-list-readers, "
-             "report-get-status-change",
+        "report-connect, report-data, report-status, "
+        "report-begin-transaction, report-establish-context, "
+        "report-release-context, report-list-readers, "
+        "report-get-status-change",
     ),
     url: str = typer.Argument("", help="URL to navigate to (optional for enable/disable)"),
     request_id: str = typer.Option("", "--request-id", help="Pending request identifier"),
@@ -564,6 +595,7 @@ def smartcard(
     data: str = typer.Option("", "--data", help="Response data (hex-encoded)"),
     status: str = typer.Option("", "--status", help="Status string"),
     readers: str = typer.Option("", "--readers", help="Readers JSON array"),
+    output: str = typer.Option("-", "-o", "--output", help="Output file (- for stdout)"),
 ) -> None:
     """Smart card reader emulation operations (experimental)."""
     readers_list: list[dict[str, Any]] | None = None
@@ -591,6 +623,7 @@ def smartcard(
     async def _smartcard_action() -> Any:
         backend = _get_backend()
         try:
+            await backend.launch(_browser_options())
             return await SmartCardEmulationAction(params).execute(backend)
         finally:
             await _close_backend(backend)
@@ -599,22 +632,15 @@ def smartcard(
     if result is None:
         _echo("OK")
     else:
-        _write_json_output(result, "-", "smartcard result")
+        _write_json_output(result, output, "smartcard result")
+
 
 @app.command()
 def raw(
-    method: str = typer.Argument(
-        ..., help="Protocol method, e.g. 'Page.reload'"
-    ),
-    params: str = typer.Argument(
-        "{}", help="JSON params for the command"
-    ),
-    backend_name: str = typer.Option(
-        None, "--backend", help="Backend: cdp or bidi"
-    ),
-    output: str = typer.Option(
-        None, "-o", "--output", help="Output file (- for stdout)"
-    ),
+    method: str = typer.Argument(..., help="Protocol method, e.g. 'Page.reload'"),
+    params: str = typer.Argument("{}", help="JSON params for the command"),
+    backend_name: str = typer.Option(None, "--backend", help="Backend: cdp or bidi"),
+    output: str = typer.Option(None, "-o", "--output", help="Output file (- for stdout)"),
 ) -> None:
     """Send raw protocol command to backend (escape hatch)."""
 
@@ -630,10 +656,7 @@ def raw(
         Returns:
             Raw protocol response as a dictionary.
         """
-        if backend_name:
-            backend = get_manager().select(preferred=backend_name)
-        else:
-            backend = _get_backend()
+        backend = get_manager().select(preferred=backend_name) if backend_name else _get_backend()
         try:
             await backend.launch(_browser_options())
             result: dict[str, Any] = await backend.raw(method, raw_params)
@@ -647,6 +670,7 @@ def raw(
 
     _write_json_output(result, output or "-", "raw result")
 
+
 def _write_json_output(
     result: dict[str, Any] | list[dict[str, Any]], output: str, label: str
 ) -> None:
@@ -654,7 +678,7 @@ def _write_json_output(
     if output == "-":
         typer.echo(json.dumps(result, indent=2, default=str))
     else:
-        with open(output, "w") as f:
+        with open(output, "w", encoding="utf-8") as f:
             json.dump(result, f, indent=2, default=str)
         _echo(f"Saved {label} to {output}")
 
@@ -665,7 +689,9 @@ def system_info(
         ..., help="System info action: get-info, get-process-info, get-feature-state"
     ),
     url: str = typer.Argument("", help="URL to navigate to (optional)"),
-    feature_name: str = typer.Option("", "--feature-name", help="Feature name for get-feature-state"),
+    feature_name: str = typer.Option(
+        "", "--feature-name", help="Feature name for get-feature-state"
+    ),
     output: str = typer.Option("-", "-o", "--output", help="Output file (- for stdout)"),
 ) -> None:
     """System information operations (experimental)."""
@@ -679,14 +705,12 @@ def system_info(
     async def _system_info_action() -> Any:
         backend = _get_backend()
         try:
+            await backend.launch(_browser_options())
             return await SystemInfoAction(params).execute(backend)
         finally:
             await _close_backend(backend)
 
     result = _run_async(_system_info_action())
-    if result is None:
-        return
-
     if result is None:
         _echo("OK")
     else:
@@ -720,13 +744,23 @@ def tethering(
 @app.command()
 def tracing(
     action: str = typer.Argument(
-        ..., help="Tracing action: start, end, get-categories, record-clock-sync, request-memory-dump, get-track-event"
+        ...,
+        help=(
+            "Tracing action: start, end, get-categories, "
+            "record-clock-sync, request-memory-dump, get-track-event"
+        ),
     ),
-    categories: str = typer.Option("", "--categories", help="Comma-separated category filter for start"),
+    categories: str = typer.Option(
+        "", "--categories", help="Comma-separated category filter for start"
+    ),
     options: str = typer.Option("", "--options", help="Comma-separated tracing options for start"),
-    transfer_mode: str = typer.Option("ReturnAsStream", "--transfer-mode", help="Transfer mode for start"),
+    transfer_mode: str = typer.Option(
+        "ReturnAsStream", "--transfer-mode", help="Transfer mode for start"
+    ),
     sync_id: str = typer.Option("", "--sync-id", help="Sync marker ID for record-clock-sync"),
-    track_event: str = typer.Option("", "--track-event", help="Track event name for get-track-event"),
+    track_event: str = typer.Option(
+        "", "--track-event", help="Track event name for get-track-event"
+    ),
     output: str = typer.Option("-", "-o", "--output", help="Output file (- for stdout)"),
 ) -> None:
     """Tracing operations (collect trace events, memory dumps, categories)."""
@@ -786,4 +820,3 @@ def web_mcp(
 
     _run_async(_web_mcp_action())
     _echo(f"WebMcp {action}")
-

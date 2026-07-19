@@ -14,7 +14,7 @@ __all__ = ["Output"]
 try:
     import yaml as _yaml
 except ImportError:
-    _yaml = None  # type: ignore[assignment]
+    _yaml = None
 
 try:
     from rich.console import Console

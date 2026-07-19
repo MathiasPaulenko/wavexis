@@ -90,9 +90,7 @@ def load_auth(path: str | Path) -> list[dict[str, str]]:
         FileNotFoundError: If the file does not exist.
         json.JSONDecodeError: If the file is not valid JSON.
     """
-    data: list[dict[str, str]] | dict[str, Any] = json.loads(
-        Path(path).read_text(encoding="utf-8")
-    )
+    data: list[dict[str, str]] | dict[str, Any] = json.loads(Path(path).read_text(encoding="utf-8"))
     if isinstance(data, list):
         return data
     if isinstance(data, dict):
@@ -145,9 +143,7 @@ async def apply_auth_context(
     if ctx.headers:
         await backend.set_headers(ctx.headers)
     if ctx.username and ctx.password:
-        cred = base64.b64encode(
-            f"{ctx.username}:{ctx.password}".encode()
-        ).decode()
+        cred = base64.b64encode(f"{ctx.username}:{ctx.password}".encode()).decode()
         await backend.set_headers({"Authorization": f"Basic {cred}"})
     await backend.navigate(url, wait)
     cookies_set = False

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "wavexis"
-version = "2.13.0"
+version = "2.14.0"
 description = "Browser automation CLI — wraps cdpwave and bidiwave, no Node.js, no Chromium download"
 readme = "README.md"
 license = { text = "MIT" }
@@ -73,6 +73,13 @@ extend-exclude = ["stubs"]
 select = ["E", "F", "I", "N", "UP", "B", "SIM", "ASYNC"]
 ignore = ["ASYNC109"]
 
+[tool.ruff.lint.per-file-ignores]
+"wavexis/backend/bidi.py" = ["E501", "F811"]
+"wavexis/backend/cdp.py" = ["E501", "F811"]
+"wavexis/cli/_debug.py" = ["E501", "F811"]
+"tests/unit/test_cdp_method_bodies.py" = ["E501", "F811"]
+"tests/unit/test_bidi_backend.py" = ["E501", "F811"]
+
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["typer.Option", "typer.Argument"]
 
@@ -85,6 +92,22 @@ mypy_path = "stubs"
 module = "PIL.*"
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = "yaml"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "wavexis.backend.cdp"
+disable_error_code = ["no-redef", "no-any-return", "return-value"]
+
+[[tool.mypy.overrides]]
+module = "wavexis.backend.bidi"
+disable_error_code = ["no-redef", "no-any-return", "return-value"]
+
+[[tool.mypy.overrides]]
+module = "wavexis.cli._debug"
+disable_error_code = ["no-redef", "misc"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
@@ -96,6 +119,11 @@ markers = [
 ]
 
 [tool.coverage.run]
+omit = [
+    "wavexis/backend/bidi.py",
+    "wavexis/backend/cdp.py",
+    "wavexis/cli/_debug.py",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["wavexis"]

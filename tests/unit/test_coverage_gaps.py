@@ -139,11 +139,7 @@ class TestMultiAction:
         from wavexis.actions.multi import MultiAction
 
         yaml_file = tmp_path / "test.yaml"
-        yaml_file.write_text(
-            "actions:\n"
-            "  - screenshot:\n"
-            "      url: https://example.com\n"
-        )
+        yaml_file.write_text("actions:\n  - screenshot:\n      url: https://example.com\n")
         backend = MockBackend()
         action = MultiAction(yaml_file)
         result = await action.execute(backend)

@@ -16,9 +16,7 @@ class TestCookiesIntegration:
         backend = manager.select()
         try:
             await backend.launch(BrowserOptions())
-            await backend.navigate(
-                "https://example.com", WaitStrategy(strategy="load")
-            )
+            await backend.navigate("https://example.com", WaitStrategy(strategy="load"))
             cookies = await backend.get_cookies()
             assert isinstance(cookies, list)
         finally:
@@ -30,9 +28,7 @@ class TestCookiesIntegration:
         backend = manager.select()
         try:
             await backend.launch(BrowserOptions())
-            await backend.navigate(
-                "https://example.com", WaitStrategy(strategy="load")
-            )
+            await backend.navigate("https://example.com", WaitStrategy(strategy="load"))
             cookie = CookieParams(
                 name="test-cookie",
                 value="test-value",
@@ -52,9 +48,7 @@ class TestCookiesIntegration:
         backend = manager.select()
         try:
             await backend.launch(BrowserOptions())
-            await backend.navigate(
-                "https://example.com", WaitStrategy(strategy="load")
-            )
+            await backend.navigate("https://example.com", WaitStrategy(strategy="load"))
             cookie = CookieParams(
                 name="del-cookie",
                 value="val",
@@ -75,9 +69,7 @@ class TestCookiesIntegration:
         backend = manager.select()
         try:
             await backend.launch(BrowserOptions())
-            await backend.navigate(
-                "https://example.com", WaitStrategy(strategy="load")
-            )
+            await backend.navigate("https://example.com", WaitStrategy(strategy="load"))
             await backend.clear_cookies()
             cookies = await backend.get_cookies()
             assert len(cookies) == 0
@@ -96,9 +88,7 @@ class TestHeadersIntegration:
         try:
             await backend.launch(BrowserOptions())
             await backend.set_headers({"X-Test-Header": "wavexis-test"})
-            await backend.navigate(
-                "https://example.com", WaitStrategy(strategy="load")
-            )
+            await backend.navigate("https://example.com", WaitStrategy(strategy="load"))
         finally:
             await backend.close()
 
@@ -114,9 +104,7 @@ class TestUserAgentIntegration:
         try:
             await backend.launch(BrowserOptions())
             await backend.set_user_agent("wavexisTestBot/1.0")
-            await backend.navigate(
-                "https://example.com", WaitStrategy(strategy="load")
-            )
+            await backend.navigate("https://example.com", WaitStrategy(strategy="load"))
             ua = await backend.eval("navigator.userAgent", await_promise=False)
             assert "wavexisTestBot" in ua
         finally:

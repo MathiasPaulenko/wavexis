@@ -71,6 +71,7 @@ app = typer.Typer(
     invoke_without_command=True,
 )
 
+
 @dataclass
 class CLIContext:
     """Mutable CLI context holding global flags and settings."""
@@ -141,15 +142,11 @@ def _load_global_config() -> None:
 
 @app.callback()
 def main_callback(
-    backend: str | None = typer.Option(
-        None, "--backend", help="Preferred backend: cdp or bidi"
-    ),
+    backend: str | None = typer.Option(None, "--backend", help="Preferred backend: cdp or bidi"),
     verbose: bool = typer.Option(
         False, "--verbose", "-v", help="Show backend logs and timing info"
     ),
-    quiet: bool = typer.Option(
-        False, "--quiet", "-q", help="Suppress all output except errors"
-    ),
+    quiet: bool = typer.Option(False, "--quiet", "-q", help="Suppress all output except errors"),
     headed: bool = typer.Option(
         False, "--headed", help="Run browser in headed mode (visible window)"
     ),
@@ -175,9 +172,7 @@ def main_callback(
         "--stealth",
         help="Enable anti-bot stealth mode (hides navigator.webdriver, fakes plugins, etc.)",
     ),
-    version: bool = typer.Option(
-        False, "--version", help="Print wavexis version and exit"
-    ),
+    version: bool = typer.Option(False, "--version", help="Print wavexis version and exit"),
 ) -> None:
     """wavexis — browser automation CLI."""
     _load_global_config()

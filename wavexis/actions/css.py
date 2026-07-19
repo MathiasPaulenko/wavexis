@@ -34,9 +34,7 @@ class CSSActionParams:
 class CSSAction(BaseAction[CSSActionParams, dict[str, Any] | list[dict[str, Any]]]):
     """Action for CSS inspection operations."""
 
-    async def execute(
-        self, backend: AbstractBackend
-    ) -> dict[str, Any] | list[dict[str, Any]]:
+    async def execute(self, backend: AbstractBackend) -> dict[str, Any] | list[dict[str, Any]]:
         """Execute the CSS action on the backend.
 
         Args:
@@ -51,9 +49,7 @@ class CSSAction(BaseAction[CSSActionParams, dict[str, Any] | list[dict[str, Any]
         await backend.navigate(self.params.url, self.params.wait)
         return await self._run_action(backend)
 
-    async def _run_action(
-        self, backend: AbstractBackend
-    ) -> dict[str, Any] | list[dict[str, Any]]:
+    async def _run_action(self, backend: AbstractBackend) -> dict[str, Any] | list[dict[str, Any]]:
         """Execute the CSS action against the backend.
 
         Args:

@@ -137,9 +137,7 @@ class PerformanceBackend(ABC):
         """
 
     @abstractmethod
-    async def tracing_get_track_event_descriptor(
-        self, track_event: str
-    ) -> dict[str, Any]:
+    async def tracing_get_track_event_descriptor(self, track_event: str) -> dict[str, Any]:
         """Get a track event descriptor.
 
         Args:

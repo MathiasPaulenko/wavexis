@@ -18,9 +18,7 @@ class SmartCardEmulationBackend(ABC):
         """Disable the SmartCardEmulation domain."""
 
     @abstractmethod
-    async def smart_card_report_error(
-        self, request_id: str, error: str
-    ) -> None:
+    async def smart_card_report_error(self, request_id: str, error: str) -> None:
         """Report an error for a pending smart card request.
 
         Args:
@@ -29,9 +27,7 @@ class SmartCardEmulationBackend(ABC):
         """
 
     @abstractmethod
-    async def smart_card_report_plain_result(
-        self, request_id: str, result_code: int
-    ) -> None:
+    async def smart_card_report_plain_result(self, request_id: str, result_code: int) -> None:
         """Report a plain result for a pending smart card request.
 
         Args:
@@ -64,9 +60,7 @@ class SmartCardEmulationBackend(ABC):
         """
 
     @abstractmethod
-    async def smart_card_report_status_result(
-        self, request_id: str, status: str
-    ) -> None:
+    async def smart_card_report_status_result(self, request_id: str, status: str) -> None:
         """Report a status result for a pending smart card request.
 
         Args:

@@ -12,8 +12,9 @@ from wavexis.config import SensorParams, ThrottleParams
 @pytest.mark.unit
 class TestBiDiBackendPhase5:
     """Test suite for bidibackendphase5."""
+
     def _make_bidi_backend(self) -> Any:
-        """ make bidi backend."""
+        """make bidi backend."""
         from wavexis.backend.bidi import BiDiBackend
 
         backend = BiDiBackend()
@@ -57,9 +58,7 @@ class TestBiDiBackendPhase5:
         """Test a11y tree supported."""
         backend = self._make_bidi_backend()
         backend._client.cdp = MagicMock()
-        backend._client.cdp.send_command = AsyncMock(
-            return_value={"nodes": []}
-        )
+        backend._client.cdp.send_command = AsyncMock(return_value={"nodes": []})
         result = asyncio.run(backend.a11y_tree())
         assert isinstance(result, dict)
         backend._client.cdp.send_command.assert_called_once()
@@ -68,9 +67,7 @@ class TestBiDiBackendPhase5:
         """Test a11y node supported."""
         backend = self._make_bidi_backend()
         backend._client.cdp = MagicMock()
-        backend._client.cdp.send_command = AsyncMock(
-            return_value={"nodes": []}
-        )
+        backend._client.cdp.send_command = AsyncMock(return_value={"nodes": []})
         result = asyncio.run(backend.a11y_node("1"))
         assert isinstance(result, dict)
         backend._client.cdp.send_command.assert_called_once()
@@ -129,10 +126,14 @@ class TestBiDiBackendPhase5:
         backend = self._make_bidi_backend()
         backend._client.cdp = MagicMock()
         backend._client.cdp.send_command = AsyncMock()
-        asyncio.run(backend.set_sensors(SensorParams(
-            type="device-orientation",
-            values={"alpha": 0, "beta": 0, "gamma": 0},
-        )))
+        asyncio.run(
+            backend.set_sensors(
+                SensorParams(
+                    type="device-orientation",
+                    values={"alpha": 0, "beta": 0, "gamma": 0},
+                )
+            )
+        )
         backend._client.cdp.send_command.assert_called_once()
 
     def test_click_supported(self) -> None:

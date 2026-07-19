@@ -49,10 +49,11 @@ class NetworkAction(BaseAction[NetworkParams, Any]):
             return None
 
         if params.action == "cookies_delete":
-            if params.name and params.domain:
-                await backend.delete_cookie(params.name, params.domain)
-            elif params.name and not params.domain:
-                raise ValueError("domain is required for cookies_delete when name is specified")
+            if not params.name:
+                raise ValueError("name is required for cookies_delete action")
+            if not params.domain:
+                raise ValueError("domain is required for cookies_delete action")
+            await backend.delete_cookie(params.name, params.domain)
             return None
 
         if params.action == "cookies_clear":
@@ -69,4 +70,4 @@ class NetworkAction(BaseAction[NetworkParams, Any]):
                 await backend.set_user_agent(params.user_agent)
             return None
 
-        return None
+        raise ValueError(f"Unknown network action: {params.action}")

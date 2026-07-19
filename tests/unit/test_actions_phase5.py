@@ -14,9 +14,9 @@ from wavexis.backend.base import AbstractBackend
 def _make_backend() -> MagicMock:
     """Create a mock backend for testing.
 
-        Returns:
-            A MagicMock backend instance.
-        """
+    Returns:
+        A MagicMock backend instance.
+    """
     backend = MagicMock(spec=AbstractBackend)
     backend.launch = AsyncMock()
     backend.close = AsyncMock()
@@ -36,6 +36,7 @@ def _make_backend() -> MagicMock:
 @pytest.mark.unit
 class TestAccessibilityAction:
     """Test suite for accessibilityaction."""
+
     async def test_tree(self) -> None:
         """Test tree."""
         backend = _make_backend()
@@ -67,20 +68,19 @@ class TestAccessibilityAction:
         """Test that unknown action raises raises an appropriate error."""
         backend = _make_backend()
         with pytest.raises(ValueError, match="Unknown a11y action"):
-            await AccessibilityAction(
-                params=None, action="bad", url="https://example.com"
-            ).execute(backend)
+            await AccessibilityAction(params=None, action="bad", url="https://example.com").execute(
+                backend
+            )
 
 
 @pytest.mark.unit
 class TestDialogAction:
     """Test suite for dialogaction."""
+
     async def test_accept(self) -> None:
         """Test accept."""
         backend = _make_backend()
-        await DialogAction(
-            params="", action="accept", url="https://example.com"
-        ).execute(backend)
+        await DialogAction(params="", action="accept", url="https://example.com").execute(backend)
         backend.dialog_accept.assert_called_once_with(None)
 
     async def test_accept_with_text(self) -> None:
@@ -94,23 +94,20 @@ class TestDialogAction:
     async def test_dismiss(self) -> None:
         """Test dismiss."""
         backend = _make_backend()
-        await DialogAction(
-            params="", action="dismiss", url="https://example.com"
-        ).execute(backend)
+        await DialogAction(params="", action="dismiss", url="https://example.com").execute(backend)
         backend.dialog_dismiss.assert_called_once()
 
     async def test_unknown_action_raises(self) -> None:
         """Test that unknown action raises raises an appropriate error."""
         backend = _make_backend()
         with pytest.raises(ValueError, match="Unknown dialog action"):
-            await DialogAction(
-                params="", action="bad", url="https://example.com"
-            ).execute(backend)
+            await DialogAction(params="", action="bad", url="https://example.com").execute(backend)
 
 
 @pytest.mark.unit
 class TestPermissionsAction:
     """Test suite for permissionsaction."""
+
     async def test_grant(self) -> None:
         """Test grant."""
         backend = _make_backend()
@@ -122,29 +119,30 @@ class TestPermissionsAction:
     async def test_reset(self) -> None:
         """Test reset."""
         backend = _make_backend()
-        await PermissionsAction(
-            params="", action="reset", url="https://example.com"
-        ).execute(backend)
+        await PermissionsAction(params="", action="reset", url="https://example.com").execute(
+            backend
+        )
         backend.reset_permissions.assert_called_once()
 
     async def test_unknown_action_raises(self) -> None:
         """Test that unknown action raises raises an appropriate error."""
         backend = _make_backend()
         with pytest.raises(ValueError, match="Unknown permissions action"):
-            await PermissionsAction(
-                params="", action="bad", url="https://example.com"
-            ).execute(backend)
+            await PermissionsAction(params="", action="bad", url="https://example.com").execute(
+                backend
+            )
 
 
 @pytest.mark.unit
 class TestSecurityAction:
     """Test suite for securityaction."""
+
     async def test_state(self) -> None:
         """Test state."""
         backend = _make_backend()
-        result = await SecurityAction(
-            params="", action="state", url="https://example.com"
-        ).execute(backend)
+        result = await SecurityAction(params="", action="state", url="https://example.com").execute(
+            backend
+        )
         backend.get_security_state.assert_called_once()
         assert result == {"secure": True}
 
@@ -161,6 +159,6 @@ class TestSecurityAction:
         """Test that unknown action raises raises an appropriate error."""
         backend = _make_backend()
         with pytest.raises(ValueError, match="Unknown security action"):
-            await SecurityAction(
-                params="", action="bad", url="https://example.com"
-            ).execute(backend)
+            await SecurityAction(params="", action="bad", url="https://example.com").execute(
+                backend
+            )

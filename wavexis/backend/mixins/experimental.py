@@ -16,9 +16,7 @@ class ExperimentalBackend(ABC):
     # ── WebAuthn ──────────────────────────────────────────
 
     @abstractmethod
-    async def webauthn_add_virtual_authenticator(
-        self, protocol: str, transport: str
-    ) -> str:
+    async def webauthn_add_virtual_authenticator(self, protocol: str, transport: str) -> str:
         """Add a virtual authenticator for WebAuthn testing.
 
         Args:
@@ -82,9 +80,7 @@ class ExperimentalBackend(ABC):
         """
 
     @abstractmethod
-    async def webauthn_remove_credential(
-        self, authenticator_id: str, credential_id: str
-    ) -> None:
+    async def webauthn_remove_credential(self, authenticator_id: str, credential_id: str) -> None:
         """Remove a credential from a virtual authenticator.
 
         Args:
@@ -282,9 +278,7 @@ class ExperimentalBackend(ABC):
     # ── Bluetooth ─────────────────────────────────────────
 
     @abstractmethod
-    async def bluetooth_emulate(
-        self, name: str, address: str = "00:00:00:00:00:01"
-    ) -> None:
+    async def bluetooth_emulate(self, name: str, address: str = "00:00:00:00:00:01") -> None:
         """Emulate a Bluetooth Low Energy device.
 
         Args:

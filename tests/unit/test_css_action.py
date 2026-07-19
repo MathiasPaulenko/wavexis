@@ -11,12 +11,13 @@ from wavexis.backend.base import AbstractBackend
 @pytest.mark.unit
 class TestCSSAction:
     """Test suite for cssaction."""
+
     def _make_backend(self) -> MagicMock:
         """Create a mock backend for testing.
 
-            Returns:
-                A MagicMock backend instance.
-            """
+        Returns:
+            A MagicMock backend instance.
+        """
         backend = MagicMock(spec=AbstractBackend)
         backend.launch = AsyncMock()
         backend.close = AsyncMock()
@@ -38,9 +39,7 @@ class TestCSSAction:
     async def test_styles_action(self) -> None:
         """Test styles action."""
         backend = self._make_backend()
-        params = CSSActionParams(
-            url="https://example.com", action="styles", selector="body"
-        )
+        params = CSSActionParams(url="https://example.com", action="styles", selector="body")
         result = await CSSAction(params).execute(backend)
         backend.css_get_styles.assert_called_once_with("body")
         assert "inlineStyles" in result
@@ -57,9 +56,7 @@ class TestCSSAction:
     async def test_rules_action(self) -> None:
         """Test rules action."""
         backend = self._make_backend()
-        params = CSSActionParams(
-            url="https://example.com", action="rules", stylesheet_id="sheet-1"
-        )
+        params = CSSActionParams(url="https://example.com", action="rules", stylesheet_id="sheet-1")
         result = await CSSAction(params).execute(backend)
         backend.css_get_rules.assert_called_once_with("sheet-1")
         assert isinstance(result, list)
@@ -67,9 +64,7 @@ class TestCSSAction:
     async def test_computed_action(self) -> None:
         """Test computed action."""
         backend = self._make_backend()
-        params = CSSActionParams(
-            url="https://example.com", action="computed", selector="#hero"
-        )
+        params = CSSActionParams(url="https://example.com", action="computed", selector="#hero")
         result = await CSSAction(params).execute(backend)
         backend.css_get_computed.assert_called_once_with("#hero")
         assert "color" in result
@@ -98,9 +93,7 @@ class TestCSSAction:
     async def test_launch_and_close_called(self) -> None:
         """Test navigate called."""
         backend = self._make_backend()
-        params = CSSActionParams(
-            url="https://example.com", action="stylesheets"
-        )
+        params = CSSActionParams(url="https://example.com", action="stylesheets")
         await CSSAction(params).execute(backend)
         backend.navigate.assert_called_once()
 

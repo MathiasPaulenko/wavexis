@@ -79,19 +79,23 @@ def events_to_yaml(events: list[dict[str, Any]], initial_url: str) -> str:
         elif etype == "input":
             tag = event.get("tag", "input")
             if tag == "select":
-                actions.append({
-                    "select": {
-                        "selector": event["selector"],
-                        "value": event["value"],
+                actions.append(
+                    {
+                        "select": {
+                            "selector": event["selector"],
+                            "value": event["value"],
+                        }
                     }
-                })
+                )
             else:
-                actions.append({
-                    "type": {
-                        "selector": event["selector"],
-                        "text": event["value"],
+                actions.append(
+                    {
+                        "type": {
+                            "selector": event["selector"],
+                            "text": event["value"],
+                        }
                     }
-                })
+                )
 
         elif etype == "keypress":
             key = event.get("key", "")
@@ -104,7 +108,7 @@ def events_to_yaml(events: list[dict[str, Any]], initial_url: str) -> str:
             actions.append({"navigate": {"url": event["url"]}})
 
     config = {"actions": actions}
-    return yaml.dump(config, default_flow_style=False, sort_keys=False, allow_unicode=True)
+    return str(yaml.dump(config, default_flow_style=False, sort_keys=False, allow_unicode=True))
 
 
 async def record_session(

@@ -43,12 +43,8 @@ class AnimationAction(BaseAction[AnimationParams, Any]):
 
         if action == "seek":
             if not self.params.animation_id or self.params.time_ms is None:
-                raise ValueError(
-                    "animation_id and time_ms are required for seek action"
-                )
-            await backend.animation_seek(
-                self.params.animation_id, self.params.time_ms
-            )
+                raise ValueError("animation_id and time_ms are required for seek action")
+            await backend.animation_seek(self.params.animation_id, self.params.time_ms)
             return None
 
         raise ValueError(f"Unknown animation action: {action}")

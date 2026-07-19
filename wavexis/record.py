@@ -72,6 +72,7 @@ class Recorder:
 
         attr = getattr(self._backend, name)
         if callable(attr):
+
             def wrapper(*args: Any, **kwargs: Any) -> Any:
                 """Record the method call and delegate to the wrapped backend.
 

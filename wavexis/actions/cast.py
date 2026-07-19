@@ -77,17 +77,13 @@ class CastAction(BaseAction[CastParams, Any]):
 
         if action == "start-desktop-mirroring":
             if not self.params.sink_name:
-                raise ValueError(
-                    "sink_name is required for start-desktop-mirroring action"
-                )
+                raise ValueError("sink_name is required for start-desktop-mirroring action")
             await backend.cast_start_desktop_mirroring(self.params.sink_name)
             return None
 
         if action == "start-tab-mirroring":
             if not self.params.sink_name:
-                raise ValueError(
-                    "sink_name is required for start-tab-mirroring action"
-                )
+                raise ValueError("sink_name is required for start-tab-mirroring action")
             await backend.cast_start_tab_mirroring(self.params.sink_name)
             return None
 

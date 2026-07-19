@@ -45,4 +45,4 @@ class BrowserAction(BaseAction[str, Any]):
         if action == "set_window":
             raise NotImplementedError("set_window action not yet implemented")
 
-        return None
+        raise ValueError(f"Unknown browser action: {action}")

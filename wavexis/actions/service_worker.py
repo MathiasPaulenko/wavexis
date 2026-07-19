@@ -85,9 +85,7 @@ class ServiceWorkerAction(BaseAction[ServiceWorkerParams, Any]):
 
         if action == "deliver-push":
             if not self.params.origin or not self.params.registration_id:
-                raise ValueError(
-                    "origin and registration_id are required for deliver-push"
-                )
+                raise ValueError("origin and registration_id are required for deliver-push")
             await backend.sw_deliver_push_message(
                 self.params.origin,
                 self.params.registration_id,
@@ -97,9 +95,7 @@ class ServiceWorkerAction(BaseAction[ServiceWorkerParams, Any]):
 
         if action == "dispatch-sync":
             if not self.params.origin or not self.params.registration_id:
-                raise ValueError(
-                    "origin and registration_id are required for dispatch-sync"
-                )
+                raise ValueError("origin and registration_id are required for dispatch-sync")
             await backend.sw_dispatch_sync_event(
                 self.params.origin,
                 self.params.registration_id,

@@ -28,9 +28,7 @@ class TestCDPModifyRequest:
 
         session.on.assert_called_once()
         assert session.on.call_args[0][0] == "Fetch.requestPaused"
-        session.send.assert_called_once_with(
-            "Fetch.enable", {"patterns": [pattern]}
-        )
+        session.send.assert_called_once_with("Fetch.enable", {"patterns": [pattern]})
 
     @pytest.mark.asyncio
     async def test_modify_request_handler_continues_with_modifications(self) -> None:
@@ -192,9 +190,10 @@ class TestCLIModify:
         backend.navigate = AsyncMock()
         backend.modify_request = AsyncMock()
 
-        with patch("wavexis.cli._network_inspect._get_backend", return_value=backend), \
-             patch("wavexis.cli._network_inspect._browser_options", return_value=MagicMock()):
-
+        with (
+            patch("wavexis.cli._network_inspect._get_backend", return_value=backend),
+            patch("wavexis.cli._network_inspect._browser_options", return_value=MagicMock()),
+        ):
             await _modify(
                 "https://example.com",
                 "*/api/*",
@@ -217,9 +216,10 @@ class TestCLIModify:
         backend.navigate = AsyncMock()
         backend.modify_response = AsyncMock()
 
-        with patch("wavexis.cli._network_inspect._get_backend", return_value=backend), \
-             patch("wavexis.cli._network_inspect._browser_options", return_value=MagicMock()):
-
+        with (
+            patch("wavexis.cli._network_inspect._get_backend", return_value=backend),
+            patch("wavexis.cli._network_inspect._browser_options", return_value=MagicMock()),
+        ):
             await _modify_response(
                 "https://example.com",
                 "*/api/*",
@@ -241,11 +241,13 @@ class TestServeModifyEndpoints:
         from wavexis.serve import handle_modify_request
 
         request = MagicMock()
-        request.json = AsyncMock(return_value={
-            "url": "https://example.com",
-            "pattern": "*/api/*",
-            "modifications": {"method": "POST"},
-        })
+        request.json = AsyncMock(
+            return_value={
+                "url": "https://example.com",
+                "pattern": "*/api/*",
+                "modifications": {"method": "POST"},
+            }
+        )
 
         backend = MagicMock()
         backend.launch = AsyncMock()
@@ -253,14 +255,22 @@ class TestServeModifyEndpoints:
         backend.navigate = AsyncMock()
         backend.modify_request = AsyncMock()
 
-        with patch("wavexis.serve._import_aiohttp"), \
-             patch("wavexis.serve._get_backend", new_callable=AsyncMock, return_value=backend), \
-             patch("wavexis.serve._release_backend", new_callable=AsyncMock):
+        pool = MagicMock()
+        pool.acquire = AsyncMock()
+        pool.release = MagicMock()
+        pool.get_backend = AsyncMock(return_value=backend)
+        pool.return_backend = AsyncMock()
 
+        with (
+            patch("wavexis.serve._import_aiohttp"),
+            patch("wavexis.serve._get_pool", return_value=pool),
+        ):
             await handle_modify_request(request)
 
             backend.modify_request.assert_called_once()
             backend.navigate.assert_called_once()
+            pool.return_backend.assert_called_once_with(backend)
+            pool.release.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_handle_modify_response(self) -> None:
@@ -268,11 +278,13 @@ class TestServeModifyEndpoints:
         from wavexis.serve import handle_modify_response
 
         request = MagicMock()
-        request.json = AsyncMock(return_value={
-            "url": "https://example.com",
-            "pattern": "*/api/*",
-            "modifications": {"status": 200, "body": "modified"},
-        })
+        request.json = AsyncMock(
+            return_value={
+                "url": "https://example.com",
+                "pattern": "*/api/*",
+                "modifications": {"status": 200, "body": "modified"},
+            }
+        )
 
         backend = MagicMock()
         backend.launch = AsyncMock()
@@ -280,11 +292,19 @@ class TestServeModifyEndpoints:
         backend.navigate = AsyncMock()
         backend.modify_response = AsyncMock()
 
-        with patch("wavexis.serve._import_aiohttp"), \
-             patch("wavexis.serve._get_backend", new_callable=AsyncMock, return_value=backend), \
-             patch("wavexis.serve._release_backend", new_callable=AsyncMock):
+        pool = MagicMock()
+        pool.acquire = AsyncMock()
+        pool.release = MagicMock()
+        pool.get_backend = AsyncMock(return_value=backend)
+        pool.return_backend = AsyncMock()
 
+        with (
+            patch("wavexis.serve._import_aiohttp"),
+            patch("wavexis.serve._get_pool", return_value=pool),
+        ):
             await handle_modify_response(request)
 
             backend.modify_response.assert_called_once()
             backend.navigate.assert_called_once()
+            pool.return_backend.assert_called_once_with(backend)
+            pool.release.assert_called_once()

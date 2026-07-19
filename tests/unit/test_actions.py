@@ -30,7 +30,7 @@ class FakeBackend:
     """Mock backend for unit testing actions."""
 
     def __init__(self) -> None:
-        """  init  ."""
+        """init  ."""
         self.navigate = AsyncMock()
         self.screenshot = AsyncMock(return_value=b"png-bytes")
         self.screenshot_selector = AsyncMock(return_value=b"selector-bytes")
@@ -290,9 +290,7 @@ class TestDOMAction:
         from wavexis.actions.dom import DOMAction
         from wavexis.config import DOMParams
 
-        params = DOMParams(
-            url="https://example.com", action="get", selector="#main", outer=False
-        )
+        params = DOMParams(url="https://example.com", action="get", selector="#main", outer=False)
         action = DOMAction(params)
         result = await action.execute(backend)
         assert result == "<div>html</div>"
@@ -304,9 +302,7 @@ class TestDOMAction:
         from wavexis.actions.dom import DOMAction
         from wavexis.config import DOMParams
 
-        params = DOMParams(
-            url="https://example.com", action="query", selector=".item", all=False
-        )
+        params = DOMParams(url="https://example.com", action="query", selector=".item", all=False)
         action = DOMAction(params)
         result = await action.execute(backend)
         assert result == {"nodeId": 1}
@@ -318,9 +314,7 @@ class TestDOMAction:
         from wavexis.actions.dom import DOMAction
         from wavexis.config import DOMParams
 
-        params = DOMParams(
-            url="https://example.com", action="query", selector=".item", all=True
-        )
+        params = DOMParams(url="https://example.com", action="query", selector=".item", all=True)
         action = DOMAction(params)
         await action.execute(backend)
         backend.dom_query.assert_called_once_with(".item", all=True)
@@ -365,9 +359,7 @@ class TestDOMAction:
         from wavexis.actions.dom import DOMAction
         from wavexis.config import DOMParams
 
-        params = DOMParams(
-            url="https://example.com", action="remove", selector="#ad-banner"
-        )
+        params = DOMParams(url="https://example.com", action="remove", selector="#ad-banner")
         action = DOMAction(params)
         await action.execute(backend)
         backend.dom_remove.assert_called_once_with("#ad-banner")
@@ -378,9 +370,7 @@ class TestDOMAction:
         from wavexis.actions.dom import DOMAction
         from wavexis.config import DOMParams
 
-        params = DOMParams(
-            url="https://example.com", action="focus", selector="#input"
-        )
+        params = DOMParams(url="https://example.com", action="focus", selector="#input")
         action = DOMAction(params)
         await action.execute(backend)
         backend.dom_focus.assert_called_once_with("#input")
@@ -391,9 +381,7 @@ class TestDOMAction:
         from wavexis.actions.dom import DOMAction
         from wavexis.config import DOMParams
 
-        params = DOMParams(
-            url="https://example.com", action="scroll", selector="#section"
-        )
+        params = DOMParams(url="https://example.com", action="scroll", selector="#section")
         action = DOMAction(params)
         await action.execute(backend)
         backend.dom_scroll.assert_called_once()
@@ -498,9 +486,7 @@ class TestNetworkAction:
         from wavexis.actions.network import NetworkAction
         from wavexis.config import NetworkParams
 
-        params = NetworkParams(
-            action="headers", headers={"X-Custom": "value"}
-        )
+        params = NetworkParams(action="headers", headers={"X-Custom": "value"})
         action = NetworkAction(params)
         await action.execute(backend)
         backend.set_headers.assert_called_once_with({"X-Custom": "value"})
@@ -515,6 +501,39 @@ class TestNetworkAction:
         action = NetworkAction(params)
         await action.execute(backend)
         backend.set_user_agent.assert_called_once_with("TestBot/1.0")
+
+    @pytest.mark.unit
+    async def test_cookies_delete_success(self, backend: FakeBackend):
+        """Test cookies delete with name and domain."""
+        from wavexis.actions.network import NetworkAction
+        from wavexis.config import NetworkParams
+
+        params = NetworkParams(action="cookies_delete", name="test", domain="example.com")
+        action = NetworkAction(params)
+        await action.execute(backend)
+        backend.delete_cookie.assert_called_once_with("test", "example.com")
+
+    @pytest.mark.unit
+    async def test_cookies_delete_missing_name(self, backend: FakeBackend):
+        """Test cookies delete without name raises ValueError."""
+        from wavexis.actions.network import NetworkAction
+        from wavexis.config import NetworkParams
+
+        params = NetworkParams(action="cookies_delete", domain="example.com")
+        action = NetworkAction(params)
+        with pytest.raises(ValueError, match="name is required"):
+            await action.execute(backend)
+
+    @pytest.mark.unit
+    async def test_cookies_delete_missing_domain(self, backend: FakeBackend):
+        """Test cookies delete without domain raises ValueError."""
+        from wavexis.actions.network import NetworkAction
+        from wavexis.config import NetworkParams
+
+        params = NetworkParams(action="cookies_delete", name="test")
+        action = NetworkAction(params)
+        with pytest.raises(ValueError, match="domain is required"):
+            await action.execute(backend)
 
 
 class TestBrowserAction:

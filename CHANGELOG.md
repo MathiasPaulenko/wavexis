@@ -2,6 +2,17 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.14.0 — 2026-07-19
+
+### Bug Fixes
+
+- **`smartcard` CLI command missing `--output` option** — The command hardcoded `"-"` in `_write_json_output()` and had no `output` parameter, so users could never save results to a file. Added the standard `-o`/`--output` option.
+- **~46 unguarded `json.loads()` in `_debug.py`** — Across CSS, debug, overlay, DOM, emulation, digital-credentials, DOM-storage, extensions, fetch, preload, PWA, IndexedDB, layer-tree, log, input-domain, and network-domain subcommands — all would crash with an unhandled `JSONDecodeError` traceback on invalid user input. Added `_safe_json_loads()` helper that catches `JSONDecodeError` and exits with a user-friendly error message (exit code 2).
+
+### Testing
+
+- **2083 unit tests passing** — Added 9 regression tests in `test_debug_cli_regression.py` covering the smartcard output flag and JSON safety across 8 subcommand groups.
+
 ## v2.13.0 — 2026-07-19
 
 ### Full CDP & BiDi Coverage

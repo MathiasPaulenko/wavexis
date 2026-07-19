@@ -167,9 +167,7 @@ class CoreWebVitalsAction(BaseAction[CoreWebVitalsParams, dict[str, Any]]):
         for key, value in metrics.items():
             if key in THRESHOLDS:
                 thresholds = THRESHOLDS[key]
-                ratings[key] = _rating(
-                    value, thresholds["good"], thresholds["poor"]
-                )
+                ratings[key] = _rating(value, thresholds["good"], thresholds["poor"])
 
         score = self._compute_score(metrics, dom_size)
 
@@ -187,9 +185,7 @@ class CoreWebVitalsAction(BaseAction[CoreWebVitalsParams, dict[str, Any]]):
 
         return result
 
-    def _compute_score(
-        self, metrics: dict[str, float], dom_size: int
-    ) -> int:
+    def _compute_score(self, metrics: dict[str, float], dom_size: int) -> int:
         """Compute a 0-100 score from Core Web Vitals metrics.
 
         Args:

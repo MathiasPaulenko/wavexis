@@ -32,9 +32,7 @@ class InputBackend(ABC):
         """Type text into an element, optionally with delay between keystrokes."""
 
     @abstractmethod
-    async def fill(
-        self, selector: str, value: str, auto_wait: bool = True
-    ) -> None:
+    async def fill(self, selector: str, value: str, auto_wait: bool = True) -> None:
         """Fill an input element with a value (replaces existing content)."""
 
     @abstractmethod
@@ -118,9 +116,7 @@ class InputBackend(ABC):
         """
 
     @abstractmethod
-    async def shadow_click(
-        self, selectors: list[str], auto_wait: bool = True
-    ) -> None:
+    async def shadow_click(self, selectors: list[str], auto_wait: bool = True) -> None:
         """Click an element inside a shadow DOM tree.
 
         Args:
@@ -129,9 +125,7 @@ class InputBackend(ABC):
         """
 
     @abstractmethod
-    async def shadow_fill(
-        self, selectors: list[str], value: str, auto_wait: bool = True
-    ) -> None:
+    async def shadow_fill(self, selectors: list[str], value: str, auto_wait: bool = True) -> None:
         """Fill an input element inside a shadow DOM tree.
 
         Args:

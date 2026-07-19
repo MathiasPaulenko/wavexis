@@ -21,9 +21,7 @@ def browser_opts() -> BrowserOptions:
     return BrowserOptions(headless=True)
 
 
-async def test_sw_list(
-    backend: CDPBackend, browser_opts: BrowserOptions
-) -> None:
+async def test_sw_list(backend: CDPBackend, browser_opts: BrowserOptions) -> None:
     """Test sw list."""
     params = ServiceWorkerParams(
         url="https://example.com",

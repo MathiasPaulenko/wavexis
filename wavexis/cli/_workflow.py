@@ -91,9 +91,7 @@ def multi(
             typer.echo(f"  Action {i + 1}: {type(result).__name__}")
 
 
-def _multi_watch(
-    config_path: Any, parallel: bool = False, cache_ttl: int = 0
-) -> None:
+def _multi_watch(config_path: Any, parallel: bool = False, cache_ttl: int = 0) -> None:
     """Watch a config file and re-execute on change.
 
     Uses polling to detect file modifications (cross-platform compatible).
@@ -116,9 +114,7 @@ def _multi_watch(
                     last_mtime = current_mtime
                     continue
                 typer.echo(f"\n[{time.strftime('%H:%M:%S')}] Re-running actions…")
-                results = _run_async(
-                    _multi(config_path, parallel=parallel, cache_ttl=cache_ttl)
-                )
+                results = _run_async(_multi(config_path, parallel=parallel, cache_ttl=cache_ttl))
                 if results is not None:
                     typer.echo(f"Completed {len(results)} actions")
             time.sleep(1)
@@ -126,9 +122,7 @@ def _multi_watch(
         typer.echo("\nStopped.")
 
 
-async def _multi(
-    config_path: Any, parallel: bool = False, cache_ttl: int = 0
-) -> list[Any]:
+async def _multi(config_path: Any, parallel: bool = False, cache_ttl: int = 0) -> list[Any]:
     """Execute multiple actions from a YAML config file.
 
     Args:
@@ -151,15 +145,11 @@ async def _multi(
     try:
         results: list[Any] = []
         if parallel:
-            results = await execute_actions(
-                actions, backend, parallel=True, cache=cache
-            )
+            results = await execute_actions(actions, backend, parallel=True, cache=cache)
         else:
             for i, action in enumerate(actions):
                 _progress(i + 1, total, str(action))
-                result = await execute_actions(
-                    [action], backend, parallel=False, cache=cache
-                )
+                result = await execute_actions([action], backend, parallel=False, cache=cache)
                 results.extend(result)
         return results
     finally:
@@ -211,7 +201,11 @@ def batch(
         typer.echo(f"Error: URLs file not found: {urls_path}")
         raise typer.Exit(1)
 
-    urls = [line.strip() for line in urls_path.read_text().splitlines() if line.strip()]
+    urls = [
+        line.strip()
+        for line in urls_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
     if not urls:
         typer.echo("Error: No URLs found in file")
         raise typer.Exit(1)
@@ -445,14 +439,18 @@ def record(
         "screenshot,eval",
         "--actions",
         help="Comma-separated action types to record "
-             "(screenshot,eval,navigate,click,type,scrape,pdf,dom)",
+        "(screenshot,eval,navigate,click,type,scrape,pdf,dom)",
     ),
     selector: str = typer.Option(
-        "#button", "--selector", help="CSS selector for click/type actions",
+        "#button",
+        "--selector",
+        help="CSS selector for click/type actions",
     ),
     text: str = typer.Option("hello", "--text", help="Text for type action"),
     expression: str = typer.Option(
-        "document.title", "--expression", help="JS expression for eval action",
+        "document.title",
+        "--expression",
+        help="JS expression for eval action",
     ),
     interactive: bool = typer.Option(
         False,
@@ -499,13 +497,17 @@ def record(
         elif at == "click":
             action_list.append({"input": {"url": url, "action": "click", "selector": selector}})
         elif at == "type":
-            action_list.append({
-                "input": {"url": url, "action": "type", "selector": selector, "text": text},
-            })
+            action_list.append(
+                {
+                    "input": {"url": url, "action": "type", "selector": selector, "text": text},
+                }
+            )
         elif at == "scrape":
-            action_list.append({
-                "scrape": {"url": url, "expression": expression},
-            })
+            action_list.append(
+                {
+                    "scrape": {"url": url, "expression": expression},
+                }
+            )
         elif at == "pdf":
             action_list.append({"pdf": {"url": url, "paper": "a4"}})
         elif at == "dom":

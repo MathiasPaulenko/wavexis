@@ -46,9 +46,7 @@ class TestSessionSave:
         )
         backend.eval = AsyncMock(return_value="https://example.com/page")
 
-        with tempfile.NamedTemporaryFile(
-            suffix=".json", delete=False, mode="w"
-        ) as f:
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w") as f:
             path = Path(f.name)
 
         action = SessionSaveAction(path)
@@ -71,9 +69,7 @@ class TestSessionSave:
         backend.storage_list = AsyncMock(side_effect=[{}, {}])
         backend.eval = AsyncMock(side_effect=WavexisError("no page"))
 
-        with tempfile.NamedTemporaryFile(
-            suffix=".json", delete=False, mode="w"
-        ) as f:
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w") as f:
             path = Path(f.name)
 
         action = SessionSaveAction(path)
@@ -95,9 +91,7 @@ class TestSessionLoad:
             url="https://example.com",
         )
 
-        with tempfile.NamedTemporaryFile(
-            suffix=".json", delete=False, mode="w"
-        ) as f:
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w") as f:
             f.write(session_data.to_json())
             path = Path(f.name)
 
@@ -115,12 +109,8 @@ class TestSessionLoad:
         os.remove(path)
 
     async def test_load_empty_session(self) -> None:
-        with tempfile.NamedTemporaryFile(
-            suffix=".json", delete=False, mode="w"
-        ) as f:
-            f.write(SessionData(
-                cookies=[], local_storage={}, session_storage={}, url=""
-            ).to_json())
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w") as f:
+            f.write(SessionData(cookies=[], local_storage={}, session_storage={}, url="").to_json())
             path = Path(f.name)
 
         backend = MagicMock()
@@ -166,9 +156,7 @@ class TestExtractAction:
         backend.launch = AsyncMock()
         backend.close = AsyncMock()
         backend.navigate = AsyncMock()
-        backend.eval = AsyncMock(
-            return_value=[{"title": "Hello", "price": "$10"}]
-        )
+        backend.eval = AsyncMock(return_value=[{"title": "Hello", "price": "$10"}])
 
         params = ExtractParams(
             url="https://shop.com",
@@ -355,9 +343,7 @@ class TestLighthouseAction:
         backend.launch = AsyncMock()
         backend.close = AsyncMock()
         backend.navigate = AsyncMock()
-        backend.perf_metrics = AsyncMock(
-            return_value={"js_heap_size": 1000000}
-        )
+        backend.perf_metrics = AsyncMock(return_value={"js_heap_size": 1000000})
         backend.eval = AsyncMock(
             side_effect=[
                 {

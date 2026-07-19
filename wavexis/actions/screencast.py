@@ -35,9 +35,7 @@ class ScreencastAction(BaseAction[ScreencastParams, list[str]]):
         await backend.navigate(self.params.url, self.params.wait)
         frames = await backend.screencast(self.params)
 
-        await asyncio.to_thread(
-            lambda: Path(self._output_dir).mkdir(parents=True, exist_ok=True)
-        )
+        await asyncio.to_thread(lambda: Path(self._output_dir).mkdir(parents=True, exist_ok=True))
         saved: list[str] = []
         for i, frame in enumerate(frames):
             ext = "png" if self.params.format == "png" else "jpg"

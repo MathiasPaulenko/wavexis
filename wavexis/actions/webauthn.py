@@ -79,20 +79,13 @@ class WebAuthnAction(BaseAction[WebAuthnParams, Any]):
 
         if action == "remove-authenticator":
             if not self.params.authenticator_id:
-                raise ValueError(
-                    "authenticator_id is required for remove-authenticator"
-                )
-            await backend.webauthn_remove_authenticator(
-                self.params.authenticator_id
-            )
+                raise ValueError("authenticator_id is required for remove-authenticator")
+            await backend.webauthn_remove_authenticator(self.params.authenticator_id)
             return None
 
         if action == "add-credential":
             if not self.params.authenticator_id or not self.params.credential:
-                raise ValueError(
-                    "authenticator_id and credential are required "
-                    "for add-credential"
-                )
+                raise ValueError("authenticator_id and credential are required for add-credential")
             await backend.webauthn_add_credential(
                 self.params.authenticator_id, self.params.credential
             )
@@ -100,12 +93,8 @@ class WebAuthnAction(BaseAction[WebAuthnParams, Any]):
 
         if action == "get-credentials":
             if not self.params.authenticator_id:
-                raise ValueError(
-                    "authenticator_id is required for get-credentials"
-                )
-            return await backend.webauthn_get_credentials(
-                self.params.authenticator_id
-            )
+                raise ValueError("authenticator_id is required for get-credentials")
+            return await backend.webauthn_get_credentials(self.params.authenticator_id)
 
         if action == "enable":
             await backend.webauthn_enable()
@@ -136,19 +125,13 @@ class WebAuthnAction(BaseAction[WebAuthnParams, Any]):
 
         if action == "clear-credentials":
             if not self.params.authenticator_id:
-                raise ValueError(
-                    "authenticator_id is required for clear-credentials"
-                )
-            await backend.webauthn_clear_credentials(
-                self.params.authenticator_id
-            )
+                raise ValueError("authenticator_id is required for clear-credentials")
+            await backend.webauthn_clear_credentials(self.params.authenticator_id)
             return None
 
         if action == "set-user-verified":
             if not self.params.authenticator_id:
-                raise ValueError(
-                    "authenticator_id is required for set-user-verified"
-                )
+                raise ValueError("authenticator_id is required for set-user-verified")
             await backend.webauthn_set_user_verified(
                 self.params.authenticator_id, self.params.is_user_verified
             )
@@ -179,9 +162,7 @@ class WebAuthnAction(BaseAction[WebAuthnParams, Any]):
 
         if action == "set-response-override-bits":
             if not self.params.authenticator_id:
-                raise ValueError(
-                    "authenticator_id is required for set-response-override-bits"
-                )
+                raise ValueError("authenticator_id is required for set-response-override-bits")
             await backend.webauthn_set_response_override_bits(
                 self.params.authenticator_id,
                 self.params.is_bogus_signature,

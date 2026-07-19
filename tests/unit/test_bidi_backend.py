@@ -14,6 +14,7 @@ from wavexis.exceptions import SessionNotInitializedError
 @pytest.mark.unit
 class TestBiDiBackend:
     """Test suite for bidibackend."""
+
     def test_import_error(self) -> None:
         """Test import error on launch when bidiwave not installed."""
         with patch("wavexis.backend.bidi.BiDiClient", None):
@@ -437,31 +438,49 @@ class TestBiDiBackend:
             with pytest.raises(SessionNotInitializedError, match="not launched"):
                 await backend.css_resolve_values([{"name": "color", "value": "red"}])
             with pytest.raises(SessionNotInitializedError, match="not launched"):
-                await backend.css_set_container_query_condition_text("ss-1", {"styleSheetId": "ss-1", "ordinal": 0}, "(min-width: 600px)")
+                await backend.css_set_container_query_condition_text(
+                    "ss-1", {"styleSheetId": "ss-1", "ordinal": 0}, "(min-width: 600px)"
+                )
             with pytest.raises(SessionNotInitializedError, match="not launched"):
                 await backend.css_set_effective_property_value_for_node(1, "color", "red")
             with pytest.raises(SessionNotInitializedError, match="not launched"):
-                await backend.css_set_keyframe_key("ss-1", {"styleSheetId": "ss-1", "ordinal": 0}, "0%")
+                await backend.css_set_keyframe_key(
+                    "ss-1", {"styleSheetId": "ss-1", "ordinal": 0}, "0%"
+                )
             with pytest.raises(SessionNotInitializedError, match="not launched"):
                 await backend.css_set_local_fonts_enabled(True)
             with pytest.raises(SessionNotInitializedError, match="not launched"):
-                await backend.css_set_navigation_text("ss-1", {"styleSheetId": "ss-1", "ordinal": 0}, "@media (nav)")
+                await backend.css_set_navigation_text(
+                    "ss-1", {"styleSheetId": "ss-1", "ordinal": 0}, "@media (nav)"
+                )
             with pytest.raises(SessionNotInitializedError, match="not launched"):
-                await backend.css_set_property_rule_property_name("ss-1", {"styleSheetId": "ss-1", "ordinal": 0}, "color")
+                await backend.css_set_property_rule_property_name(
+                    "ss-1", {"styleSheetId": "ss-1", "ordinal": 0}, "color"
+                )
             with pytest.raises(SessionNotInitializedError, match="not launched"):
-                await backend.css_set_rule_style("ss-1", {"styleSheetId": "ss-1", "ordinal": 0}, "color: red;")
+                await backend.css_set_rule_style(
+                    "ss-1", {"styleSheetId": "ss-1", "ordinal": 0}, "color: red;"
+                )
             with pytest.raises(SessionNotInitializedError, match="not launched"):
-                await backend.css_set_scope_text("ss-1", {"styleSheetId": "ss-1", "ordinal": 0}, ".scope")
+                await backend.css_set_scope_text(
+                    "ss-1", {"styleSheetId": "ss-1", "ordinal": 0}, ".scope"
+                )
             with pytest.raises(SessionNotInitializedError, match="not launched"):
                 await backend.css_set_style_sheet_text("ss-1", ".test { color: red; }")
             with pytest.raises(SessionNotInitializedError, match="not launched"):
-                await backend.css_set_style_text([{"styleSheetId": "ss-1", "ordinal": 0, "text": "color: red;"}])
+                await backend.css_set_style_text(
+                    [{"styleSheetId": "ss-1", "ordinal": 0, "text": "color: red;"}]
+                )
             with pytest.raises(SessionNotInitializedError, match="not launched"):
-                await backend.css_set_style_texts([{"styleSheetId": "ss-1", "ordinal": 0, "text": "color: blue;"}])
+                await backend.css_set_style_texts(
+                    [{"styleSheetId": "ss-1", "ordinal": 0, "text": "color: blue;"}]
+                )
             with pytest.raises(SessionNotInitializedError, match="not launched"):
                 await backend.css_set_stylesheet_text("ss-1", ".test { color: green; }")
             with pytest.raises(SessionNotInitializedError, match="not launched"):
-                await backend.css_set_supports_text("ss-1", {"styleSheetId": "ss-1", "ordinal": 0}, "(display: flex)")
+                await backend.css_set_supports_text(
+                    "ss-1", {"styleSheetId": "ss-1", "ordinal": 0}, "(display: flex)"
+                )
             with pytest.raises(SessionNotInitializedError, match="not launched"):
                 await backend.css_take_computed_style_updates()
             with pytest.raises(SessionNotInitializedError, match="not launched"):
@@ -861,7 +880,9 @@ class TestBiDiBackend:
             with pytest.raises(SessionNotInitializedError, match="not launched"):
                 await backend.set_data_saver_override(True)
             with pytest.raises(SessionNotInitializedError, match="not launched"):
-                await backend.set_default_background_color_override({"r": 0, "g": 0, "b": 0, "a": 1})
+                await backend.set_default_background_color_override(
+                    {"r": 0, "g": 0, "b": 0, "a": 1}
+                )
             with pytest.raises(SessionNotInitializedError, match="not launched"):
                 await backend.set_device_posture_override("continuous")
             with pytest.raises(SessionNotInitializedError, match="not launched"):
@@ -873,7 +894,9 @@ class TestBiDiBackend:
             with pytest.raises(SessionNotInitializedError, match="not launched"):
                 await backend.set_emit_touch_events_for_mouse(True)
             with pytest.raises(SessionNotInitializedError, match="not launched"):
-                await backend.set_emulated_media_feature([{"name": "prefers-color-scheme", "value": "dark"}])
+                await backend.set_emulated_media_feature(
+                    [{"name": "prefers-color-scheme", "value": "dark"}]
+                )
             with pytest.raises(SessionNotInitializedError, match="not launched"):
                 await backend.set_emulated_os_text_scale(1.5)
             with pytest.raises(SessionNotInitializedError, match="not launched"):
@@ -937,19 +960,31 @@ class TestBiDiBackend:
             with pytest.raises(SessionNotInitializedError, match="not launched"):
                 await backend.dom_snapshot_get_snapshot()
             with pytest.raises(SessionNotInitializedError, match="not launched"):
-                await backend.dom_storage_clear({"securityOrigin": "https://example.com", "isLocalStorage": True})
+                await backend.dom_storage_clear(
+                    {"securityOrigin": "https://example.com", "isLocalStorage": True}
+                )
             with pytest.raises(SessionNotInitializedError, match="not launched"):
-                await backend.dom_storage_clear_items({"securityOrigin": "https://example.com", "isLocalStorage": True})
+                await backend.dom_storage_clear_items(
+                    {"securityOrigin": "https://example.com", "isLocalStorage": True}
+                )
             with pytest.raises(SessionNotInitializedError, match="not launched"):
                 await backend.dom_storage_disable()
             with pytest.raises(SessionNotInitializedError, match="not launched"):
                 await backend.dom_storage_enable()
             with pytest.raises(SessionNotInitializedError, match="not launched"):
-                await backend.dom_storage_get_items({"securityOrigin": "https://example.com", "isLocalStorage": True})
+                await backend.dom_storage_get_items(
+                    {"securityOrigin": "https://example.com", "isLocalStorage": True}
+                )
             with pytest.raises(SessionNotInitializedError, match="not launched"):
-                await backend.dom_storage_remove_item({"securityOrigin": "https://example.com", "isLocalStorage": True}, "key1")
+                await backend.dom_storage_remove_item(
+                    {"securityOrigin": "https://example.com", "isLocalStorage": True}, "key1"
+                )
             with pytest.raises(SessionNotInitializedError, match="not launched"):
-                await backend.dom_storage_set_item({"securityOrigin": "https://example.com", "isLocalStorage": True}, "key1", "val1")
+                await backend.dom_storage_set_item(
+                    {"securityOrigin": "https://example.com", "isLocalStorage": True},
+                    "key1",
+                    "val1",
+                )
             with pytest.raises(SessionNotInitializedError, match="not launched"):
                 await backend.event_breakpoints_clear_instrumentation_breakpoint("Event.source")
             with pytest.raises(SessionNotInitializedError, match="not launched"):
@@ -965,7 +1000,9 @@ class TestBiDiBackend:
             with pytest.raises(SessionNotInitializedError, match="not launched"):
                 await backend.extensions_remove_storage_items("ext-1", "local", ["key1"])
             with pytest.raises(SessionNotInitializedError, match="not launched"):
-                await backend.extensions_set_storage_items("ext-1", "local", [{"key": "k", "value": "v"}])
+                await backend.extensions_set_storage_items(
+                    "ext-1", "local", [{"key": "k", "value": "v"}]
+                )
             with pytest.raises(SessionNotInitializedError, match="not launched"):
                 await backend.extensions_trigger_action("ext-1", "action-1")
             with pytest.raises(SessionNotInitializedError, match="not launched"):
@@ -1085,7 +1122,9 @@ class TestBiDiBackend:
             with pytest.raises(SessionNotInitializedError, match="not launched"):
                 await backend.indexed_db_delete_database("https://example.com", "db1")
             with pytest.raises(SessionNotInitializedError, match="not launched"):
-                await backend.indexed_db_delete_object_store_entries("https://example.com", "db1", "store1", {"lower": 0})
+                await backend.indexed_db_delete_object_store_entries(
+                    "https://example.com", "db1", "store1", {"lower": 0}
+                )
             with pytest.raises(SessionNotInitializedError, match="not launched"):
                 await backend.indexed_db_disable()
             with pytest.raises(SessionNotInitializedError, match="not launched"):
@@ -1093,7 +1132,9 @@ class TestBiDiBackend:
             with pytest.raises(SessionNotInitializedError, match="not launched"):
                 await backend.indexed_db_get_metadata("https://example.com", "db1", "store1")
             with pytest.raises(SessionNotInitializedError, match="not launched"):
-                await backend.indexed_db_request_data("https://example.com", "db1", "store1", "idx1")
+                await backend.indexed_db_request_data(
+                    "https://example.com", "db1", "store1", "idx1"
+                )
             with pytest.raises(SessionNotInitializedError, match="not launched"):
                 await backend.indexed_db_request_database("https://example.com", "db1")
             with pytest.raises(SessionNotInitializedError, match="not launched"):

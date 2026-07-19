@@ -6,7 +6,7 @@ from typing import Any
 
 from wavexis.actions.base import BaseAction
 from wavexis.backend.base import AbstractBackend
-from wavexis.config import BrowserOptions, WaitStrategy
+from wavexis.config import WaitStrategy
 
 
 class PermissionsAction(BaseAction[str, None]):

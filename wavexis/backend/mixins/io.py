@@ -10,7 +10,9 @@ class IOBackend(ABC):
     """IO operations for reading blobs and resolving handles."""
 
     @abstractmethod
-    async def io_read(self, handle: str, offset: int = 0, size: int | None = None) -> dict[str, Any]:
+    async def io_read(
+        self, handle: str, offset: int = 0, size: int | None = None
+    ) -> dict[str, Any]:
         """Read data from a blob handle."""
 
     @abstractmethod

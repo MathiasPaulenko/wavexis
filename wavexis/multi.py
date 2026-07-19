@@ -29,6 +29,7 @@ def _substitute_variables(value: Any, variables: dict[str, str]) -> Any:
         The value with all substitutions applied.
     """
     if isinstance(value, str):
+
         def replacer(match: re.Match[str]) -> str:
             expr = match.group(1).strip()
             if expr.startswith("env."):
@@ -113,6 +114,7 @@ async def execute_actions(
         List of results from each action, in the same order as actions.
     """
     if parallel:
+
         async def _run_in_tab(action_dict: dict[str, Any]) -> Any:
             action_type = next(iter(action_dict))
             params = action_dict[action_type]
@@ -135,9 +137,16 @@ async def execute_actions(
     return results
 
 
-_CACHEABLE_ACTIONS = frozenset({
-    "screenshot", "dom", "scrape", "eval", "cookies", "headers",
-})
+_CACHEABLE_ACTIONS = frozenset(
+    {
+        "screenshot",
+        "dom",
+        "scrape",
+        "eval",
+        "cookies",
+        "headers",
+    }
+)
 
 
 async def _dispatch(
@@ -181,23 +190,27 @@ def _screenshot_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
     from wavexis.actions.screenshot import ScreenshotAction
     from wavexis.config import ScreenshotParams, WaitStrategy
 
-    return ScreenshotAction(ScreenshotParams(
-        url=params.get("url", ""),
-        full_page=params.get("full_page", True),
-        format=params.get("format", "png"),
-        wait=WaitStrategy(strategy="load"),
-    ))
+    return ScreenshotAction(
+        ScreenshotParams(
+            url=params.get("url", ""),
+            full_page=params.get("full_page", True),
+            format=params.get("format", "png"),
+            wait=WaitStrategy(strategy="load"),
+        )
+    )
 
 
 def _pdf_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
     from wavexis.actions.pdf import PDFAction
     from wavexis.config import PDFParams, WaitStrategy
 
-    return PDFAction(PDFParams(
-        url=params.get("url", ""),
-        paper=params.get("paper", "letter"),
-        wait=WaitStrategy(strategy="load"),
-    ))
+    return PDFAction(
+        PDFParams(
+            url=params.get("url", ""),
+            paper=params.get("paper", "letter"),
+            wait=WaitStrategy(strategy="load"),
+        )
+    )
 
 
 def _scrape_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
@@ -205,34 +218,40 @@ def _scrape_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
     from wavexis.config import ScrapeParams, WaitStrategy
 
     urls = params.get("urls") or [params.get("url", "")]
-    return ScrapeAction(ScrapeParams(
-        urls=urls,
-        expression=params.get("expression", "document.title"),
-        wait=WaitStrategy(strategy="load"),
-    ))
+    return ScrapeAction(
+        ScrapeParams(
+            urls=urls,
+            expression=params.get("expression", "document.title"),
+            wait=WaitStrategy(strategy="load"),
+        )
+    )
 
 
 def _eval_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
     from wavexis.actions.eval import EvalAction
     from wavexis.config import EvalParams, WaitStrategy
 
-    return EvalAction(EvalParams(
-        url=params.get("url", ""),
-        expression=params.get("expression", ""),
-        wait=WaitStrategy(strategy="load"),
-    ))
+    return EvalAction(
+        EvalParams(
+            url=params.get("url", ""),
+            expression=params.get("expression", ""),
+            wait=WaitStrategy(strategy="load"),
+        )
+    )
 
 
 def _dom_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
     from wavexis.actions.dom import DOMAction
     from wavexis.config import DOMParams, WaitStrategy
 
-    return DOMAction(DOMParams(
-        url=params.get("url", ""),
-        action=params.get("action", "get"),
-        selector=params.get("selector", ""),
-        wait=WaitStrategy(strategy="load"),
-    ))
+    return DOMAction(
+        DOMParams(
+            url=params.get("url", ""),
+            action=params.get("action", "get"),
+            selector=params.get("selector", ""),
+            wait=WaitStrategy(strategy="load"),
+        )
+    )
 
 
 def _navigate_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
@@ -245,25 +264,29 @@ def _click_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
     from wavexis.actions.input import InputAction
     from wavexis.config import InputParams, WaitStrategy
 
-    return InputAction(InputParams(
-        url=params.get("url", ""),
-        action="click",
-        selector=params.get("selector", ""),
-        wait=WaitStrategy(strategy="load"),
-    ))
+    return InputAction(
+        InputParams(
+            url=params.get("url", ""),
+            action="click",
+            selector=params.get("selector", ""),
+            wait=WaitStrategy(strategy="load"),
+        )
+    )
 
 
 def _type_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
     from wavexis.actions.input import InputAction
     from wavexis.config import InputParams, WaitStrategy
 
-    return InputAction(InputParams(
-        url=params.get("url", ""),
-        action="type",
-        selector=params.get("selector", ""),
-        text=params.get("text", ""),
-        wait=WaitStrategy(strategy="load"),
-    ))
+    return InputAction(
+        InputParams(
+            url=params.get("url", ""),
+            action="type",
+            selector=params.get("selector", ""),
+            text=params.get("text", ""),
+            wait=WaitStrategy(strategy="load"),
+        )
+    )
 
 
 def _cookies_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
@@ -280,59 +303,67 @@ def _cookies_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
         )
     else:
         cookie_obj = CookieParams()
-    return CookieAction(CookieActionParams(
-        url=params.get("url", ""),
-        action=params.get("action", "get"),
-        cookie=cookie_obj,
-        name=params.get("name", ""),
-        domain=params.get("domain", ""),
-        wait=WaitStrategy(strategy="load"),
-    ))
+    return CookieAction(
+        CookieActionParams(
+            url=params.get("url", ""),
+            action=params.get("action", "get"),
+            cookie=cookie_obj,
+            name=params.get("name", ""),
+            domain=params.get("domain", ""),
+            wait=WaitStrategy(strategy="load"),
+        )
+    )
 
 
 def _headers_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
     from wavexis.actions.headers import HeaderAction
     from wavexis.config import HeaderParams, WaitStrategy
 
-    return HeaderAction(HeaderParams(
-        url=params.get("url", ""),
-        action=params.get("action", "set-headers"),
-        headers=params.get("headers", {}),
-        user_agent=params.get("user_agent", ""),
-        wait=WaitStrategy(strategy="load"),
-    ))
+    return HeaderAction(
+        HeaderParams(
+            url=params.get("url", ""),
+            action=params.get("action", "set-headers"),
+            headers=params.get("headers", {}),
+            user_agent=params.get("user_agent", ""),
+            wait=WaitStrategy(strategy="load"),
+        )
+    )
 
 
 def _wait_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
     from wavexis.actions.wait import WaitAction
     from wavexis.config import WaitStrategy
 
-    return WaitAction(WaitStrategy(
-        strategy=params.get("strategy", "load"),
-        selector=params.get("selector"),
-        url_pattern=params.get("url_pattern"),
-        timeout=params.get("timeout", 30000),
-    ))
+    return WaitAction(
+        WaitStrategy(
+            strategy=params.get("strategy", "load"),
+            selector=params.get("selector"),
+            url_pattern=params.get("url_pattern"),
+            timeout=params.get("timeout", 30000),
+        )
+    )
 
 
 def _emulation_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
     from wavexis.actions.emulation import EmulationAction
     from wavexis.config import EmulationParams, WaitStrategy
 
-    return EmulationAction(EmulationParams(
-        action=params.get("action", "device"),
-        device=params.get("device"),
-        width=params.get("width", 0),
-        height=params.get("height", 0),
-        device_scale_factor=params.get("device_scale_factor", 1.0),
-        latitude=params.get("latitude", 0.0),
-        longitude=params.get("longitude", 0.0),
-        accuracy=params.get("accuracy", 100.0),
-        timezone=params.get("timezone", ""),
-        dark_mode=params.get("dark_mode", False),
-        url=params.get("url", ""),
-        wait=WaitStrategy(strategy="load"),
-    ))
+    return EmulationAction(
+        EmulationParams(
+            action=params.get("action", "device"),
+            device=params.get("device"),
+            width=params.get("width", 0),
+            height=params.get("height", 0),
+            device_scale_factor=params.get("device_scale_factor", 1.0),
+            latitude=params.get("latitude", 0.0),
+            longitude=params.get("longitude", 0.0),
+            accuracy=params.get("accuracy", 100.0),
+            timezone=params.get("timezone", ""),
+            dark_mode=params.get("dark_mode", False),
+            url=params.get("url", ""),
+            wait=WaitStrategy(strategy="load"),
+        )
+    )
 
 
 _ACTION_REGISTRY: dict[str, ActionFactory] = {

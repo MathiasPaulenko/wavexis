@@ -11,6 +11,7 @@ pytestmark = [pytest.mark.integration, pytest.mark.chrome]
 @pytest.mark.integration
 class TestEmulationAdvancedIntegration:
     """Test suite for emulationadvancedintegration."""
+
     async def test_set_locale(self) -> None:
         """Test set locale."""
         backend = CDPBackend()

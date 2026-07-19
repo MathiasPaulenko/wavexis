@@ -49,9 +49,7 @@ class CDPBackend(AbstractBackend):
             ImportError: If cdpwave is not installed.
         """
         if CDPClient is None:
-            raise ImportError(
-                "cdpwave is not installed. Run: pip install wavexis[cdp]"
-            )
+            raise ImportError("cdpwave is not installed. Run: pip install wavexis[cdp]")
         self._client: CDPClient | None = None
         self._session: CDPSession | None = None
         self._console_entries: list[dict[str, Any]] = []
@@ -71,9 +69,7 @@ class CDPBackend(AbstractBackend):
             SessionNotInitializedError: If launch() has not been called.
         """
         if self._client is None:
-            raise SessionNotInitializedError(
-                "Backend not launched. Call launch() first."
-            )
+            raise SessionNotInitializedError("Backend not launched. Call launch() first.")
         session = await self._client.new_page(url)
         return TabHandle(self._client, session)
 
@@ -87,9 +83,7 @@ class CDPBackend(AbstractBackend):
             SessionNotInitializedError: If launch() has not been called.
         """
         if self._session is None:
-            raise SessionNotInitializedError(
-                "Session not initialized. Call launch() first."
-            )
+            raise SessionNotInitializedError("Session not initialized. Call launch() first.")
         return self._session
 
     async def launch(self, options: BrowserOptions) -> None:
@@ -112,9 +106,7 @@ class CDPBackend(AbstractBackend):
             port = parsed.port or 9222
             self._client = await CDPClient.connect(host=host, port=port)
         elif options.remote_url:
-            self._client = await CDPClient.connect(
-                ws_url=options.remote_url
-            )
+            self._client = await CDPClient.connect(ws_url=options.remote_url)
         else:
             self._client = await CDPClient.launch(
                 headless=options.headless,
@@ -124,21 +116,15 @@ class CDPBackend(AbstractBackend):
         self._session = await self._client.new_page()
 
         if options.user_agent:
-            await self._session.emulation.set_user_agent_override(
-                user_agent=options.user_agent
-            )
+            await self._session.emulation.set_user_agent_override(user_agent=options.user_agent)
 
         if options.extra_headers:
-            await self._session.network.set_extra_http_headers(
-                options.extra_headers
-            )
+            await self._session.network.set_extra_http_headers(options.extra_headers)
 
         if options.stealth:
             from wavexis.actions.stealth import get_stealth_js
 
-            await self._session.runtime.evaluate(
-                get_stealth_js(), await_promise=False
-            )
+            await self._session.runtime.evaluate(get_stealth_js(), await_promise=False)
 
     async def close(self) -> None:
         """Close the browser client and release resources."""
@@ -178,23 +164,17 @@ class CDPBackend(AbstractBackend):
             if wait.selector is None:
                 raise ValueError("selector wait strategy requires a selector")
             try:
-                await session.wait_for_selector(
-                    wait.selector, timeout=timeout_sec
-                )
+                await session.wait_for_selector(wait.selector, timeout=timeout_sec)
             except TimeoutError:
                 raise WaitTimeoutError("selector", timeout_ms) from None
         elif wait.strategy == "domcontentloaded":
             try:
-                await session.wait_for_load_state(
-                    "domcontentloaded", timeout=timeout_sec
-                )
+                await session.wait_for_load_state("domcontentloaded", timeout=timeout_sec)
             except TimeoutError:
                 raise WaitTimeoutError("domcontentloaded", timeout_ms) from None
         elif wait.strategy == "networkidle":
             try:
-                await session.wait_for_network_idle(
-                    idle_time=0.5, timeout=timeout_sec
-                )
+                await session.wait_for_network_idle(idle_time=0.5, timeout=timeout_sec)
             except TimeoutError:
                 raise WaitTimeoutError("networkidle", timeout_ms) from None
 
@@ -327,8 +307,7 @@ class CDPBackend(AbstractBackend):
     def _remove_annotate_js() -> str:
         """Build JS that removes annotation overlays."""
         return (
-            "(function(){var e=document.getElementById"
-            "('__wavexis_annotate');if(e)e.remove();})()"
+            "(function(){var e=document.getElementById('__wavexis_annotate');if(e)e.remove();})()"
         )
 
     async def annotated_screenshot(
@@ -349,9 +328,7 @@ class CDPBackend(AbstractBackend):
         js = self._annotate_js(selectors)
         result = await session.runtime.evaluate(js)
         raw = result.get("result", {}).get("value")
-        label_map: dict[str, str] = (
-            json.loads(raw) if isinstance(raw, str) else {}
-        )
+        label_map: dict[str, str] = json.loads(raw) if isinstance(raw, str) else {}
         screenshot = await session.page.capture_screenshot(format=format)
         await session.runtime.evaluate(self._remove_annotate_js())
         data_b64 = screenshot.get("data", "")
@@ -398,9 +375,7 @@ class CDPBackend(AbstractBackend):
         entries = history.get("entries", [])
         if current_idx > 0 and entries:
             prev_entry = entries[current_idx - 1]
-            await session.page.navigate_to_history_entry(
-                prev_entry.get("id", 0)
-            )
+            await session.page.navigate_to_history_entry(prev_entry.get("id", 0))
 
     async def go_forward(self) -> None:
         """Navigate forward in browser history."""
@@ -410,9 +385,7 @@ class CDPBackend(AbstractBackend):
         entries = history.get("entries", [])
         if current_idx < len(entries) - 1:
             next_entry = entries[current_idx + 1]
-            await session.page.navigate_to_history_entry(
-                next_entry.get("id", 0)
-            )
+            await session.page.navigate_to_history_entry(next_entry.get("id", 0))
 
     async def reload(self, ignore_cache: bool = False) -> None:
         """Reload the current page.
@@ -460,16 +433,12 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.page.wait_for_debugger()
 
-    async def page_get_resource_content(
-        self, frame_id: str, url: str
-    ) -> dict[str, Any]:
+    async def page_get_resource_content(self, frame_id: str, url: str) -> dict[str, Any]:
         """Get the content of a page resource by frame ID and URL."""
         session = self._require_session()
         return dict(await session.page.get_resource_content(frame_id, url))
 
-    async def page_set_download_behavior(
-        self, behavior: str, download_path: str = ""
-    ) -> None:
+    async def page_set_download_behavior(self, behavior: str, download_path: str = "") -> None:
         """Set page download behavior (allow/deny and path)."""
         session = self._require_session()
         params: dict[str, Any] = {"behavior": behavior}
@@ -547,14 +516,10 @@ class CDPBackend(AbstractBackend):
         result = await session.page.add_script_to_evaluate_on_new_document(**params)
         return str(result.get("identifier", ""))
 
-    async def page_remove_script_to_evaluate_on_new_document(
-        self, script_id: str
-    ) -> None:
+    async def page_remove_script_to_evaluate_on_new_document(self, script_id: str) -> None:
         """Remove a previously added script by ID."""
         session = self._require_session()
-        await session.page.remove_script_to_evaluate_on_new_document(
-            identifier=script_id
-        )
+        await session.page.remove_script_to_evaluate_on_new_document(identifier=script_id)
 
     async def page_generate_test_report(self, message: str, group: str = "") -> None:
         """Generate a test report for the Reporting API."""
@@ -574,16 +539,12 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         return dict(await session.page.get_resource_tree())
 
-    async def page_add_compilation_cache(
-        self, url: str, data: str
-    ) -> None:
+    async def page_add_compilation_cache(self, url: str, data: str) -> None:
         """Add data to the compilation cache for the given URL."""
         session = self._require_session()
         await session.send("Page.addCompilationCache", {"url": url, "data": data})
 
-    async def page_add_script_to_evaluate_on_load(
-        self, source: str
-    ) -> str:
+    async def page_add_script_to_evaluate_on_load(self, source: str) -> str:
         """Add a script to evaluate on page load. Returns script ID."""
         session = self._require_session()
         result = await session.send("Page.addScriptToEvaluateOnLoad", {"source": source})
@@ -654,9 +615,7 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("Page.enable", {})
 
-    async def page_get_ad_script_ancestry(
-        self, frame_id: str
-    ) -> dict[str, Any]:
+    async def page_get_ad_script_ancestry(self, frame_id: str) -> dict[str, Any]:
         """Get the ad script ancestry for a frame."""
         session = self._require_session()
         result = await session.send("Page.getAdScriptAncestry", {"frameId": frame_id})
@@ -692,17 +651,13 @@ class CDPBackend(AbstractBackend):
         result = await session.send("Page.getOriginTrials", {})
         return dict(result) if result else {}
 
-    async def page_get_permissions_policy_state(
-        self, frame_id: str
-    ) -> dict[str, Any]:
+    async def page_get_permissions_policy_state(self, frame_id: str) -> dict[str, Any]:
         """Get permissions policy state for a frame."""
         session = self._require_session()
         result = await session.send("Page.getPermissionsPolicyState", {"frameId": frame_id})
         return dict(result) if result else {}
 
-    async def page_handle_java_script_dialog(
-        self, accept: bool, prompt_text: str = ""
-    ) -> None:
+    async def page_handle_java_script_dialog(self, accept: bool, prompt_text: str = "") -> None:
         """Handle a JavaScript dialog (alias for handle_javascript_dialog)."""
         session = self._require_session()
         params: dict[str, Any] = {"accept": accept}
@@ -710,9 +665,7 @@ class CDPBackend(AbstractBackend):
             params["promptText"] = prompt_text
         await session.send("Page.handleJavaScriptDialog", params)
 
-    async def page_handle_javascript_dialog(
-        self, accept: bool, prompt_text: str = ""
-    ) -> None:
+    async def page_handle_javascript_dialog(self, accept: bool, prompt_text: str = "") -> None:
         """Handle a JavaScript dialog."""
         session = self._require_session()
         params: dict[str, Any] = {"accept": accept}
@@ -720,17 +673,13 @@ class CDPBackend(AbstractBackend):
             params["promptText"] = prompt_text
         await session.send("Page.handleJavaScriptDialog", params)
 
-    async def page_produce_compilation_cache(
-        self, url: str
-    ) -> dict[str, Any]:
+    async def page_produce_compilation_cache(self, url: str) -> dict[str, Any]:
         """Produce compilation cache for the given URL."""
         session = self._require_session()
         result = await session.send("Page.produceCompilationCache", {"url": url})
         return dict(result) if result else {}
 
-    async def page_remove_script_to_evaluate_on_load(
-        self, script_id: str
-    ) -> None:
+    async def page_remove_script_to_evaluate_on_load(self, script_id: str) -> None:
         """Remove a script previously added to evaluate on load."""
         session = self._require_session()
         await session.send("Page.removeScriptToEvaluateOnLoad", {"identifier": script_id})
@@ -740,9 +689,7 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("Page.resetNavigationHistory", {})
 
-    async def page_screencast_frame_ack(
-        self, session_id: int
-    ) -> None:
+    async def page_screencast_frame_ack(self, session_id: int) -> None:
         """Acknowledge a screencast frame."""
         session = self._require_session()
         await session.send("Page.screencastFrameAck", {"sessionId": session_id})
@@ -772,27 +719,21 @@ class CDPBackend(AbstractBackend):
     ) -> None:
         """Override the device orientation."""
         session = self._require_session()
-        await session.send("Page.setDeviceOrientationOverride", {
-            "alpha": alpha, "beta": beta, "gamma": gamma
-        })
+        await session.send(
+            "Page.setDeviceOrientationOverride", {"alpha": alpha, "beta": beta, "gamma": gamma}
+        )
 
-    async def page_set_document_content(
-        self, frame_id: str, html: str
-    ) -> None:
+    async def page_set_document_content(self, frame_id: str, html: str) -> None:
         """Set the document content for a frame."""
         session = self._require_session()
         await session.send("Page.setDocumentContent", {"frameId": frame_id, "html": html})
 
-    async def page_set_font_families(
-        self, font_families: dict[str, Any]
-    ) -> None:
+    async def page_set_font_families(self, font_families: dict[str, Any]) -> None:
         """Set font families for the page."""
         session = self._require_session()
         await session.send("Page.setFontFamilies", {"fontFamilies": font_families})
 
-    async def page_set_font_sizes(
-        self, font_sizes: dict[str, Any]
-    ) -> None:
+    async def page_set_font_sizes(self, font_sizes: dict[str, Any]) -> None:
         """Set font sizes for the page."""
         session = self._require_session()
         await session.send("Page.setFontSizes", {"fontSizes": font_sizes})
@@ -802,41 +743,32 @@ class CDPBackend(AbstractBackend):
     ) -> None:
         """Override the geolocation."""
         session = self._require_session()
-        await session.send("Page.setGeolocationOverride", {
-            "latitude": latitude, "longitude": longitude, "accuracy": accuracy
-        })
+        await session.send(
+            "Page.setGeolocationOverride",
+            {"latitude": latitude, "longitude": longitude, "accuracy": accuracy},
+        )
 
-    async def page_set_intercept_file_chooser_dialog(
-        self, enabled: bool
-    ) -> None:
+    async def page_set_intercept_file_chooser_dialog(self, enabled: bool) -> None:
         """Intercept file chooser dialogs."""
         session = self._require_session()
         await session.send("Page.setInterceptFileChooserDialog", {"enabled": enabled})
 
-    async def page_set_lifecycle_events_enabled(
-        self, enabled: bool
-    ) -> None:
+    async def page_set_lifecycle_events_enabled(self, enabled: bool) -> None:
         """Enable or disable lifecycle events."""
         session = self._require_session()
         await session.send("Page.setLifecycleEventsEnabled", {"enabled": enabled})
 
-    async def page_set_prerendering_allowed(
-        self, is_allowed: bool
-    ) -> None:
+    async def page_set_prerendering_allowed(self, is_allowed: bool) -> None:
         """Set whether prerendering is allowed."""
         session = self._require_session()
         await session.send("Page.setPrerenderingAllowed", {"isAllowed": is_allowed})
 
-    async def page_set_rph_registration_mode(
-        self, mode: str
-    ) -> None:
+    async def page_set_rph_registration_mode(self, mode: str) -> None:
         """Set the RPH registration mode."""
         session = self._require_session()
         await session.send("Page.setRPHRegistrationMode", {"mode": mode})
 
-    async def page_set_spc_transaction_mode(
-        self, mode: str
-    ) -> None:
+    async def page_set_spc_transaction_mode(self, mode: str) -> None:
         """Set the SPC transaction mode."""
         session = self._require_session()
         await session.send("Page.setSPCTransactionMode", {"mode": mode})
@@ -851,9 +783,7 @@ class CDPBackend(AbstractBackend):
             params["configuration"] = configuration
         await session.send("Page.setTouchEmulationEnabled", params)
 
-    async def page_set_web_lifecycle_state(
-        self, state: str
-    ) -> None:
+    async def page_set_web_lifecycle_state(self, state: str) -> None:
         """Set the web lifecycle state."""
         session = self._require_session()
         await session.send("Page.setWebLifecycleState", {"state": state})
@@ -879,9 +809,7 @@ class CDPBackend(AbstractBackend):
 
         if strategy.strategy == "selector" and strategy.selector:
             try:
-                await session.wait_for_selector(
-                    strategy.selector, timeout=timeout_sec
-                )
+                await session.wait_for_selector(strategy.selector, timeout=timeout_sec)
             except TimeoutError:
                 raise WaitTimeoutError("selector", timeout_ms) from None
             return
@@ -906,18 +834,14 @@ class CDPBackend(AbstractBackend):
 
         if strategy.strategy == "domcontentloaded":
             try:
-                await session.wait_for_load_state(
-                    "domcontentloaded", timeout=timeout_sec
-                )
+                await session.wait_for_load_state("domcontentloaded", timeout=timeout_sec)
             except TimeoutError:
                 raise WaitTimeoutError("domcontentloaded", timeout_ms) from None
             return
 
         if strategy.strategy == "networkidle":
             try:
-                await session.wait_for_network_idle(
-                    idle_time=0.5, timeout=timeout_sec
-                )
+                await session.wait_for_network_idle(idle_time=0.5, timeout=timeout_sec)
             except TimeoutError:
                 raise WaitTimeoutError("networkidle", timeout_ms) from None
             return
@@ -980,12 +904,15 @@ class CDPBackend(AbstractBackend):
 
         session.on("Page.screencastFrame", on_frame)
 
-        await session.send("Page.startScreencast", {
-            "format": params.format,
-            "quality": params.quality,
-            "maxWidth": params.max_width,
-            "maxHeight": params.max_height,
-        })
+        await session.send(
+            "Page.startScreencast",
+            {
+                "format": params.format,
+                "quality": params.quality,
+                "maxWidth": params.max_width,
+                "maxHeight": params.max_height,
+            },
+        )
 
         await asyncio.sleep(params.duration)
 
@@ -1056,12 +983,14 @@ class CDPBackend(AbstractBackend):
             """
             entry_type = event_params.get("type", "log")
             if level == "all" or entry_type == level:
-                entries.append({
-                    "type": entry_type,
-                    "args": event_params.get("args", []),
-                    "executionContextId": event_params.get("executionContextId"),
-                    "timestamp": event_params.get("timestamp"),
-                })
+                entries.append(
+                    {
+                        "type": entry_type,
+                        "args": event_params.get("args", []),
+                        "executionContextId": event_params.get("executionContextId"),
+                        "timestamp": event_params.get("timestamp"),
+                    }
+                )
 
         session.on("Runtime.consoleAPICalled", on_console_api)
 
@@ -1087,14 +1016,16 @@ class CDPBackend(AbstractBackend):
                 event_params: CDP event parameters containing the log entry.
             """
             entry = event_params.get("entry", {})
-            entries.append({
-                "level": entry.get("level", "info"),
-                "text": entry.get("text", ""),
-                "timestamp": entry.get("timestamp"),
-                "url": entry.get("url"),
-                "lineNumber": entry.get("lineNumber"),
-                "stackTrace": entry.get("stackTrace", []),
-            })
+            entries.append(
+                {
+                    "level": entry.get("level", "info"),
+                    "text": entry.get("text", ""),
+                    "timestamp": entry.get("timestamp"),
+                    "url": entry.get("url"),
+                    "lineNumber": entry.get("lineNumber"),
+                    "stackTrace": entry.get("stackTrace", []),
+                }
+            )
 
         session.on("Log.entryAdded", on_log_entry)
 
@@ -1206,9 +1137,7 @@ class CDPBackend(AbstractBackend):
         node_id = await self._find_node(selector)
         await session.dom.focus(node_id)
 
-    async def dom_scroll(
-        self, selector: str | None = None, x: int = 0, y: int = 0
-    ) -> None:
+    async def dom_scroll(self, selector: str | None = None, x: int = 0, y: int = 0) -> None:
         """Scroll to an element or by offset.
 
         Args:
@@ -1242,18 +1171,14 @@ class CDPBackend(AbstractBackend):
         node_id = await self._find_node(selector)
         return dict(await session.dom.get_box_model(node_id))
 
-    async def dom_get_content_quads(
-        self, selector: str
-    ) -> list[dict[str, Any]]:
+    async def dom_get_content_quads(self, selector: str) -> list[dict[str, Any]]:
         """Get the content quads for an element matching a CSS selector."""
         session = self._require_session()
         node_id = await self._find_node(selector)
         result = await session.dom.get_content_quads(node_id)
         return list(result.get("quads", []))
 
-    async def dom_get_node_for_location(
-        self, x: int, y: int
-    ) -> dict[str, Any]:
+    async def dom_get_node_for_location(self, x: int, y: int) -> dict[str, Any]:
         """Get the node ID for a location in the viewport (hit testing)."""
         session = self._require_session()
         await session.dom.enable()
@@ -1270,9 +1195,7 @@ class CDPBackend(AbstractBackend):
     ) -> list[dict[str, Any]]:
         """Get search results for a DOM search session."""
         session = self._require_session()
-        result = await session.dom.get_search_results(
-            search_id, from_index, to_index
-        )
+        result = await session.dom.get_search_results(search_id, from_index, to_index)
         return list(result.get("nodeIds", []))
 
     async def dom_scroll_into_view_if_needed(self, selector: str) -> None:
@@ -1341,7 +1264,9 @@ class CDPBackend(AbstractBackend):
         result = await session.send("DOM.collectClassNamesFromSubtree", {"nodeId": node_id})
         return list(result.get("classNames", [])) if result else []
 
-    async def dom_copy_to(self, node_id: int, target_node_id: int, insert_before_node_id: int | None = None) -> None:
+    async def dom_copy_to(
+        self, node_id: int, target_node_id: int, insert_before_node_id: int | None = None
+    ) -> None:
         """Copy a node to a target node, optionally before another node."""
         session = self._require_session()
         params: dict[str, Any] = {"nodeId": node_id, "targetNodeId": target_node_id}
@@ -1386,7 +1311,9 @@ class CDPBackend(AbstractBackend):
         result = await session.send("DOM.getAttribute", {"nodeId": node_id, "name": name})
         return str(result.get("value", "")) if result else ""
 
-    async def dom_get_container_for_node(self, node_id: int, container_name: str | None = None) -> dict[str, Any]:
+    async def dom_get_container_for_node(
+        self, node_id: int, container_name: str | None = None
+    ) -> dict[str, Any]:
         """Get the container for a node by ID."""
         session = self._require_session()
         params: dict[str, Any] = {"nodeId": node_id}
@@ -1404,7 +1331,9 @@ class CDPBackend(AbstractBackend):
     async def dom_get_element_by_relation(self, node_id: int, relation: str) -> dict[str, Any]:
         """Get an element by relation from a node by ID."""
         session = self._require_session()
-        result = await session.send("DOM.getElementByRelation", {"nodeId": node_id, "relation": relation})
+        result = await session.send(
+            "DOM.getElementByRelation", {"nodeId": node_id, "relation": relation}
+        )
         return dict(result) if result else {}
 
     async def dom_get_file_info(self, node_id: int) -> dict[str, Any]:
@@ -1425,13 +1354,20 @@ class CDPBackend(AbstractBackend):
         result = await session.send("DOM.getNodeStackTraces", {"nodeId": node_id})
         return dict(result) if result else {}
 
-    async def dom_get_nodes_for_subtree_by_style(self, node_id: int, computed_styles: list[str], pierce: bool = False) -> list[dict[str, Any]]:
+    async def dom_get_nodes_for_subtree_by_style(
+        self, node_id: int, computed_styles: list[str], pierce: bool = False
+    ) -> list[dict[str, Any]]:
         """Get nodes in a subtree matching the given computed styles."""
         session = self._require_session()
-        result = await session.send("DOM.getNodesForSubtreeByStyle", {"nodeId": node_id, "computedStyles": computed_styles, "pierce": pierce})
+        result = await session.send(
+            "DOM.getNodesForSubtreeByStyle",
+            {"nodeId": node_id, "computedStyles": computed_styles, "pierce": pierce},
+        )
         return list(result.get("nodeIds", [])) if result else []
 
-    async def dom_get_querying_descendants_for_container(self, node_id: int) -> list[dict[str, Any]]:
+    async def dom_get_querying_descendants_for_container(
+        self, node_id: int
+    ) -> list[dict[str, Any]]:
         """Get querying descendants for a container node by ID."""
         session = self._require_session()
         result = await session.send("DOM.getQueryingDescendantsForContainer", {"nodeId": node_id})
@@ -1457,22 +1393,31 @@ class CDPBackend(AbstractBackend):
     async def dom_highlight_node(self, node_id: int, highlight_config: dict[str, Any]) -> None:
         """Highlight a node by ID with the given highlight config."""
         session = self._require_session()
-        await session.send("DOM.highlightNode", {"highlightConfig": highlight_config, "nodeId": node_id})
+        await session.send(
+            "DOM.highlightNode", {"highlightConfig": highlight_config, "nodeId": node_id}
+        )
 
-    async def dom_highlight_rect(self, x: int, y: int, width: int, height: int, highlight_config: dict[str, Any]) -> None:
+    async def dom_highlight_rect(
+        self, x: int, y: int, width: int, height: int, highlight_config: dict[str, Any]
+    ) -> None:
         """Highlight a rect with the given highlight config."""
         session = self._require_session()
-        await session.send("DOM.highlightRect", {
-            "highlightConfig": highlight_config,
-            "rect": {"x": x, "y": y, "width": width, "height": height},
-        })
+        await session.send(
+            "DOM.highlightRect",
+            {
+                "highlightConfig": highlight_config,
+                "rect": {"x": x, "y": y, "width": width, "height": height},
+            },
+        )
 
     async def dom_mark_undoable_state(self) -> None:
         """Mark an undoable state in the DOM."""
         session = self._require_session()
         await session.send("DOM.markUndoableState", {})
 
-    async def dom_move_to(self, node_id: int, target_node_id: int, insert_before_node_id: int | None = None) -> None:
+    async def dom_move_to(
+        self, node_id: int, target_node_id: int, insert_before_node_id: int | None = None
+    ) -> None:
         """Move a node to a target node, optionally before another node."""
         session = self._require_session()
         params: dict[str, Any] = {"nodeId": node_id, "targetNodeId": target_node_id}
@@ -1486,10 +1431,14 @@ class CDPBackend(AbstractBackend):
         result = await session.send("DOM.pushNodeByPathToFrontend", {"path": path})
         return dict(result) if result else {}
 
-    async def dom_push_nodes_by_backend_ids_to_frontend(self, backend_node_ids: list[int]) -> dict[str, Any]:
+    async def dom_push_nodes_by_backend_ids_to_frontend(
+        self, backend_node_ids: list[int]
+    ) -> dict[str, Any]:
         """Push nodes by backend IDs to frontend."""
         session = self._require_session()
-        result = await session.send("DOM.pushNodesByBackendIdsToFrontend", {"backendNodeIds": backend_node_ids})
+        result = await session.send(
+            "DOM.pushNodesByBackendIdsToFrontend", {"backendNodeIds": backend_node_ids}
+        )
         return dict(result) if result else {}
 
     async def dom_query_selector(self, node_id: int, selector: str) -> dict[str, Any]:
@@ -1501,7 +1450,9 @@ class CDPBackend(AbstractBackend):
     async def dom_query_selector_all(self, node_id: int, selector: str) -> list[dict[str, Any]]:
         """Query all selectors within a node's subtree."""
         session = self._require_session()
-        result = await session.send("DOM.querySelectorAll", {"nodeId": node_id, "selector": selector})
+        result = await session.send(
+            "DOM.querySelectorAll", {"nodeId": node_id, "selector": selector}
+        )
         return list(result.get("nodes", [])) if result else []
 
     async def dom_redo(self) -> None:
@@ -1550,9 +1501,7 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("DOM.undo", {})
 
-    async def suggest_locator(
-        self, selector: str, all: bool = False
-    ) -> list[str] | str:
+    async def suggest_locator(self, selector: str, all: bool = False) -> list[str] | str:
         """Suggest the best CSS selector for an element.
 
         Args:
@@ -1661,9 +1610,7 @@ class CDPBackend(AbstractBackend):
             f"}})()"
         )
 
-    async def find_by_text(
-        self, query: str, all: bool = False
-    ) -> list[str] | str:
+    async def find_by_text(self, query: str, all: bool = False) -> list[str] | str:
         """Find elements by natural language text query.
 
         Args:
@@ -1689,9 +1636,7 @@ class CDPBackend(AbstractBackend):
             return selectors
         return selectors[0]
 
-    async def nl_click(
-        self, query: str, auto_wait: bool = True
-    ) -> None:
+    async def nl_click(self, query: str, auto_wait: bool = True) -> None:
         """Click an element found by natural language text query.
 
         Args:
@@ -1699,12 +1644,11 @@ class CDPBackend(AbstractBackend):
             auto_wait: If True, wait for element to be visible before clicking.
         """
         selector = await self.find_by_text(query)
-        assert isinstance(selector, str)
+        if not isinstance(selector, str):
+            raise ElementNotFoundError(query)
         await self.click(selector, auto_wait=auto_wait)
 
-    async def nl_fill(
-        self, query: str, value: str, auto_wait: bool = True
-    ) -> None:
+    async def nl_fill(self, query: str, value: str, auto_wait: bool = True) -> None:
         """Fill an input element found by natural language text query.
 
         Args:
@@ -1713,7 +1657,8 @@ class CDPBackend(AbstractBackend):
             auto_wait: If True, wait for element to be visible before filling.
         """
         selector = await self.find_by_text(query)
-        assert isinstance(selector, str)
+        if not isinstance(selector, str):
+            raise ElementNotFoundError(query)
         await self.fill(selector, value, auto_wait=auto_wait)
 
     # ── Network ────────────────────────────────────────────
@@ -1744,13 +1689,9 @@ class CDPBackend(AbstractBackend):
             requests[req_id] = {
                 "method": request.get("method", "GET"),
                 "url": request.get("url", ""),
-                "headers": [
-                    {"name": k, "value": v}
-                    for k, v in request.get("headers", {}).items()
-                ],
+                "headers": [{"name": k, "value": v} for k, v in request.get("headers", {}).items()],
                 "queryString": [
-                    {"name": k, "value": v}
-                    for k, v in request.get("queryString", {}).items()
+                    {"name": k, "value": v} for k, v in request.get("queryString", {}).items()
                 ],
                 "headersSize": -1,
                 "bodySize": -1,
@@ -1771,8 +1712,7 @@ class CDPBackend(AbstractBackend):
                 "status": response.get("status", 0),
                 "statusText": response.get("statusText", ""),
                 "headers": [
-                    {"name": k, "value": v}
-                    for k, v in response.get("headers", {}).items()
+                    {"name": k, "value": v} for k, v in response.get("headers", {}).items()
                 ],
                 "mimeType": response.get("mimeType", ""),
                 "redirectURL": response.get("redirectUrl", ""),
@@ -1823,32 +1763,34 @@ class CDPBackend(AbstractBackend):
                 0.0,
             )
             receive_time = 0
-            entries.append({
-                "request": {
-                    "method": req_data.get("method", "GET"),
-                    "url": url,
-                    "headers": req_data.get("headers", []),
-                    "queryString": req_data.get("queryString", []),
-                    "headersSize": req_data.get("headersSize", -1),
-                    "bodySize": req_data.get("bodySize", -1),
-                },
-                "response": {
-                    "status": resp.get("status", 0),
-                    "statusText": resp.get("statusText", ""),
-                    "headers": resp.get("headers", []),
-                    "content": resp.get("content", {"size": 0, "mimeType": ""}),
-                    "redirectURL": resp.get("redirectURL", ""),
-                    "headersSize": resp.get("headersSize", -1),
-                    "bodySize": resp.get("bodySize", -1),
-                },
-                "timings": {
-                    "send": send_time,
-                    "wait": round(wait_time * 1000, 2),
-                    "receive": receive_time,
-                },
-                "time": round((wait_time + send_time + receive_time) * 1000, 2),
-                "startedDateTime": started_dt,
-            })
+            entries.append(
+                {
+                    "request": {
+                        "method": req_data.get("method", "GET"),
+                        "url": url,
+                        "headers": req_data.get("headers", []),
+                        "queryString": req_data.get("queryString", []),
+                        "headersSize": req_data.get("headersSize", -1),
+                        "bodySize": req_data.get("bodySize", -1),
+                    },
+                    "response": {
+                        "status": resp.get("status", 0),
+                        "statusText": resp.get("statusText", ""),
+                        "headers": resp.get("headers", []),
+                        "content": resp.get("content", {"size": 0, "mimeType": ""}),
+                        "redirectURL": resp.get("redirectURL", ""),
+                        "headersSize": resp.get("headersSize", -1),
+                        "bodySize": resp.get("bodySize", -1),
+                    },
+                    "timings": {
+                        "send": send_time,
+                        "wait": round(wait_time * 1000, 2),
+                        "receive": receive_time,
+                    },
+                    "time": round((wait_time + send_time + receive_time) * 1000, 2),
+                    "startedDateTime": started_dt,
+                }
+            )
 
         return {
             "log": {
@@ -1971,9 +1913,7 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         if self._client is None:
             raise NavigationError("", "Client not initialized.")
-        result = await self._client.browser.get_window_for_target(
-            target_id=session.target_id
-        )
+        result = await self._client.browser.get_window_for_target(target_id=session.target_id)
         bounds = result.get("bounds", {})
         return {
             "width": bounds.get("width", 0),
@@ -1982,9 +1922,7 @@ class CDPBackend(AbstractBackend):
             "y": bounds.get("top", 0),
         }
 
-    async def set_window_bounds(
-        self, width: int, height: int, x: int = 0, y: int = 0
-    ) -> None:
+    async def set_window_bounds(self, width: int, height: int, x: int = 0, y: int = 0) -> None:
         """Set the window bounds.
 
         Args:
@@ -1996,9 +1934,7 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         if self._client is None:
             raise NavigationError("", "Client not initialized.")
-        result = await self._client.browser.get_window_for_target(
-            target_id=session.target_id
-        )
+        result = await self._client.browser.get_window_for_target(target_id=session.target_id)
         window_id = result.get("windowId", 0)
         bounds = {
             "left": x,
@@ -2045,9 +1981,7 @@ class CDPBackend(AbstractBackend):
         if preset.get("touch"):
             await session.emulation.set_touch_emulation_enabled(True)
 
-    async def set_viewport(
-        self, width: int, height: int, device_scale_factor: float = 1.0
-    ) -> None:
+    async def set_viewport(self, width: int, height: int, device_scale_factor: float = 1.0) -> None:
         """Set a custom viewport with given dimensions and scale factor.
 
         Args:
@@ -2203,15 +2137,11 @@ class CDPBackend(AbstractBackend):
         node_id = await self._find_node(selector)
         await session.dom.focus(node_id)
         for char in text:
-            await session.input.dispatch_key_event(
-                **{"type": "char"}, text=char
-            )
+            await session.input.dispatch_key_event(**{"type": "char"}, text=char)
             if delay > 0:
                 await asyncio.sleep(delay / 1000)
 
-    async def fill(
-        self, selector: str, value: str, auto_wait: bool = True
-    ) -> None:
+    async def fill(self, selector: str, value: str, auto_wait: bool = True) -> None:
         """Fill an input element with a value (replaces existing content).
 
         Args:
@@ -2267,9 +2197,7 @@ class CDPBackend(AbstractBackend):
             await self._wait_for_element(selector)
         await self._scroll_into_view_if_needed(selector)
         x, y = await self._get_box_center(selector)
-        await session.input.dispatch_mouse_event(
-            **{"type": "mouseMoved"}, x=x, y=y
-        )
+        await session.input.dispatch_mouse_event(**{"type": "mouseMoved"}, x=x, y=y)
 
     async def key_press(self, key: str) -> None:
         """Press a keyboard key.
@@ -2286,12 +2214,8 @@ class CDPBackend(AbstractBackend):
             "Backspace": {"key": "Backspace", "code": "Backspace", "windows_virtual_key_code": 8},
         }
         key_info = key_map.get(key, {"key": key, "code": key})
-        await session.input.dispatch_key_event(
-            **{"type": "keyDown"}, **key_info
-        )
-        await session.input.dispatch_key_event(
-            **{"type": "keyUp"}, **key_info
-        )
+        await session.input.dispatch_key_event(**{"type": "keyDown"}, **key_info)
+        await session.input.dispatch_key_event(**{"type": "keyUp"}, **key_info)
 
     async def drag(self, source: str, target: str) -> None:
         """Drag an element from source selector to target selector.
@@ -2306,9 +2230,7 @@ class CDPBackend(AbstractBackend):
         await session.input.dispatch_mouse_event(
             **{"type": "mousePressed"}, x=sx, y=sy, button="left", click_count=1
         )
-        await session.input.dispatch_mouse_event(
-            **{"type": "mouseMoved"}, x=tx, y=ty
-        )
+        await session.input.dispatch_mouse_event(**{"type": "mouseMoved"}, x=tx, y=ty)
         await session.input.dispatch_mouse_event(
             **{"type": "mouseReleased"}, x=tx, y=ty, button="left", click_count=1
         )
@@ -2324,9 +2246,7 @@ class CDPBackend(AbstractBackend):
         await session.input.dispatch_touch_event(
             **{"type": "touchStart"}, touch_points=[{"x": x, "y": y}]
         )
-        await session.input.dispatch_touch_event(
-            **{"type": "touchEnd"}, touch_points=[]
-        )
+        await session.input.dispatch_touch_event(**{"type": "touchEnd"}, touch_points=[])
 
     async def set_files(self, selector: str, files: list[str]) -> None:
         """Set files on a file input element.
@@ -2476,8 +2396,7 @@ class CDPBackend(AbstractBackend):
         parts = [f"var el=document.querySelector('{escaped[0]}')"]
         for sel in escaped[1:]:
             parts.append(
-                f"if(!el||!el.shadowRoot)return null;"
-                f"el=el.shadowRoot.querySelector('{sel}')"
+                f"if(!el||!el.shadowRoot)return null;el=el.shadowRoot.querySelector('{sel}')"
             )
         parts.append("return el")
         body = ";".join(parts)
@@ -2535,9 +2454,7 @@ class CDPBackend(AbstractBackend):
             await asyncio.sleep(0.1)
         raise WaitTimeoutError("selector", timeout_ms)
 
-    async def shadow_click(
-        self, selectors: list[str], auto_wait: bool = True
-    ) -> None:
+    async def shadow_click(self, selectors: list[str], auto_wait: bool = True) -> None:
         """Click an element inside a shadow DOM tree.
 
         Args:
@@ -2559,9 +2476,7 @@ class CDPBackend(AbstractBackend):
         if not result.get("result", {}).get("value"):
             raise ElementNotFoundError(" -> ".join(selectors))
 
-    async def shadow_fill(
-        self, selectors: list[str], value: str, auto_wait: bool = True
-    ) -> None:
+    async def shadow_fill(self, selectors: list[str], value: str, auto_wait: bool = True) -> None:
         """Fill an input element inside a shadow DOM tree.
 
         Args:
@@ -2938,9 +2853,7 @@ class CDPBackend(AbstractBackend):
     ) -> None:
         """Set cookie controls."""
         session = self._require_session()
-        await session.network.set_cookie_controls(
-            mode=mode, third_party_mode=third_party_mode
-        )
+        await session.network.set_cookie_controls(mode=mode, third_party_mode=third_party_mode)
 
     async def network_set_extra_request_headers(self, headers: dict[str, str]) -> None:
         """Set extra HTTP headers for all requests."""
@@ -3004,22 +2917,26 @@ class CDPBackend(AbstractBackend):
             await session.network.enable()
 
             def on_network_request(event_params: dict[str, Any]) -> None:
-                state["network"].append({
-                    "type": "request",
-                    "url": event_params.get("request", {}).get("url", ""),
-                    "method": event_params.get("request", {}).get("method", ""),
-                    "requestId": event_params.get("requestId", ""),
-                    "timestamp": event_params.get("timestamp"),
-                })
+                state["network"].append(
+                    {
+                        "type": "request",
+                        "url": event_params.get("request", {}).get("url", ""),
+                        "method": event_params.get("request", {}).get("method", ""),
+                        "requestId": event_params.get("requestId", ""),
+                        "timestamp": event_params.get("timestamp"),
+                    }
+                )
 
             def on_network_response(event_params: dict[str, Any]) -> None:
-                state["network"].append({
-                    "type": "response",
-                    "url": event_params.get("response", {}).get("url", ""),
-                    "status": event_params.get("response", {}).get("status", 0),
-                    "requestId": event_params.get("requestId", ""),
-                    "timestamp": event_params.get("timestamp"),
-                })
+                state["network"].append(
+                    {
+                        "type": "response",
+                        "url": event_params.get("response", {}).get("url", ""),
+                        "status": event_params.get("response", {}).get("status", 0),
+                        "requestId": event_params.get("requestId", ""),
+                        "timestamp": event_params.get("timestamp"),
+                    }
+                )
 
             session.on("Network.requestWillBeSent", on_network_request)
             session.on("Network.responseReceived", on_network_response)
@@ -3028,27 +2945,29 @@ class CDPBackend(AbstractBackend):
             await session.runtime.enable()
 
             def on_console_api(event_params: dict[str, Any]) -> None:
-                state["console"].append({
-                    "type": event_params.get("type", "log"),
-                    "args": event_params.get("args", []),
-                    "timestamp": event_params.get("timestamp"),
-                })
+                state["console"].append(
+                    {
+                        "type": event_params.get("type", "log"),
+                        "args": event_params.get("args", []),
+                        "timestamp": event_params.get("timestamp"),
+                    }
+                )
 
             session.on("Runtime.consoleAPICalled", on_console_api)
 
         if capture_screenshots:
             screenshot = await session.page.capture_screenshot()
             if screenshot:
-                state["screenshots"].append({
-                    "timestamp": time.time(),
-                    "data": screenshot,
-                })
+                state["screenshots"].append(
+                    {
+                        "timestamp": time.time(),
+                        "data": screenshot,
+                    }
+                )
 
         await session.send("Tracing.start", {"traceType": "devtools-timeline"})
 
-        self._combined_traces: dict[str, dict[str, Any]] = getattr(
-            self, "_combined_traces", {}
-        )
+        self._combined_traces: dict[str, dict[str, Any]] = getattr(self, "_combined_traces", {})
         self._combined_traces[trace_id] = state
         return trace_id
 
@@ -3100,10 +3019,12 @@ class CDPBackend(AbstractBackend):
         if state["capture_screenshots"]:
             screenshot = await session.page.capture_screenshot()
             if screenshot:
-                state["screenshots"].append({
-                    "timestamp": time.time(),
-                    "data": screenshot,
-                })
+                state["screenshots"].append(
+                    {
+                        "timestamp": time.time(),
+                        "data": screenshot,
+                    }
+                )
 
         await asyncio.sleep(0.5)
 
@@ -3194,6 +3115,7 @@ class CDPBackend(AbstractBackend):
                 def make_handler(lbl: str) -> Any:
                     def _handler(params: dict[str, Any]) -> None:
                         callback({"type": lbl, "data": params})
+
                     return _handler
 
                 handler = make_handler(label)
@@ -3616,7 +3538,9 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("Emulation.setDocumentCookieDisabled", {"disabled": disabled})
 
-    async def set_emit_touch_events_for_mouse(self, enabled: bool, configuration: dict[str, Any] | None = None) -> None:
+    async def set_emit_touch_events_for_mouse(
+        self, enabled: bool, configuration: dict[str, Any] | None = None
+    ) -> None:
         """Enable or disable touch event emulation for mouse input."""
         session = self._require_session()
         params: dict[str, Any] = {"enabled": enabled}
@@ -3639,19 +3563,26 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("Emulation.setFocusEmulationEnabled", {"enabled": enabled})
 
-    async def set_geolocation_override(self, latitude: float, longitude: float, accuracy: float = 100.0) -> None:
+    async def set_geolocation_override(
+        self, latitude: float, longitude: float, accuracy: float = 100.0
+    ) -> None:
         """Override the geolocation position."""
         session = self._require_session()
-        await session.send("Emulation.setGeolocationOverride", {
-            "latitude": latitude,
-            "longitude": longitude,
-            "accuracy": accuracy,
-        })
+        await session.send(
+            "Emulation.setGeolocationOverride",
+            {
+                "latitude": latitude,
+                "longitude": longitude,
+                "accuracy": accuracy,
+            },
+        )
 
     async def set_hardware_concurrency_override(self, concurrency: int) -> None:
         """Override the hardware concurrency."""
         session = self._require_session()
-        await session.send("Emulation.setHardwareConcurrencyOverride", {"hardwareConcurrency": concurrency})
+        await session.send(
+            "Emulation.setHardwareConcurrencyOverride", {"hardwareConcurrency": concurrency}
+        )
 
     async def set_locale_override(self, locale: str) -> None:
         """Override the browser locale."""
@@ -3671,12 +3602,16 @@ class CDPBackend(AbstractBackend):
     async def set_pressure_source_override_enabled(self, source: str, enabled: bool) -> None:
         """Enable or disable pressure source override."""
         session = self._require_session()
-        await session.send("Emulation.setPressureSourceOverrideEnabled", {"source": source, "enabled": enabled})
+        await session.send(
+            "Emulation.setPressureSourceOverrideEnabled", {"source": source, "enabled": enabled}
+        )
 
     async def set_pressure_state_override(self, source: str, state: str, value: float) -> None:
         """Override the pressure state."""
         session = self._require_session()
-        await session.send("Emulation.setPressureStateOverride", {"source": source, "state": state, "value": value})
+        await session.send(
+            "Emulation.setPressureStateOverride", {"source": source, "state": state, "value": value}
+        )
 
     async def set_primary_screen(self, screen_id: str) -> None:
         """Set the primary screen by ID."""
@@ -3701,12 +3636,16 @@ class CDPBackend(AbstractBackend):
     async def set_sensor_override_readings(self, type: str, readings: list[dict[str, Any]]) -> None:
         """Override sensor readings."""
         session = self._require_session()
-        await session.send("Emulation.setSensorOverrideReadings", {"type": type, "readings": readings})
+        await session.send(
+            "Emulation.setSensorOverrideReadings", {"type": type, "readings": readings}
+        )
 
     async def set_small_viewport_height_difference_override(self, difference: float) -> None:
         """Override the small viewport height difference."""
         session = self._require_session()
-        await session.send("Emulation.setSmallViewportHeightDifferenceOverride", {"difference": difference})
+        await session.send(
+            "Emulation.setSmallViewportHeightDifferenceOverride", {"difference": difference}
+        )
 
     async def set_timezone_override(self, timezone_id: str) -> None:
         """Override the timezone."""
@@ -3716,9 +3655,18 @@ class CDPBackend(AbstractBackend):
     async def set_touch_emulation_enabled(self, enabled: bool, max_touch_points: int = 5) -> None:
         """Enable or disable touch emulation."""
         session = self._require_session()
-        await session.send("Emulation.setTouchEmulationEnabled", {"enabled": enabled, "maxTouchPoints": max_touch_points})
+        await session.send(
+            "Emulation.setTouchEmulationEnabled",
+            {"enabled": enabled, "maxTouchPoints": max_touch_points},
+        )
 
-    async def set_user_agent_override(self, user_agent: str, accept_language: str = "", platform: str = "", user_agent_metadata: dict[str, Any] | None = None) -> None:
+    async def set_user_agent_override(
+        self,
+        user_agent: str,
+        accept_language: str = "",
+        platform: str = "",
+        user_agent_metadata: dict[str, Any] | None = None,
+    ) -> None:
         """Override the user agent string and related metadata."""
         session = self._require_session()
         params: dict[str, Any] = {"userAgent": user_agent}
@@ -3933,14 +3881,10 @@ class CDPBackend(AbstractBackend):
         result = await session.send("Tracing.requestMemoryDump", {})
         return dict(result) if result else {}
 
-    async def tracing_get_track_event_descriptor(
-        self, track_event: str
-    ) -> dict[str, Any]:
+    async def tracing_get_track_event_descriptor(self, track_event: str) -> dict[str, Any]:
         """Get a track event descriptor."""
         session = self._require_session()
-        result = await session.send(
-            "Tracing.getTrackEventDescriptor", {"trackEvent": track_event}
-        )
+        result = await session.send("Tracing.getTrackEventDescriptor", {"trackEvent": track_event})
         return dict(result) if result else {}
 
     # ── PerformanceTimeline ───────────────────────────────
@@ -3981,9 +3925,7 @@ class CDPBackend(AbstractBackend):
             )
             inline = inline.get("result", {}).get("value", {})
         try:
-            computed = await session.send(
-                "CSS.getComputedStyleForNode", {"nodeId": node_id}
-            )
+            computed = await session.send("CSS.getComputedStyleForNode", {"nodeId": node_id})
         except Exception:
             escaped = json.dumps(selector)
             computed = await session.runtime.evaluate(
@@ -4021,9 +3963,7 @@ class CDPBackend(AbstractBackend):
                 "disabled: s.disabled, "
                 "isInline: !s.href}))"
             )
-            result = await session.runtime.evaluate(
-                expression=js, return_by_value=True
-            )
+            result = await session.runtime.evaluate(expression=js, return_by_value=True)
             value = result.get("result", {}).get("value", [])
             return [dict(v) for v in value] if value else []
 
@@ -4038,9 +3978,7 @@ class CDPBackend(AbstractBackend):
         """
         session = self._require_session()
         await session.send("CSS.enable", {})
-        result = await session.send(
-            "CSS.getStyleSheetText", {"styleSheetId": stylesheet_id}
-        )
+        result = await session.send("CSS.getStyleSheetText", {"styleSheetId": stylesheet_id})
         text = result.get("text", "")
         rules: list[dict[str, Any]] = []
         import re
@@ -4064,15 +4002,11 @@ class CDPBackend(AbstractBackend):
         await session.send("DOM.enable", {})
         await session.send("CSS.enable", {})
         node_id = await self._find_node(selector)
-        resolved = await session.send(
-            "DOM.resolveNode", {"nodeId": node_id}
-        )
+        resolved = await session.send("DOM.resolveNode", {"nodeId": node_id})
         object_id = resolved.get("object", {}).get("objectId", "")
         if not object_id:
             raise ElementNotFoundError(selector)
-        result = await session.send(
-            "CSS.getComputedStyleForNode", {"nodeId": node_id}
-        )
+        result = await session.send("CSS.getComputedStyleForNode", {"nodeId": node_id})
         computed: dict[str, Any] = {}
         for prop in result.get("computedStyle", []):
             computed[prop.get("name", "")] = prop.get("value", "")
@@ -4082,7 +4016,9 @@ class CDPBackend(AbstractBackend):
         """Add a new CSS rule to a stylesheet."""
         session = self._require_session()
         result = await session.css.add_rule(
-            style_sheet_id=stylesheet_id, rule_text=rule_text, location={"lineNumber": location, "columnNumber": 0}
+            style_sheet_id=stylesheet_id,
+            rule_text=rule_text,
+            location={"lineNumber": location, "columnNumber": 0},
         )
         return str(result.get("ruleId", ""))
 
@@ -4113,14 +4049,18 @@ class CDPBackend(AbstractBackend):
         """Set the selector text of a CSS rule."""
         session = self._require_session()
         await session.css.set_rule_selector(
-            style_sheet_id=stylesheet_id, rule_id={"styleSheetId": stylesheet_id, "ordinal": rule_id}, selector=selector
+            style_sheet_id=stylesheet_id,
+            rule_id={"styleSheetId": stylesheet_id, "ordinal": rule_id},
+            selector=selector,
         )
 
     async def css_set_media_text(self, stylesheet_id: str, media_id: str, text: str) -> None:
         """Set the text of a media rule."""
         session = self._require_session()
         await session.css.set_media_text(
-            style_sheet_id=stylesheet_id, media_id={"styleSheetId": stylesheet_id, "ordinal": media_id}, text=text
+            style_sheet_id=stylesheet_id,
+            media_id={"styleSheetId": stylesheet_id, "ordinal": media_id},
+            text=text,
         )
 
     async def css_force_pseudo_state(self, node_id: int, pseudo_state: list[str]) -> None:
@@ -4164,10 +4104,14 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("CSS.enable", {})
 
-    async def css_force_starting_style(self, node_id: int, starting_style_id: dict[str, Any]) -> None:
+    async def css_force_starting_style(
+        self, node_id: int, starting_style_id: dict[str, Any]
+    ) -> None:
         """Force a starting style for a node."""
         session = self._require_session()
-        await session.send("CSS.forceStartingStyle", {"nodeId": node_id, "startingStyleId": starting_style_id})
+        await session.send(
+            "CSS.forceStartingStyle", {"nodeId": node_id, "startingStyleId": starting_style_id}
+        )
 
     async def css_get_animated_styles_for_node(self, node_id: int) -> dict[str, Any]:
         """Get animated styles for a node by ID."""
@@ -4205,13 +4149,19 @@ class CDPBackend(AbstractBackend):
         result = await session.send("CSS.getLayersForNode", {"nodeId": node_id})
         return list(result.get("layers", [])) if result else []
 
-    async def css_get_location_for_selector(self, selector: str, stylesheet_id: str) -> dict[str, Any]:
+    async def css_get_location_for_selector(
+        self, selector: str, stylesheet_id: str
+    ) -> dict[str, Any]:
         """Get the location of a CSS selector in a stylesheet."""
         session = self._require_session()
-        result = await session.send("CSS.getLocationForSelector", {"selector": selector, "styleSheetId": stylesheet_id})
+        result = await session.send(
+            "CSS.getLocationForSelector", {"selector": selector, "styleSheetId": stylesheet_id}
+        )
         return dict(result) if result else {}
 
-    async def css_get_longhand_properties(self, shorthand_id: dict[str, Any]) -> list[dict[str, Any]]:
+    async def css_get_longhand_properties(
+        self, shorthand_id: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """Get longhand properties for a shorthand property."""
         session = self._require_session()
         result = await session.send("CSS.getLonghandProperties", {"shorthandId": shorthand_id})
@@ -4241,45 +4191,79 @@ class CDPBackend(AbstractBackend):
         result = await session.send("CSS.resolveValues", {"values": values})
         return list(result.get("resolvedValues", [])) if result else []
 
-    async def css_set_container_query_condition_text(self, stylesheet_id: str, container_query_id: dict[str, Any], text: str) -> None:
+    async def css_set_container_query_condition_text(
+        self, stylesheet_id: str, container_query_id: dict[str, Any], text: str
+    ) -> None:
         """Set the condition text of a container query."""
         session = self._require_session()
-        await session.send("CSS.setContainerQueryConditionText", {"styleSheetId": stylesheet_id, "containerQueryId": container_query_id, "text": text})
+        await session.send(
+            "CSS.setContainerQueryConditionText",
+            {"styleSheetId": stylesheet_id, "containerQueryId": container_query_id, "text": text},
+        )
 
-    async def css_set_effective_property_value_for_node(self, node_id: int, property_name: str, value: str) -> None:
+    async def css_set_effective_property_value_for_node(
+        self, node_id: int, property_name: str, value: str
+    ) -> None:
         """Set the effective property value for a node."""
         session = self._require_session()
-        await session.send("CSS.setEffectivePropertyValueForNode", {"nodeId": node_id, "propertyName": property_name, "value": value})
+        await session.send(
+            "CSS.setEffectivePropertyValueForNode",
+            {"nodeId": node_id, "propertyName": property_name, "value": value},
+        )
 
-    async def css_set_keyframe_key(self, stylesheet_id: str, keyframe_id: dict[str, Any], key_text: str) -> None:
+    async def css_set_keyframe_key(
+        self, stylesheet_id: str, keyframe_id: dict[str, Any], key_text: str
+    ) -> None:
         """Set the key text of a keyframe rule."""
         session = self._require_session()
-        await session.send("CSS.setKeyframeKey", {"styleSheetId": stylesheet_id, "keyframeId": keyframe_id, "keyText": key_text})
+        await session.send(
+            "CSS.setKeyframeKey",
+            {"styleSheetId": stylesheet_id, "keyframeId": keyframe_id, "keyText": key_text},
+        )
 
     async def css_set_local_fonts_enabled(self, enabled: bool) -> None:
         """Enable or disable local fonts."""
         session = self._require_session()
         await session.send("CSS.setLocalFontsEnabled", {"enabled": enabled})
 
-    async def css_set_navigation_text(self, stylesheet_id: str, navigation_id: dict[str, Any], text: str) -> None:
+    async def css_set_navigation_text(
+        self, stylesheet_id: str, navigation_id: dict[str, Any], text: str
+    ) -> None:
         """Set the text of a navigation rule."""
         session = self._require_session()
-        await session.send("CSS.setNavigationText", {"styleSheetId": stylesheet_id, "navigationId": navigation_id, "text": text})
+        await session.send(
+            "CSS.setNavigationText",
+            {"styleSheetId": stylesheet_id, "navigationId": navigation_id, "text": text},
+        )
 
-    async def css_set_property_rule_property_name(self, stylesheet_id: str, property_rule_id: dict[str, Any], name: str) -> None:
+    async def css_set_property_rule_property_name(
+        self, stylesheet_id: str, property_rule_id: dict[str, Any], name: str
+    ) -> None:
         """Set the property name of a property rule."""
         session = self._require_session()
-        await session.send("CSS.setPropertyRulePropertyName", {"styleSheetId": stylesheet_id, "propertyRuleId": property_rule_id, "name": name})
+        await session.send(
+            "CSS.setPropertyRulePropertyName",
+            {"styleSheetId": stylesheet_id, "propertyRuleId": property_rule_id, "name": name},
+        )
 
-    async def css_set_rule_style(self, stylesheet_id: str, rule_id: dict[str, Any], style_text: str) -> None:
+    async def css_set_rule_style(
+        self, stylesheet_id: str, rule_id: dict[str, Any], style_text: str
+    ) -> None:
         """Set the style text of a CSS rule."""
         session = self._require_session()
-        await session.send("CSS.setRuleStyle", {"styleSheetId": stylesheet_id, "ruleId": rule_id, "style": style_text})
+        await session.send(
+            "CSS.setRuleStyle",
+            {"styleSheetId": stylesheet_id, "ruleId": rule_id, "style": style_text},
+        )
 
-    async def css_set_scope_text(self, stylesheet_id: str, scope_id: dict[str, Any], text: str) -> None:
+    async def css_set_scope_text(
+        self, stylesheet_id: str, scope_id: dict[str, Any], text: str
+    ) -> None:
         """Set the text of a scope rule."""
         session = self._require_session()
-        await session.send("CSS.setScopeText", {"styleSheetId": stylesheet_id, "scopeId": scope_id, "text": text})
+        await session.send(
+            "CSS.setScopeText", {"styleSheetId": stylesheet_id, "scopeId": scope_id, "text": text}
+        )
 
     async def css_set_style_sheet_text(self, stylesheet_id: str, text: str) -> None:
         """Set the text content of a stylesheet by ID."""
@@ -4303,10 +4287,15 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("CSS.setStyleSheetText", {"styleSheetId": stylesheet_id, "text": text})
 
-    async def css_set_supports_text(self, stylesheet_id: str, supports_id: dict[str, Any], text: str) -> None:
+    async def css_set_supports_text(
+        self, stylesheet_id: str, supports_id: dict[str, Any], text: str
+    ) -> None:
         """Set the text of a supports rule."""
         session = self._require_session()
-        await session.send("CSS.setSupportsText", {"styleSheetId": stylesheet_id, "supportsId": supports_id, "text": text})
+        await session.send(
+            "CSS.setSupportsText",
+            {"styleSheetId": stylesheet_id, "supportsId": supports_id, "text": text},
+        )
 
     async def css_take_computed_style_updates(self) -> list[dict[str, Any]]:
         """Take computed style updates."""
@@ -4319,16 +4308,19 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("CSS.trackComputedStyleUpdates", {"trackProperties": track_properties})
 
-    async def css_track_computed_style_updates_for_node(self, node_id: int, track_properties: bool = True) -> None:
+    async def css_track_computed_style_updates_for_node(
+        self, node_id: int, track_properties: bool = True
+    ) -> None:
         """Track computed style updates for a specific node."""
         session = self._require_session()
-        await session.send("CSS.trackComputedStyleUpdatesForNode", {"nodeId": node_id, "trackProperties": track_properties})
+        await session.send(
+            "CSS.trackComputedStyleUpdatesForNode",
+            {"nodeId": node_id, "trackProperties": track_properties},
+        )
 
     # ── Debugging ──────────────────────────────────────────
 
-    async def debug_set_breakpoint(
-        self, url: str, line: int, condition: str | None = None
-    ) -> str:
+    async def debug_set_breakpoint(self, url: str, line: int, condition: str | None = None) -> str:
         """Set a breakpoint by URL and line number.
 
         Args:
@@ -4344,9 +4336,7 @@ class CDPBackend(AbstractBackend):
         params: dict[str, Any] = {"url": url, "lineNumber": line}
         if condition:
             params["condition"] = condition
-        result = await session.send(
-            "Debugger.setBreakpointByUrl", params
-        )
+        result = await session.send("Debugger.setBreakpointByUrl", params)
         return str(result.get("breakpointId", ""))
 
     async def debug_set_breakpoint_function(self, function_name: str) -> str:
@@ -4373,9 +4363,7 @@ class CDPBackend(AbstractBackend):
             breakpoint_id: The breakpoint ID returned from set_breakpoint.
         """
         session = self._require_session()
-        await session.send(
-            "Debugger.removeBreakpoint", {"breakpointId": breakpoint_id}
-        )
+        await session.send("Debugger.removeBreakpoint", {"breakpointId": breakpoint_id})
 
     async def debug_step_over(self) -> None:
         """Step over the current statement in the debugger."""
@@ -4422,15 +4410,11 @@ class CDPBackend(AbstractBackend):
         """
         session = self._require_session()
         node_id = await self._find_node(selector)
-        resolved = await session.send(
-            "DOM.resolveNode", {"nodeId": node_id}
-        )
+        resolved = await session.send("DOM.resolveNode", {"nodeId": node_id})
         object_id = resolved.get("object", {}).get("objectId", "")
         if not object_id:
             raise ElementNotFoundError(selector)
-        result = await session.send(
-            "DOMDebugger.getEventListeners", {"objectId": object_id}
-        )
+        result = await session.send("DOMDebugger.getEventListeners", {"objectId": object_id})
         listeners: list[dict[str, Any]] = []
         for listener in result.get("listeners", []):
             listeners.append(dict(listener))
@@ -4500,14 +4484,10 @@ class CDPBackend(AbstractBackend):
     async def debug_set_script_source(self, script_id: str, source: str) -> dict[str, Any]:
         """Edit the source code of a live script."""
         session = self._require_session()
-        result = await session.debugger.set_script_source(
-            script_id=script_id, script_source=source
-        )
+        result = await session.debugger.set_script_source(script_id=script_id, script_source=source)
         return dict(result) if result else {}
 
-    async def debug_continue_to_location(
-        self, url: str, line: int, column: int = 0
-    ) -> None:
+    async def debug_continue_to_location(self, url: str, line: int, column: int = 0) -> None:
         """Continue execution until a specific location is reached."""
         session = self._require_session()
         await session.debugger.continue_to_location(
@@ -4533,13 +4513,17 @@ class CDPBackend(AbstractBackend):
     async def debug_get_wasm_bytecode(self, script_id: str, offset: int) -> dict[str, Any]:
         """Get WASM bytecode for a script by ID and offset."""
         session = self._require_session()
-        result = await session.send("Debugger.getWasmBytecode", {"scriptId": script_id, "offset": offset})
+        result = await session.send(
+            "Debugger.getWasmBytecode", {"scriptId": script_id, "offset": offset}
+        )
         return dict(result) if result else {}
 
     async def debug_next_wasm_disassembly_chunk(self, disassembly_id: str) -> dict[str, Any]:
         """Get the next chunk of a WASM disassembly."""
         session = self._require_session()
-        result = await session.send("Debugger.nextWasmDisassemblyChunk", {"disassemblyId": disassembly_id})
+        result = await session.send(
+            "Debugger.nextWasmDisassemblyChunk", {"disassemblyId": disassembly_id}
+        )
         return dict(result) if result else {}
 
     async def debug_pause(self) -> None:
@@ -4582,12 +4566,18 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("Debugger.setBlackboxPatterns", {"patterns": patterns})
 
-    async def debug_set_blackboxed_ranges(self, script_id: str, positions: list[dict[str, Any]]) -> None:
+    async def debug_set_blackboxed_ranges(
+        self, script_id: str, positions: list[dict[str, Any]]
+    ) -> None:
         """Set blackboxed ranges for a script."""
         session = self._require_session()
-        await session.send("Debugger.setBlackboxedRanges", {"scriptId": script_id, "positions": positions})
+        await session.send(
+            "Debugger.setBlackboxedRanges", {"scriptId": script_id, "positions": positions}
+        )
 
-    async def debug_set_breakpoint_raw(self, location: dict[str, Any], condition: str | None = None) -> dict[str, Any]:
+    async def debug_set_breakpoint_raw(
+        self, location: dict[str, Any], condition: str | None = None
+    ) -> dict[str, Any]:
         """Set a breakpoint at a raw location in a script."""
         session = self._require_session()
         params: dict[str, Any] = {"location": location}
@@ -4596,16 +4586,24 @@ class CDPBackend(AbstractBackend):
         result = await session.send("Debugger.setBreakpoint", params)
         return dict(result) if result else {}
 
-    async def debug_set_breakpoint_by_url(self, url: str, line_number: int, column_number: int = 0, condition: str | None = None) -> dict[str, Any]:
+    async def debug_set_breakpoint_by_url(
+        self, url: str, line_number: int, column_number: int = 0, condition: str | None = None
+    ) -> dict[str, Any]:
         """Set a breakpoint by URL and line number."""
         session = self._require_session()
-        params: dict[str, Any] = {"url": url, "lineNumber": line_number, "columnNumber": column_number}
+        params: dict[str, Any] = {
+            "url": url,
+            "lineNumber": line_number,
+            "columnNumber": column_number,
+        }
         if condition is not None:
             params["condition"] = condition
         result = await session.send("Debugger.setBreakpointByUrl", params)
         return dict(result) if result else {}
 
-    async def debug_set_breakpoint_on_function_call(self, object_id: str, condition: str | None = None) -> dict[str, Any]:
+    async def debug_set_breakpoint_on_function_call(
+        self, object_id: str, condition: str | None = None
+    ) -> dict[str, Any]:
         """Set a breakpoint on a function call by object ID."""
         session = self._require_session()
         params: dict[str, Any] = {"objectId": object_id}
@@ -4617,7 +4615,9 @@ class CDPBackend(AbstractBackend):
     async def debug_set_instrumentation_breakpoint(self, instrumentation: str) -> dict[str, Any]:
         """Set an instrumentation breakpoint."""
         session = self._require_session()
-        result = await session.send("Debugger.setInstrumentationBreakpoint", {"instrumentation": instrumentation})
+        result = await session.send(
+            "Debugger.setInstrumentationBreakpoint", {"instrumentation": instrumentation}
+        )
         return dict(result) if result else {}
 
     async def debug_set_return_value(self, new_value: dict[str, Any]) -> None:
@@ -4625,17 +4625,32 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("Debugger.setReturnValue", {"newValue": new_value})
 
-    async def debug_set_variable_value(self, call_frame_id: str, scope_number: int, variable_name: str, new_value: dict[str, Any]) -> None:
+    async def debug_set_variable_value(
+        self, call_frame_id: str, scope_number: int, variable_name: str, new_value: dict[str, Any]
+    ) -> None:
         """Set a variable value in a scope of a call frame."""
         session = self._require_session()
-        await session.send("Debugger.setVariableValue", {"callFrameId": call_frame_id, "scopeNumber": scope_number, "variableName": variable_name, "newValue": new_value})
+        await session.send(
+            "Debugger.setVariableValue",
+            {
+                "callFrameId": call_frame_id,
+                "scopeNumber": scope_number,
+                "variableName": variable_name,
+                "newValue": new_value,
+            },
+        )
 
     # ── DOMDebugger ────────────────────────────────────────
 
-    async def dom_debugger_get_event_listeners(self, object_id: str, depth: int = 0, pierce: bool = False) -> list[dict[str, Any]]:
+    async def dom_debugger_get_event_listeners(
+        self, object_id: str, depth: int = 0, pierce: bool = False
+    ) -> list[dict[str, Any]]:
         """Get event listeners for an object by its remote object ID."""
         session = self._require_session()
-        result = await session.send("DOMDebugger.getEventListeners", {"objectId": object_id, "depth": depth, "pierce": pierce})
+        result = await session.send(
+            "DOMDebugger.getEventListeners",
+            {"objectId": object_id, "depth": depth, "pierce": pierce},
+        )
         return list(result.get("listeners", [])) if result else []
 
     async def dom_debugger_remove_dom_breakpoint(self, node_id: int, type: str) -> None:
@@ -4643,7 +4658,9 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("DOMDebugger.removeDOMBreakpoint", {"nodeId": node_id, "type": type})
 
-    async def dom_debugger_remove_event_listener_breakpoint(self, event_name: str, target_name: str | None = None) -> None:
+    async def dom_debugger_remove_event_listener_breakpoint(
+        self, event_name: str, target_name: str | None = None
+    ) -> None:
         """Remove an event listener breakpoint."""
         session = self._require_session()
         params: dict[str, Any] = {"eventName": event_name}
@@ -4671,7 +4688,9 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("DOMDebugger.setDOMBreakpoint", {"nodeId": node_id, "type": type})
 
-    async def dom_debugger_set_event_listener_breakpoint(self, event_name: str, target_name: str | None = None) -> None:
+    async def dom_debugger_set_event_listener_breakpoint(
+        self, event_name: str, target_name: str | None = None
+    ) -> None:
         """Set an event listener breakpoint."""
         session = self._require_session()
         params: dict[str, Any] = {"eventName": event_name}
@@ -4706,9 +4725,7 @@ class CDPBackend(AbstractBackend):
 
     # ── Overlay ────────────────────────────────────────────
 
-    async def overlay_highlight(
-        self, selector: str, color: str = "rgba(255,0,0,0.5)"
-    ) -> None:
+    async def overlay_highlight(self, selector: str, color: str = "rgba(255,0,0,0.5)") -> None:
         """Highlight an element with a colored overlay.
 
         Args:
@@ -4728,7 +4745,8 @@ class CDPBackend(AbstractBackend):
             "marginColor": {"r": 0, "g": 0, "b": 0, "a": 0},
         }
         await session.overlay.highlight_node(
-            highlight_config=highlight_config, node_id=node_id,
+            highlight_config=highlight_config,
+            node_id=node_id,
         )
 
     async def overlay_clear(self) -> None:
@@ -4746,9 +4764,7 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.overlay.disable()
 
-    async def overlay_highlight_node(
-        self, node_id: int, color: str = "rgba(255,0,0,0.5)"
-    ) -> None:
+    async def overlay_highlight_node(self, node_id: int, color: str = "rgba(255,0,0,0.5)") -> None:
         """Highlight a DOM node by node ID."""
         session = self._require_session()
         highlight_config: dict[str, Any] = {
@@ -4758,7 +4774,8 @@ class CDPBackend(AbstractBackend):
             "contentColor": {"r": 255, "g": 0, "b": 0, "a": 0.5},
         }
         await session.overlay.highlight_node(
-            highlight_config=highlight_config, node_id=node_id,
+            highlight_config=highlight_config,
+            node_id=node_id,
         )
 
     async def overlay_highlight_quad(
@@ -4767,23 +4784,24 @@ class CDPBackend(AbstractBackend):
         """Highlight a quad region on the page."""
         session = self._require_session()
         await session.overlay.highlight_quad(
-            quad=quad, color={"r": 255, "g": 0, "b": 0, "a": 0.5},
+            quad=quad,
+            color={"r": 255, "g": 0, "b": 0, "a": 0.5},
         )
 
     async def overlay_highlight_rect(
-        self, x: float, y: float, width: float, height: float,
-        color: str = "rgba(255,0,0,0.5)"
+        self, x: float, y: float, width: float, height: float, color: str = "rgba(255,0,0,0.5)"
     ) -> None:
         """Highlight a rectangular region on the page."""
         session = self._require_session()
         await session.overlay.highlight_rect(
-            x=x, y=y, width=width, height=height,
+            x=x,
+            y=y,
+            width=width,
+            height=height,
             outline_color={"r": 255, "g": 0, "b": 0, "a": 0.5},
         )
 
-    async def overlay_set_inspect_mode(
-        self, mode: str = "searchForNode"
-    ) -> None:
+    async def overlay_set_inspect_mode(self, mode: str = "searchForNode") -> None:
         """Set the inspect mode for element selection."""
         session = self._require_session()
         await session.overlay.set_inspect_mode(mode=mode, highlight_config={})
@@ -4808,9 +4826,7 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.overlay.set_show_ad_highlights(show=show)
 
-    async def overlay_get_grid_highlight_objects_for_test(
-        self, node_id: int
-    ) -> dict[str, Any]:
+    async def overlay_get_grid_highlight_objects_for_test(self, node_id: int) -> dict[str, Any]:
         """Get grid highlight objects for testing."""
         session = self._require_session()
         result = await session.send("Overlay.getGridHighlightObjectsForTest", {"nodeId": node_id})
@@ -4849,16 +4865,14 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("Overlay.hideHighlight", {})
 
-    async def overlay_highlight_source_order(
-        self, source_order_config: dict[str, Any]
-    ) -> None:
+    async def overlay_highlight_source_order(self, source_order_config: dict[str, Any]) -> None:
         """Highlight the source order of a node."""
         session = self._require_session()
-        await session.send("Overlay.highlightSourceOrder", {"sourceOrderConfig": source_order_config})
+        await session.send(
+            "Overlay.highlightSourceOrder", {"sourceOrderConfig": source_order_config}
+        )
 
-    async def overlay_set_paused_in_debugger_message(
-        self, message: str = ""
-    ) -> None:
+    async def overlay_set_paused_in_debugger_message(self, message: str = "") -> None:
         """Set the message displayed when paused in the debugger."""
         session = self._require_session()
         params: dict[str, Any] = {}
@@ -4866,9 +4880,7 @@ class CDPBackend(AbstractBackend):
             params["message"] = message
         await session.send("Overlay.setPausedInDebuggerMessage", params)
 
-    async def overlay_set_show_container_query_overlays(
-        self, show: bool
-    ) -> None:
+    async def overlay_set_show_container_query_overlays(self, show: bool) -> None:
         """Show or hide container query overlays."""
         session = self._require_session()
         await session.send("Overlay.setShowContainerQueryOverlays", {"show": show})
@@ -4890,9 +4902,7 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("Overlay.setShowGridOverlays", {"showGridOverlays": show_grid_overlays})
 
-    async def overlay_set_show_hinge(
-        self, hinge_config: dict[str, Any] | None = None
-    ) -> None:
+    async def overlay_set_show_hinge(self, hinge_config: dict[str, Any] | None = None) -> None:
         """Show or hide the hinge overlay."""
         session = self._require_session()
         params: dict[str, Any] = {}
@@ -4900,9 +4910,7 @@ class CDPBackend(AbstractBackend):
             params["hingeConfig"] = hinge_config
         await session.send("Overlay.setShowHinge", params)
 
-    async def overlay_set_show_inspected_element_anchor(
-        self, show: bool
-    ) -> None:
+    async def overlay_set_show_inspected_element_anchor(self, show: bool) -> None:
         """Show or hide the inspected element anchor."""
         session = self._require_session()
         await session.send("Overlay.setShowInspectedElementAnchor", {"show": show})
@@ -4917,37 +4925,27 @@ class CDPBackend(AbstractBackend):
             {"isolatedElementHighlightConfigs": isolated_element_highlight_configs},
         )
 
-    async def overlay_set_show_layout_shift_regions(
-        self, show: bool
-    ) -> None:
+    async def overlay_set_show_layout_shift_regions(self, show: bool) -> None:
         """Show or hide layout shift regions."""
         session = self._require_session()
         await session.send("Overlay.setShowLayoutShiftRegions", {"show": show})
 
-    async def overlay_set_show_scroll_bottleneck_rects(
-        self, show: bool
-    ) -> None:
+    async def overlay_set_show_scroll_bottleneck_rects(self, show: bool) -> None:
         """Show or hide scroll bottleneck rects."""
         session = self._require_session()
         await session.send("Overlay.setShowScrollBottleneckRects", {"show": show})
 
-    async def overlay_set_show_scroll_snap_overlays(
-        self, show: bool
-    ) -> None:
+    async def overlay_set_show_scroll_snap_overlays(self, show: bool) -> None:
         """Show or hide scroll snap overlays."""
         session = self._require_session()
         await session.send("Overlay.setShowScrollSnapOverlays", {"show": show})
 
-    async def overlay_set_show_viewport_size_on_resize(
-        self, show: bool
-    ) -> None:
+    async def overlay_set_show_viewport_size_on_resize(self, show: bool) -> None:
         """Show or hide viewport size on resize."""
         session = self._require_session()
         await session.send("Overlay.setShowViewportSizeOnResize", {"show": show})
 
-    async def overlay_set_show_window_controls_overlay(
-        self, show: bool
-    ) -> None:
+    async def overlay_set_show_window_controls_overlay(self, show: bool) -> None:
         """Show or hide window controls overlay."""
         session = self._require_session()
         await session.send("Overlay.setShowWindowControlsOverlay", {"show": show})
@@ -5060,7 +5058,9 @@ class CDPBackend(AbstractBackend):
         result = await session.runtime.global_lexical_scope_names(**params)
         return dict(result) if result else {}
 
-    async def runtime_add_binding(self, name: str, execution_context_name: str | None = None) -> None:
+    async def runtime_add_binding(
+        self, name: str, execution_context_name: str | None = None
+    ) -> None:
         """Add a binding with the given name."""
         session = self._require_session()
         params: dict[str, Any] = {"name": name}
@@ -5068,13 +5068,18 @@ class CDPBackend(AbstractBackend):
             params["executionContextName"] = execution_context_name
         await session.send("Runtime.addBinding", params)
 
-    async def runtime_await_promise(self, promise_object_id: str, return_by_value: bool = False) -> dict[str, Any]:
+    async def runtime_await_promise(
+        self, promise_object_id: str, return_by_value: bool = False
+    ) -> dict[str, Any]:
         """Await a promise by its remote object ID."""
         session = self._require_session()
-        result = await session.send("Runtime.awaitPromise", {
-            "promiseObjectId": promise_object_id,
-            "returnByValue": return_by_value,
-        })
+        result = await session.send(
+            "Runtime.awaitPromise",
+            {
+                "promiseObjectId": promise_object_id,
+                "returnByValue": return_by_value,
+            },
+        )
         return dict(result) if result else {}
 
     async def runtime_collect_garbage(self) -> None:
@@ -5095,7 +5100,9 @@ class CDPBackend(AbstractBackend):
     async def runtime_get_exception_details(self, error_object_id: str) -> dict[str, Any]:
         """Get exception details for an error object."""
         session = self._require_session()
-        result = await session.send("Runtime.getExceptionDetails", {"errorObjectId": error_object_id})
+        result = await session.send(
+            "Runtime.getExceptionDetails", {"errorObjectId": error_object_id}
+        )
         return dict(result) if result else {}
 
     async def runtime_get_isolate_id(self) -> dict[str, Any]:
@@ -5107,7 +5114,9 @@ class CDPBackend(AbstractBackend):
     async def runtime_query_objects(self, prototype_object_id: str) -> dict[str, Any]:
         """Query objects by prototype."""
         session = self._require_session()
-        result = await session.send("Runtime.queryObjects", {"prototypeObjectId": prototype_object_id})
+        result = await session.send(
+            "Runtime.queryObjects", {"prototypeObjectId": prototype_object_id}
+        )
         return dict(result) if result else {}
 
     async def runtime_remove_binding(self, name: str) -> None:
@@ -5169,7 +5178,9 @@ class CDPBackend(AbstractBackend):
     async def security_handle_certificate_error(self, event_id: int, action: str) -> None:
         """Handle a certificate error event."""
         session = self._require_session()
-        await session.send("Security.handleCertificateError", {"eventId": event_id, "action": action})
+        await session.send(
+            "Security.handleCertificateError", {"eventId": event_id, "action": action}
+        )
 
     async def security_set_ignore_certificate_errors(self, ignore: bool) -> None:
         """Set whether to ignore certificate errors."""
@@ -5236,7 +5247,8 @@ class CDPBackend(AbstractBackend):
         """Attach to a target by ID."""
         session = self._require_session()
         result = await session.target.attach_to_target(
-            target_id=target_id, flatten=flatten,
+            target_id=target_id,
+            flatten=flatten,
         )
         return str(result.get("sessionId", ""))
 
@@ -5291,9 +5303,7 @@ class CDPBackend(AbstractBackend):
             },
         )
 
-    async def target_dispose_browser_context(
-        self, browser_context_id: str
-    ) -> None:
+    async def target_dispose_browser_context(self, browser_context_id: str) -> None:
         """Dispose a browser context by ID."""
         session = self._require_session()
         await session.send(
@@ -5301,9 +5311,7 @@ class CDPBackend(AbstractBackend):
             {"browserContextId": browser_context_id},
         )
 
-    async def target_expose_dev_tools_protocol(
-        self, target_id: str, binding_name: str
-    ) -> None:
+    async def target_expose_dev_tools_protocol(self, target_id: str, binding_name: str) -> None:
         """Expose DevTools protocol API to the target."""
         session = self._require_session()
         await session.send(
@@ -5320,9 +5328,7 @@ class CDPBackend(AbstractBackend):
     async def target_get_dev_tools_target(self, target_id: str) -> str:
         """Get the DevTools target for a given target."""
         session = self._require_session()
-        result = await session.send(
-            "Target.getDevToolsTarget", {"targetId": target_id}
-        )
+        result = await session.send("Target.getDevToolsTarget", {"targetId": target_id})
         return str(result.get("targetId", ""))
 
     async def target_open_dev_tools(self, target_id: str) -> None:
@@ -5330,9 +5336,7 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("Target.openDevTools", {"targetId": target_id})
 
-    async def target_send_message_to_target(
-        self, session_id: str, message: str
-    ) -> None:
+    async def target_send_message_to_target(self, session_id: str, message: str) -> None:
         """Send a message to a target via session ID."""
         session = self._require_session()
         await session.send(
@@ -5343,9 +5347,7 @@ class CDPBackend(AbstractBackend):
     async def target_set_remote_locations(self, locations: list[dict[str, str]]) -> None:
         """Set remote locations for target discovery."""
         session = self._require_session()
-        await session.send(
-            "Target.setRemoteLocations", {"locations": locations}
-        )
+        await session.send("Target.setRemoteLocations", {"locations": locations})
 
     # ── Storage ────────────────────────────────────────────
 
@@ -5382,17 +5384,13 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("DOMStorage.enable", {})
         storage_id = await self._get_storage_id(storage_type)
-        result = await session.send(
-            "DOMStorage.getDOMStorageItems", {"storageId": storage_id}
-        )
+        result = await session.send("DOMStorage.getDOMStorageItems", {"storageId": storage_id})
         for entry in result.get("entries", []):
             if len(entry) >= 2 and entry[0] == key:
                 return str(entry[1])
         return ""
 
-    async def storage_set(
-        self, key: str, value: str, storage_type: str = "local"
-    ) -> None:
+    async def storage_set(self, key: str, value: str, storage_type: str = "local") -> None:
         """Set a value in DOM storage (local or session).
 
         Args:
@@ -5418,7 +5416,8 @@ class CDPBackend(AbstractBackend):
         origin = self._get_origin()
         storage_types = "local_storage" if storage_type == "local" else "session_storage"
         await session.storage.clear_data_for_origin(
-            origin=origin, storage_types=storage_types,
+            origin=origin,
+            storage_types=storage_types,
         )
 
     async def storage_list(self, storage_type: str = "local") -> dict[str, str]:
@@ -5433,9 +5432,7 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("DOMStorage.enable", {})
         storage_id = await self._get_storage_id(storage_type)
-        result = await session.send(
-            "DOMStorage.getDOMStorageItems", {"storageId": storage_id}
-        )
+        result = await session.send("DOMStorage.getDOMStorageItems", {"storageId": storage_id})
         items: dict[str, str] = {}
         for entry in result.get("entries", []):
             if len(entry) >= 2:
@@ -5470,23 +5467,23 @@ class CDPBackend(AbstractBackend):
             List of cache entry dicts (url, status, etc.).
         """
         session = self._require_session()
-        
+
         # First, get the actual cacheId for the given cache_name
         caches_result = await session.send(
             "CacheStorage.requestCacheNames",
             {"securityOrigin": self._get_origin()},
         )
-        
+
         # Find the cacheId for the requested cache_name
         cache_id = None
         for cache in caches_result.get("caches", []):
             if cache.get("cacheName") == cache_name:
                 cache_id = cache.get("cacheId")
                 break
-        
+
         if not cache_id:
             return []
-        
+
         result = await session.send(
             "CacheStorage.requestEntries",
             {"cacheId": cache_id, "skipCount": 0, "pageSize": 1000},
@@ -5503,20 +5500,20 @@ class CDPBackend(AbstractBackend):
             cache_name: Name of the cache to delete.
         """
         session = self._require_session()
-        
+
         # First, get the actual cacheId for the given cache_name
         caches_result = await session.send(
             "CacheStorage.requestCacheNames",
             {"securityOrigin": self._get_origin()},
         )
-        
+
         # Find the cacheId for the requested cache_name
         cache_id = None
         for cache in caches_result.get("caches", []):
             if cache.get("cacheName") == cache_name:
                 cache_id = cache.get("cacheId")
                 break
-        
+
         if cache_id:
             await session.send(
                 "CacheStorage.deleteCache",
@@ -5532,9 +5529,7 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("CacheStorage.deleteCache", {"cacheId": cache_id})
 
-    async def cache_storage_delete_entry(
-        self, cache_id: str, request: str
-    ) -> None:
+    async def cache_storage_delete_entry(self, cache_id: str, request: str) -> None:
         """Delete a specific entry from a cache.
 
         Args:
@@ -5626,9 +5621,7 @@ class CDPBackend(AbstractBackend):
             databases.append({"name": str(name)})
         return databases
 
-    async def indexeddb_get_data(
-        self, database: str, store: str, key: str = ""
-    ) -> Any:
+    async def indexeddb_get_data(self, database: str, store: str, key: str = "") -> Any:
         """Get data from an IndexedDB object store.
 
         Args:
@@ -5718,23 +5711,25 @@ class CDPBackend(AbstractBackend):
     async def storage_delete_shared_storage_entry(self, owner_origin: str, key: str) -> None:
         """Delete a shared storage entry."""
         session = self._require_session()
-        await session.storage.delete_shared_storage_entry(
-            owner_origin=owner_origin, key=key
-        )
+        await session.storage.delete_shared_storage_entry(owner_origin=owner_origin, key=key)
 
     async def storage_clear_shared_storage_entries(self, owner_origin: str) -> None:
         """Clear all shared storage entries for an owner origin."""
         session = self._require_session()
         await session.storage.clear_shared_storage_entries(owner_origin=owner_origin)
 
-    async def storage_get_interest_group_details(self, owner_origin: str, name: str) -> dict[str, Any]:
+    async def storage_get_interest_group_details(
+        self, owner_origin: str, name: str
+    ) -> dict[str, Any]:
         """Get interest group details."""
         session = self._require_session()
-        return dict(await session.storage.get_interest_group_details(
-            owner_origin=owner_origin, name=name
-        ))
+        return dict(
+            await session.storage.get_interest_group_details(owner_origin=owner_origin, name=name)
+        )
 
-    async def storage_override_quota_for_origin(self, origin: str, quota_size: float | None = None) -> None:
+    async def storage_override_quota_for_origin(
+        self, origin: str, quota_size: float | None = None
+    ) -> None:
         """Override quota for a given origin."""
         session = self._require_session()
         params: dict[str, Any] = {"origin": origin}
@@ -5752,9 +5747,7 @@ class CDPBackend(AbstractBackend):
             {"storageKey": storage_key, "storageTypes": storage_types},
         )
 
-    async def storage_delete_storage_bucket(
-        self, storage_key: str, bucket_name: str
-    ) -> None:
+    async def storage_delete_storage_bucket(self, storage_key: str, bucket_name: str) -> None:
         """Delete a storage bucket."""
         session = self._require_session()
         await session.send(
@@ -5768,30 +5761,26 @@ class CDPBackend(AbstractBackend):
         result = await session.send("Storage.getRelatedWebsiteSets", {})
         return [dict(s) for s in result.get("sets", [])] if result else []
 
-    async def storage_get_shared_storage_metadata(
-        self, owner_origin: str
-    ) -> dict[str, Any]:
+    async def storage_get_shared_storage_metadata(self, owner_origin: str) -> dict[str, Any]:
         """Get shared storage metadata for an owner origin."""
         session = self._require_session()
-        return dict(await session.send(
-            "Storage.getSharedStorageMetadata",
-            {"ownerOrigin": owner_origin},
-        ))
+        return dict(
+            await session.send(
+                "Storage.getSharedStorageMetadata",
+                {"ownerOrigin": owner_origin},
+            )
+        )
 
     async def storage_get_storage_key(self, frame_id: str) -> str:
         """Get storage key for a frame."""
         session = self._require_session()
-        result = await session.send(
-            "Storage.getStorageKey", {"frameId": frame_id}
-        )
+        result = await session.send("Storage.getStorageKey", {"frameId": frame_id})
         return result.get("storageKey", "")
 
     async def storage_get_storage_key_for_frame(self, frame_id: str) -> str:
         """Get storage key for a frame (alternative endpoint)."""
         session = self._require_session()
-        result = await session.send(
-            "Storage.getStorageKeyForFrame", {"frameId": frame_id}
-        )
+        result = await session.send("Storage.getStorageKeyForFrame", {"frameId": frame_id})
         return result.get("storageKey", "")
 
     async def storage_reset_shared_storage_budget(self, owner_origin: str) -> None:
@@ -5825,9 +5814,7 @@ class CDPBackend(AbstractBackend):
     async def storage_set_interest_group_tracking(self, enable: bool) -> None:
         """Set interest group tracking."""
         session = self._require_session()
-        await session.send(
-            "Storage.setInterestGroupTracking", {"enable": enable}
-        )
+        await session.send("Storage.setInterestGroupTracking", {"enable": enable})
 
     async def storage_set_protected_audience_k_anonymity(
         self, storage_key: str, hashed_mac_key: str
@@ -5842,9 +5829,7 @@ class CDPBackend(AbstractBackend):
     async def storage_set_shared_storage_tracking(self, enable: bool) -> None:
         """Set shared storage tracking."""
         session = self._require_session()
-        await session.send(
-            "Storage.setSharedStorageTracking", {"enable": enable}
-        )
+        await session.send("Storage.setSharedStorageTracking", {"enable": enable})
 
     async def storage_set_storage_bucket_tracking(
         self, storage_key: str, bucket_name: str, enable: bool
@@ -5863,58 +5848,42 @@ class CDPBackend(AbstractBackend):
     async def storage_track_cache_storage_for_origin(self, origin: str) -> None:
         """Track cache storage for an origin."""
         session = self._require_session()
-        await session.send(
-            "Storage.trackCacheStorageForOrigin", {"origin": origin}
-        )
+        await session.send("Storage.trackCacheStorageForOrigin", {"origin": origin})
 
     async def storage_track_cache_storage_for_storage_key(self, storage_key: str) -> None:
         """Track cache storage for a storage key."""
         session = self._require_session()
-        await session.send(
-            "Storage.trackCacheStorageForStorageKey", {"storageKey": storage_key}
-        )
+        await session.send("Storage.trackCacheStorageForStorageKey", {"storageKey": storage_key})
 
     async def storage_track_indexed_db_for_origin(self, origin: str) -> None:
         """Track IndexedDB for an origin."""
         session = self._require_session()
-        await session.send(
-            "Storage.trackIndexedDBForOrigin", {"origin": origin}
-        )
+        await session.send("Storage.trackIndexedDBForOrigin", {"origin": origin})
 
     async def storage_track_indexed_db_for_storage_key(self, storage_key: str) -> None:
         """Track IndexedDB for a storage key."""
         session = self._require_session()
-        await session.send(
-            "Storage.trackIndexedDBForStorageKey", {"storageKey": storage_key}
-        )
+        await session.send("Storage.trackIndexedDBForStorageKey", {"storageKey": storage_key})
 
     async def storage_untrack_cache_storage_for_origin(self, origin: str) -> None:
         """Untrack cache storage for an origin."""
         session = self._require_session()
-        await session.send(
-            "Storage.untrackCacheStorageForOrigin", {"origin": origin}
-        )
+        await session.send("Storage.untrackCacheStorageForOrigin", {"origin": origin})
 
     async def storage_untrack_cache_storage_for_storage_key(self, storage_key: str) -> None:
         """Untrack cache storage for a storage key."""
         session = self._require_session()
-        await session.send(
-            "Storage.untrackCacheStorageForStorageKey", {"storageKey": storage_key}
-        )
+        await session.send("Storage.untrackCacheStorageForStorageKey", {"storageKey": storage_key})
 
     async def storage_untrack_indexed_db_for_origin(self, origin: str) -> None:
         """Untrack IndexedDB for an origin."""
         session = self._require_session()
-        await session.send(
-            "Storage.untrackIndexedDBForOrigin", {"origin": origin}
-        )
+        await session.send("Storage.untrackIndexedDBForOrigin", {"origin": origin})
 
     async def storage_untrack_indexed_db_for_storage_key(self, storage_key: str) -> None:
         """Untrack IndexedDB for a storage key."""
         session = self._require_session()
-        await session.send(
-            "Storage.untrackIndexedDBForStorageKey", {"storageKey": storage_key}
-        )
+        await session.send("Storage.untrackIndexedDBForStorageKey", {"storageKey": storage_key})
 
     # ── Service Workers ────────────────────────────────────
 
@@ -5941,9 +5910,7 @@ class CDPBackend(AbstractBackend):
         """
         session = self._require_session()
         await session.send("ServiceWorker.enable", {})
-        await session.send(
-            "ServiceWorker.unregister", {"registrationId": registration_id}
-        )
+        await session.send("ServiceWorker.unregister", {"registrationId": registration_id})
 
     async def sw_update(self, registration_id: str) -> None:
         """Trigger an update for a service worker registration.
@@ -5953,9 +5920,7 @@ class CDPBackend(AbstractBackend):
         """
         session = self._require_session()
         await session.send("ServiceWorker.enable", {})
-        await session.send(
-            "ServiceWorker.updateRegistration", {"registrationId": registration_id}
-        )
+        await session.send("ServiceWorker.updateRegistration", {"registrationId": registration_id})
 
     async def sw_enable(self) -> None:
         """Enable the ServiceWorker domain."""
@@ -5967,9 +5932,7 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("ServiceWorker.disable", {})
 
-    async def sw_deliver_push_message(
-        self, origin: str, registration_id: str, data: str
-    ) -> None:
+    async def sw_deliver_push_message(self, origin: str, registration_id: str, data: str) -> None:
         """Deliver a push message to a service worker.
 
         Args:
@@ -6019,9 +5982,7 @@ class CDPBackend(AbstractBackend):
             List of message dicts.
         """
         session = self._require_session()
-        result = await session.send(
-            "ServiceWorker.getMessages", {"workerId": worker_id}
-        )
+        result = await session.send("ServiceWorker.getMessages", {"workerId": worker_id})
         return result.get("messages", [])
 
     async def sw_inspect_worker(self, worker_id: str) -> None:
@@ -6031,9 +5992,7 @@ class CDPBackend(AbstractBackend):
             worker_id: Service worker target ID.
         """
         session = self._require_session()
-        await session.send(
-            "ServiceWorker.inspectWorker", {"workerId": worker_id}
-        )
+        await session.send("ServiceWorker.inspectWorker", {"workerId": worker_id})
 
     async def sw_skip_waiting(self, scope_url: str) -> None:
         """Skip waiting for a service worker to become active.
@@ -6042,9 +6001,7 @@ class CDPBackend(AbstractBackend):
             scope_url: Scope URL of the service worker.
         """
         session = self._require_session()
-        await session.send(
-            "ServiceWorker.skipWaiting", {"scopeURL": scope_url}
-        )
+        await session.send("ServiceWorker.skipWaiting", {"scopeURL": scope_url})
 
     async def sw_start_worker(self, scope_url: str) -> None:
         """Start a service worker by scope URL.
@@ -6053,9 +6010,7 @@ class CDPBackend(AbstractBackend):
             scope_url: Scope URL of the service worker.
         """
         session = self._require_session()
-        await session.send(
-            "ServiceWorker.startWorker", {"scopeURL": scope_url}
-        )
+        await session.send("ServiceWorker.startWorker", {"scopeURL": scope_url})
 
     async def sw_stop_worker(self, worker_id: str) -> None:
         """Stop a running service worker.
@@ -6064,9 +6019,7 @@ class CDPBackend(AbstractBackend):
             worker_id: Service worker target ID.
         """
         session = self._require_session()
-        await session.send(
-            "ServiceWorker.stopWorker", {"workerId": worker_id}
-        )
+        await session.send("ServiceWorker.stopWorker", {"workerId": worker_id})
 
     # ── Animations ─────────────────────────────────────────
 
@@ -6097,9 +6050,7 @@ class CDPBackend(AbstractBackend):
         """
         session = self._require_session()
         await session.send("Animation.enable", {})
-        await session.send(
-            "Animation.setPaused", {"animations": [animation_id], "paused": True}
-        )
+        await session.send("Animation.setPaused", {"animations": [animation_id], "paused": True})
 
     async def animation_play(self, animation_id: str) -> None:
         """Play/resume an animation by ID.
@@ -6109,9 +6060,7 @@ class CDPBackend(AbstractBackend):
         """
         session = self._require_session()
         await session.send("Animation.enable", {})
-        await session.send(
-            "Animation.setPaused", {"animations": [animation_id], "paused": False}
-        )
+        await session.send("Animation.setPaused", {"animations": [animation_id], "paused": False})
 
     async def animation_seek(self, animation_id: str, time_ms: int) -> None:
         """Seek an animation to a specific time.
@@ -6129,9 +6078,7 @@ class CDPBackend(AbstractBackend):
 
     # ── WebAuthn (experimental) ───────────────────────────
 
-    async def webauthn_add_virtual_authenticator(
-        self, protocol: str, transport: str
-    ) -> str:
+    async def webauthn_add_virtual_authenticator(self, protocol: str, transport: str) -> str:
         """Add a virtual authenticator via CDP WebAuthn domain."""
         session = self._require_session()
         await session.web_authn.enable()
@@ -6155,12 +6102,11 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.web_authn.enable()
         await session.web_authn.add_credential(
-            authenticator_id=authenticator_id, credential=credential,
+            authenticator_id=authenticator_id,
+            credential=credential,
         )
 
-    async def webauthn_get_credentials(
-        self, authenticator_id: str
-    ) -> list[dict[str, Any]]:
+    async def webauthn_get_credentials(self, authenticator_id: str) -> list[dict[str, Any]]:
         """Get credentials from a virtual authenticator via CDP WebAuthn domain."""
         session = self._require_session()
         await session.web_authn.enable()
@@ -6198,9 +6144,7 @@ class CDPBackend(AbstractBackend):
         )
         return dict(result) if result else {}
 
-    async def webauthn_remove_credential(
-        self, authenticator_id: str, credential_id: str
-    ) -> None:
+    async def webauthn_remove_credential(self, authenticator_id: str, credential_id: str) -> None:
         """Remove a credential from a virtual authenticator.
 
         Args:
@@ -6352,9 +6296,7 @@ class CDPBackend(AbstractBackend):
             Dict with realtime audio data.
         """
         session = self._require_session()
-        result = await session.send(
-            "WebAudio.getRealtimeData", {"contextId": context_id}
-        )
+        result = await session.send("WebAudio.getRealtimeData", {"contextId": context_id})
         return dict(result) if result else {}
 
     # ── Media (experimental) ───────────────────────────────
@@ -6424,16 +6366,12 @@ class CDPBackend(AbstractBackend):
     async def cast_start_desktop_mirroring(self, sink_name: str) -> None:
         """Start desktop mirroring to a cast sink via CDP."""
         session = self._require_session()
-        await session.send(
-            "Cast.startDesktopMirroring", {"sinkName": sink_name}
-        )
+        await session.send("Cast.startDesktopMirroring", {"sinkName": sink_name})
 
     async def cast_start_tab_mirroring(self, sink_name: str) -> None:
         """Start tab mirroring to a cast sink via CDP."""
         session = self._require_session()
-        await session.send(
-            "Cast.startTabMirroring", {"sinkName": sink_name}
-        )
+        await session.send("Cast.startTabMirroring", {"sinkName": sink_name})
 
     async def cast_stop_casting(self, sink_name: str) -> None:
         """Stop casting to a specific sink via CDP."""
@@ -6442,9 +6380,7 @@ class CDPBackend(AbstractBackend):
 
     # ── Bluetooth (experimental) ───────────────────────────
 
-    async def bluetooth_emulate(
-        self, name: str, address: str = "00:00:00:00:00:01"
-    ) -> None:
+    async def bluetooth_emulate(self, name: str, address: str = "00:00:00:00:00:01") -> None:
         """Emulate a Bluetooth Low Energy device via CDP BluetoothEmulation domain."""
         session = self._require_session()
         await session.send("BluetoothEmulation.enable", {})
@@ -6483,9 +6419,7 @@ class CDPBackend(AbstractBackend):
             )
         else:
             ext_id = hashlib.sha256(path.encode()).hexdigest()[:32]
-            data = await asyncio.to_thread(
-                lambda: open(path, "rb").read()  # noqa: SIM115
-            )
+            data = await asyncio.to_thread(lambda: Path(path).read_bytes())
             await session.send(
                 "Extensions.load",
                 {"data": data.hex(), "id": ext_id},
@@ -6615,21 +6549,35 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("DeviceOrientation.clearDeviceOrientationOverride", {})
 
-    async def device_orientation_set_override(self, alpha: float, beta: float, gamma: float) -> None:
+    async def device_orientation_set_override(
+        self, alpha: float, beta: float, gamma: float
+    ) -> None:
         """Set device orientation override."""
         session = self._require_session()
-        await session.send("DeviceOrientation.setDeviceOrientationOverride", {"alpha": alpha, "beta": beta, "gamma": gamma})
+        await session.send(
+            "DeviceOrientation.setDeviceOrientationOverride",
+            {"alpha": alpha, "beta": beta, "gamma": gamma},
+        )
 
     # ── DigitalCredentials ──────────────────────────────────
 
-    async def digital_credentials_set_virtual_wallet_behavior(self, behavior: dict[str, Any]) -> None:
+    async def digital_credentials_set_virtual_wallet_behavior(
+        self, behavior: dict[str, Any]
+    ) -> None:
         """Set the virtual wallet behavior for digital credentials."""
         session = self._require_session()
         await session.send("DigitalCredentials.setVirtualWalletBehavior", {"behavior": behavior})
 
     # ── DOMSnapshot ─────────────────────────────────────────
 
-    async def dom_snapshot_capture_snapshot(self, computed_styles: list[str] | None = None, include_paint_order: bool = False, include_dom_rects: bool = False, include_blended_background_colors: bool = False, include_text_color_opacity: bool = False) -> dict[str, Any]:
+    async def dom_snapshot_capture_snapshot(
+        self,
+        computed_styles: list[str] | None = None,
+        include_paint_order: bool = False,
+        include_dom_rects: bool = False,
+        include_blended_background_colors: bool = False,
+        include_text_color_opacity: bool = False,
+    ) -> dict[str, Any]:
         """Capture a DOM snapshot of the current page."""
         session = self._require_session()
         params: dict[str, Any] = {}
@@ -6656,7 +6604,14 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("DOMSnapshot.enable", {})
 
-    async def dom_snapshot_get_snapshot(self, computed_styles: list[str] | None = None, include_paint_order: bool = False, include_dom_rects: bool = False, include_blended_background_colors: bool = False, include_text_color_opacity: bool = False) -> dict[str, Any]:
+    async def dom_snapshot_get_snapshot(
+        self,
+        computed_styles: list[str] | None = None,
+        include_paint_order: bool = False,
+        include_dom_rects: bool = False,
+        include_blended_background_colors: bool = False,
+        include_text_color_opacity: bool = False,
+    ) -> dict[str, Any]:
         """Get a DOM snapshot of the current page."""
         session = self._require_session()
         params: dict[str, Any] = {}
@@ -6709,29 +6664,46 @@ class CDPBackend(AbstractBackend):
     async def dom_storage_set_item(self, storage_id: dict[str, Any], key: str, value: str) -> None:
         """Set an item in a DOM storage."""
         session = self._require_session()
-        await session.send("DOMStorage.setDOMStorageItem", {"storageId": storage_id, "key": key, "value": value})
+        await session.send(
+            "DOMStorage.setDOMStorageItem", {"storageId": storage_id, "key": key, "value": value}
+        )
 
     # ── EventBreakpoints ────────────────────────────────────
 
-    async def event_breakpoints_clear_instrumentation_breakpoint(self, instrumentation_name: str) -> None:
+    async def event_breakpoints_clear_instrumentation_breakpoint(
+        self, instrumentation_name: str
+    ) -> None:
         """Clear an instrumentation breakpoint for events."""
         session = self._require_session()
-        await session.send("EventBreakpoints.clearInstrumentationBreakpoint", {"instrumentationName": instrumentation_name})
+        await session.send(
+            "EventBreakpoints.clearInstrumentationBreakpoint",
+            {"instrumentationName": instrumentation_name},
+        )
 
     async def event_breakpoints_disable(self) -> None:
         """Disable the EventBreakpoints domain."""
         session = self._require_session()
         await session.send("EventBreakpoints.disable", {})
 
-    async def event_breakpoints_remove_instrumentation_breakpoint(self, instrumentation_name: str) -> None:
+    async def event_breakpoints_remove_instrumentation_breakpoint(
+        self, instrumentation_name: str
+    ) -> None:
         """Remove an instrumentation breakpoint for events."""
         session = self._require_session()
-        await session.send("EventBreakpoints.removeInstrumentationBreakpoint", {"instrumentationName": instrumentation_name})
+        await session.send(
+            "EventBreakpoints.removeInstrumentationBreakpoint",
+            {"instrumentationName": instrumentation_name},
+        )
 
-    async def event_breakpoints_set_instrumentation_breakpoint(self, instrumentation_name: str) -> None:
+    async def event_breakpoints_set_instrumentation_breakpoint(
+        self, instrumentation_name: str
+    ) -> None:
         """Set an instrumentation breakpoint for events."""
         session = self._require_session()
-        await session.send("EventBreakpoints.setInstrumentationBreakpoint", {"instrumentationName": instrumentation_name})
+        await session.send(
+            "EventBreakpoints.setInstrumentationBreakpoint",
+            {"instrumentationName": instrumentation_name},
+        )
 
     # ── Extensions ──────────────────────────────────────────
 
@@ -6743,18 +6715,28 @@ class CDPBackend(AbstractBackend):
     async def extensions_get_storage_items(self, id: str, storage_type: str) -> dict[str, Any]:
         """Get storage items for an extension."""
         session = self._require_session()
-        result = await session.send("Extensions.getStorageItems", {"id": id, "storageType": storage_type})
+        result = await session.send(
+            "Extensions.getStorageItems", {"id": id, "storageType": storage_type}
+        )
         return dict(result) if result else {}
 
-    async def extensions_remove_storage_items(self, id: str, storage_type: str, keys: list[str]) -> None:
+    async def extensions_remove_storage_items(
+        self, id: str, storage_type: str, keys: list[str]
+    ) -> None:
         """Remove storage items from an extension."""
         session = self._require_session()
-        await session.send("Extensions.removeStorageItems", {"id": id, "storageType": storage_type, "keys": keys})
+        await session.send(
+            "Extensions.removeStorageItems", {"id": id, "storageType": storage_type, "keys": keys}
+        )
 
-    async def extensions_set_storage_items(self, id: str, storage_type: str, values: list[dict[str, Any]]) -> None:
+    async def extensions_set_storage_items(
+        self, id: str, storage_type: str, values: list[dict[str, Any]]
+    ) -> None:
         """Set storage items for an extension."""
         session = self._require_session()
-        await session.send("Extensions.setStorageItems", {"id": id, "storageType": storage_type, "values": values})
+        await session.send(
+            "Extensions.setStorageItems", {"id": id, "storageType": storage_type, "values": values}
+        )
 
     async def extensions_trigger_action(self, id: str, action: str) -> None:
         """Trigger an action on an extension."""
@@ -6766,7 +6748,9 @@ class CDPBackend(AbstractBackend):
     async def fed_cm_click_dialog_button(self, dialog_id: str, button_index: int) -> None:
         """Click a button in a FedCm dialog."""
         session = self._require_session()
-        await session.send("FedCm.clickDialogButton", {"dialogId": dialog_id, "buttonIndex": button_index})
+        await session.send(
+            "FedCm.clickDialogButton", {"dialogId": dialog_id, "buttonIndex": button_index}
+        )
 
     async def fed_cm_disable(self) -> None:
         """Disable the FedCm domain."""
@@ -6786,7 +6770,9 @@ class CDPBackend(AbstractBackend):
     async def fed_cm_open_url(self, dialog_id: str, account_index: int, url: str) -> None:
         """Open a URL from a FedCm dialog."""
         session = self._require_session()
-        await session.send("FedCm.openUrl", {"dialogId": dialog_id, "accountIndex": account_index, "url": url})
+        await session.send(
+            "FedCm.openUrl", {"dialogId": dialog_id, "accountIndex": account_index, "url": url}
+        )
 
     async def fed_cm_reset_cooldown(self) -> None:
         """Reset the FedCm cooldown."""
@@ -6796,11 +6782,20 @@ class CDPBackend(AbstractBackend):
     async def fed_cm_select_account(self, dialog_id: str, account_index: int) -> None:
         """Select an account in a FedCm dialog."""
         session = self._require_session()
-        await session.send("FedCm.selectAccount", {"dialogId": dialog_id, "accountIndex": account_index})
+        await session.send(
+            "FedCm.selectAccount", {"dialogId": dialog_id, "accountIndex": account_index}
+        )
 
     # ── Fetch ───────────────────────────────────────────────
 
-    async def fetch_continue_request(self, request_id: str, url: str | None = None, method: str | None = None, post_data: str | None = None, headers: list[dict[str, Any]] | None = None) -> None:
+    async def fetch_continue_request(
+        self,
+        request_id: str,
+        url: str | None = None,
+        method: str | None = None,
+        post_data: str | None = None,
+        headers: list[dict[str, Any]] | None = None,
+    ) -> None:
         """Continue a paused request with optional modifications."""
         session = self._require_session()
         params: dict[str, Any] = {"requestId": request_id}
@@ -6814,12 +6809,23 @@ class CDPBackend(AbstractBackend):
             params["headers"] = headers
         await session.send("Fetch.continueRequest", params)
 
-    async def fetch_continue_request_with_auth(self, request_id: str, auth_challenge_response: dict[str, Any]) -> None:
+    async def fetch_continue_request_with_auth(
+        self, request_id: str, auth_challenge_response: dict[str, Any]
+    ) -> None:
         """Continue a paused request with authentication."""
         session = self._require_session()
-        await session.send("Fetch.continueWithAuth", {"requestId": request_id, "authChallengeResponse": auth_challenge_response})
+        await session.send(
+            "Fetch.continueWithAuth",
+            {"requestId": request_id, "authChallengeResponse": auth_challenge_response},
+        )
 
-    async def fetch_continue_response(self, request_id: str, response_code: int = 200, response_headers: list[dict[str, Any]] | None = None, binary_response_headers: str | None = None) -> None:
+    async def fetch_continue_response(
+        self,
+        request_id: str,
+        response_code: int = 200,
+        response_headers: list[dict[str, Any]] | None = None,
+        binary_response_headers: str | None = None,
+    ) -> None:
         """Continue a paused response."""
         session = self._require_session()
         params: dict[str, Any] = {"requestId": request_id, "responseCode": response_code}
@@ -6829,17 +6835,24 @@ class CDPBackend(AbstractBackend):
             params["binaryResponseHeaders"] = binary_response_headers
         await session.send("Fetch.continueResponse", params)
 
-    async def fetch_continue_with_auth(self, request_id: str, auth_challenge_response: dict[str, Any]) -> None:
+    async def fetch_continue_with_auth(
+        self, request_id: str, auth_challenge_response: dict[str, Any]
+    ) -> None:
         """Continue a paused request with auth challenge response."""
         session = self._require_session()
-        await session.send("Fetch.continueWithAuth", {"requestId": request_id, "authChallengeResponse": auth_challenge_response})
+        await session.send(
+            "Fetch.continueWithAuth",
+            {"requestId": request_id, "authChallengeResponse": auth_challenge_response},
+        )
 
     async def fetch_disable(self) -> None:
         """Disable the Fetch domain."""
         session = self._require_session()
         await session.send("Fetch.disable", {})
 
-    async def fetch_enable(self, patterns: list[dict[str, Any]] | None = None, handle_auth_requests: bool = False) -> None:
+    async def fetch_enable(
+        self, patterns: list[dict[str, Any]] | None = None, handle_auth_requests: bool = False
+    ) -> None:
         """Enable the Fetch domain with optional patterns."""
         session = self._require_session()
         params: dict[str, Any] = {}
@@ -6852,9 +6865,17 @@ class CDPBackend(AbstractBackend):
     async def fetch_fail_request(self, request_id: str, error_reason: str) -> None:
         """Fail a paused request with an error."""
         session = self._require_session()
-        await session.send("Fetch.failRequest", {"requestId": request_id, "errorReason": error_reason})
+        await session.send(
+            "Fetch.failRequest", {"requestId": request_id, "errorReason": error_reason}
+        )
 
-    async def fetch_fulfill_request(self, request_id: str, response_code: int = 200, response_headers: list[dict[str, Any]] | None = None, body: str | None = None) -> None:
+    async def fetch_fulfill_request(
+        self,
+        request_id: str,
+        response_code: int = 200,
+        response_headers: list[dict[str, Any]] | None = None,
+        body: str | None = None,
+    ) -> None:
         """Fulfill a paused request with a response."""
         session = self._require_session()
         params: dict[str, Any] = {"requestId": request_id, "responseCode": response_code}
@@ -6886,7 +6907,13 @@ class CDPBackend(AbstractBackend):
 
     # ── HeadlessExperimental ────────────────────────────────
 
-    async def headless_experimental_begin_frame(self, frame_time_ticks: float | None = None, interval: float | None = None, no_display_updates: bool = False, screenshot: dict[str, Any] | None = None) -> dict[str, Any]:
+    async def headless_experimental_begin_frame(
+        self,
+        frame_time_ticks: float | None = None,
+        interval: float | None = None,
+        no_display_updates: bool = False,
+        screenshot: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Begin a new frame in headless mode."""
         session = self._require_session()
         params: dict[str, Any] = {}
@@ -7004,10 +7031,14 @@ class CDPBackend(AbstractBackend):
 
     # ── PWA ────────────────────────────────────────────────
 
-    async def pwa_change_app_user_settings(self, app_id: str, user_settings: dict[str, Any]) -> None:
+    async def pwa_change_app_user_settings(
+        self, app_id: str, user_settings: dict[str, Any]
+    ) -> None:
         """Change PWA user settings."""
         session = self._require_session()
-        await session.send("PWA.changeAppUserSettings", {"appId": app_id, "userSettings": user_settings})
+        await session.send(
+            "PWA.changeAppUserSettings", {"appId": app_id, "userSettings": user_settings}
+        )
 
     async def pwa_get_os_app_state(self, app_id: str) -> dict[str, Any]:
         """Get the OS-level state of a PWA."""
@@ -7042,7 +7073,9 @@ class CDPBackend(AbstractBackend):
 
     # ── IO ──────────────────────────────────────────────────
 
-    async def io_read(self, handle: str, offset: int = 0, size: int | None = None) -> dict[str, Any]:
+    async def io_read(
+        self, handle: str, offset: int = 0, size: int | None = None
+    ) -> dict[str, Any]:
         """Read data from a blob handle."""
         session = self._require_session()
         params: dict[str, Any] = {"handle": handle, "offset": offset}
@@ -7085,7 +7118,9 @@ class CDPBackend(AbstractBackend):
         result = await session.send("HeapProfiler.getHeapObjectId", {"objectId": object_id})
         return str(result.get("heapSnapshotObjectId", "")) if result else ""
 
-    async def heap_profiler_get_object_by_heap_object_id(self, object_id: str, object_group: str = "") -> dict[str, Any]:
+    async def heap_profiler_get_object_by_heap_object_id(
+        self, object_id: str, object_group: str = ""
+    ) -> dict[str, Any]:
         """Get an object by heap object ID."""
         session = self._require_session()
         params: dict[str, Any] = {"objectId": object_id}
@@ -7108,10 +7143,14 @@ class CDPBackend(AbstractBackend):
             params["samplingInterval"] = sampling_interval
         await session.send("HeapProfiler.startSampling", params)
 
-    async def heap_profiler_start_tracking_heap_objects(self, track_allocations: bool = False) -> None:
+    async def heap_profiler_start_tracking_heap_objects(
+        self, track_allocations: bool = False
+    ) -> None:
         """Start tracking heap objects."""
         session = self._require_session()
-        await session.send("HeapProfiler.startTrackingHeapObjects", {"trackAllocations": track_allocations})
+        await session.send(
+            "HeapProfiler.startTrackingHeapObjects", {"trackAllocations": track_allocations}
+        )
 
     async def heap_profiler_stop_sampling(self) -> dict[str, Any]:
         """Stop heap sampling and return the profile."""
@@ -7122,7 +7161,9 @@ class CDPBackend(AbstractBackend):
     async def heap_profiler_stop_tracking_heap_objects(self, report_progress: bool = False) -> None:
         """Stop tracking heap objects."""
         session = self._require_session()
-        await session.send("HeapProfiler.stopTrackingHeapObjects", {"reportProgress": report_progress})
+        await session.send(
+            "HeapProfiler.stopTrackingHeapObjects", {"reportProgress": report_progress}
+        )
 
     async def heap_profiler_take_heap_snapshot(self, report_progress: bool = False) -> None:
         """Take a heap snapshot."""
@@ -7131,20 +7172,46 @@ class CDPBackend(AbstractBackend):
 
     # ── IndexedDB ──────────────────────────────────────────
 
-    async def indexed_db_clear_object_store(self, security_origin: str, database_name: str, object_store_name: str) -> None:
+    async def indexed_db_clear_object_store(
+        self, security_origin: str, database_name: str, object_store_name: str
+    ) -> None:
         """Clear all entries in an IndexedDB object store."""
         session = self._require_session()
-        await session.send("IndexedDB.clearObjectStore", {"securityOrigin": security_origin, "databaseName": database_name, "objectStoreName": object_store_name})
+        await session.send(
+            "IndexedDB.clearObjectStore",
+            {
+                "securityOrigin": security_origin,
+                "databaseName": database_name,
+                "objectStoreName": object_store_name,
+            },
+        )
 
     async def indexed_db_delete_database(self, security_origin: str, database_name: str) -> None:
         """Delete an IndexedDB database."""
         session = self._require_session()
-        await session.send("IndexedDB.deleteDatabase", {"securityOrigin": security_origin, "databaseName": database_name})
+        await session.send(
+            "IndexedDB.deleteDatabase",
+            {"securityOrigin": security_origin, "databaseName": database_name},
+        )
 
-    async def indexed_db_delete_object_store_entries(self, security_origin: str, database_name: str, object_store_name: str, key_range: dict[str, Any]) -> None:
+    async def indexed_db_delete_object_store_entries(
+        self,
+        security_origin: str,
+        database_name: str,
+        object_store_name: str,
+        key_range: dict[str, Any],
+    ) -> None:
         """Delete entries in an IndexedDB object store."""
         session = self._require_session()
-        await session.send("IndexedDB.deleteObjectStoreEntries", {"securityOrigin": security_origin, "databaseName": database_name, "objectStoreName": object_store_name, "keyRange": key_range})
+        await session.send(
+            "IndexedDB.deleteObjectStoreEntries",
+            {
+                "securityOrigin": security_origin,
+                "databaseName": database_name,
+                "objectStoreName": object_store_name,
+                "keyRange": key_range,
+            },
+        )
 
     async def indexed_db_disable(self) -> None:
         """Disable the IndexedDB domain."""
@@ -7156,31 +7223,63 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("IndexedDB.enable", {})
 
-    async def indexed_db_get_metadata(self, security_origin: str, database_name: str, object_store_name: str) -> dict[str, Any]:
+    async def indexed_db_get_metadata(
+        self, security_origin: str, database_name: str, object_store_name: str
+    ) -> dict[str, Any]:
         """Get metadata for an IndexedDB object store."""
         session = self._require_session()
-        result = await session.send("IndexedDB.getMetadata", {"securityOrigin": security_origin, "databaseName": database_name, "objectStoreName": object_store_name})
+        result = await session.send(
+            "IndexedDB.getMetadata",
+            {
+                "securityOrigin": security_origin,
+                "databaseName": database_name,
+                "objectStoreName": object_store_name,
+            },
+        )
         return dict(result) if result else {}
 
-    async def indexed_db_request_data(self, security_origin: str, database_name: str, object_store_name: str, index_name: str, skip_count: int = 0, page_size: int = 10, key_range: dict[str, Any] | None = None) -> dict[str, Any]:
+    async def indexed_db_request_data(
+        self,
+        security_origin: str,
+        database_name: str,
+        object_store_name: str,
+        index_name: str,
+        skip_count: int = 0,
+        page_size: int = 10,
+        key_range: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Request data from an IndexedDB object store."""
         session = self._require_session()
-        params: dict[str, Any] = {"securityOrigin": security_origin, "databaseName": database_name, "objectStoreName": object_store_name, "indexName": index_name, "skipCount": skip_count, "pageSize": page_size}
+        params: dict[str, Any] = {
+            "securityOrigin": security_origin,
+            "databaseName": database_name,
+            "objectStoreName": object_store_name,
+            "indexName": index_name,
+            "skipCount": skip_count,
+            "pageSize": page_size,
+        }
         if key_range is not None:
             params["keyRange"] = key_range
         result = await session.send("IndexedDB.requestData", params)
         return dict(result) if result else {}
 
-    async def indexed_db_request_database(self, security_origin: str, database_name: str) -> dict[str, Any]:
+    async def indexed_db_request_database(
+        self, security_origin: str, database_name: str
+    ) -> dict[str, Any]:
         """Request an IndexedDB database with its object stores."""
         session = self._require_session()
-        result = await session.send("IndexedDB.requestDatabase", {"securityOrigin": security_origin, "databaseName": database_name})
+        result = await session.send(
+            "IndexedDB.requestDatabase",
+            {"securityOrigin": security_origin, "databaseName": database_name},
+        )
         return dict(result) if result else {}
 
     async def indexed_db_request_database_names(self, security_origin: str) -> dict[str, Any]:
         """Request the names of all IndexedDB databases for an origin."""
         session = self._require_session()
-        result = await session.send("IndexedDB.requestDatabaseNames", {"securityOrigin": security_origin})
+        result = await session.send(
+            "IndexedDB.requestDatabaseNames", {"securityOrigin": security_origin}
+        )
         return dict(result) if result else {}
 
     # ── LayerTree ──────────────────────────────────────────
@@ -7617,7 +7716,8 @@ class CDPBackend(AbstractBackend):
         await session.send("Network.disable", {})
 
     async def network_emulate_network_conditions_by_rule(
-        self, download_throughput: float = 0,
+        self,
+        download_throughput: float = 0,
         upload_throughput: float = 0,
         offline: bool = False,
         latency: float = 0,
@@ -7751,9 +7851,7 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("SmartCardEmulation.disable", {})
 
-    async def smart_card_report_error(
-        self, request_id: str, error: str
-    ) -> None:
+    async def smart_card_report_error(self, request_id: str, error: str) -> None:
         """Report an error for a pending smart card request.
 
         Args:
@@ -7766,9 +7864,7 @@ class CDPBackend(AbstractBackend):
             {"requestId": request_id, "error": error},
         )
 
-    async def smart_card_report_plain_result(
-        self, request_id: str, result_code: int
-    ) -> None:
+    async def smart_card_report_plain_result(self, request_id: str, result_code: int) -> None:
         """Report a plain result for a pending smart card request.
 
         Args:
@@ -7821,9 +7917,7 @@ class CDPBackend(AbstractBackend):
             },
         )
 
-    async def smart_card_report_status_result(
-        self, request_id: str, status: str
-    ) -> None:
+    async def smart_card_report_status_result(self, request_id: str, status: str) -> None:
         """Report a status result for a pending smart card request.
 
         Args:
@@ -7949,9 +8043,7 @@ class CDPBackend(AbstractBackend):
             Dict with feature state information.
         """
         session = self._require_session()
-        return dict(await session.send(
-            "SystemInfo.getFeatureState", {"featureName": feature_name}
-        ))
+        return dict(await session.send("SystemInfo.getFeatureState", {"featureName": feature_name}))
 
     async def __aenter__(self) -> CDPBackend:
         """Enter async context manager, returning self.
@@ -7961,9 +8053,7 @@ class CDPBackend(AbstractBackend):
         """
         return self
 
-    async def __aexit__(
-        self, exc_type: object, exc_val: object, exc_tb: object
-    ) -> None:
+    async def __aexit__(self, exc_type: object, exc_val: object, exc_tb: object) -> None:
         """Exit async context manager, closing the backend.
 
         Args:
@@ -8078,9 +8168,7 @@ class CDPBackend(AbstractBackend):
             params["objectId"] = object_id
         return dict(await session.send("Accessibility.getPartialAXTree", params))
 
-    async def a11y_get_root_ax_node(
-        self, frame_id: str | None = None
-    ) -> dict[str, Any]:
+    async def a11y_get_root_ax_node(self, frame_id: str | None = None) -> dict[str, Any]:
         """Fetch the root accessibility node.
 
         Args:
@@ -8159,9 +8247,7 @@ class CDPBackend(AbstractBackend):
             Current time in milliseconds.
         """
         session = self._require_session()
-        result = await session.send(
-            "Animation.getCurrentTime", {"id": animation_id}
-        )
+        result = await session.send("Animation.getCurrentTime", {"id": animation_id})
         return float(result.get("currentTime", 0))
 
     async def animation_get_playback_rate(self) -> float:
@@ -8181,9 +8267,7 @@ class CDPBackend(AbstractBackend):
             animations: List of animation IDs to release.
         """
         session = self._require_session()
-        await session.send(
-            "Animation.releaseAnimations", {"animations": animations}
-        )
+        await session.send("Animation.releaseAnimations", {"animations": animations})
 
     async def animation_replay(self, animations: list[str]) -> None:
         """Replay animations from the beginning.
@@ -8204,13 +8288,9 @@ class CDPBackend(AbstractBackend):
             Dict with remote object info.
         """
         session = self._require_session()
-        return dict(await session.send(
-            "Animation.resolveAnimation", {"animationId": animation_id}
-        ))
+        return dict(await session.send("Animation.resolveAnimation", {"animationId": animation_id}))
 
-    async def animation_seek_animations(
-        self, animations: list[str], current_time: int
-    ) -> None:
+    async def animation_seek_animations(self, animations: list[str], current_time: int) -> None:
         """Seek a set of animations to a particular time.
 
         Args:
@@ -8223,9 +8303,7 @@ class CDPBackend(AbstractBackend):
             {"animations": animations, "currentTime": current_time},
         )
 
-    async def animation_seek_to(
-        self, animations: list[str], current_time: int
-    ) -> None:
+    async def animation_seek_to(self, animations: list[str], current_time: int) -> None:
         """Seek animations to a specific time.
 
         Args:
@@ -8238,9 +8316,7 @@ class CDPBackend(AbstractBackend):
             {"animations": animations, "currentTime": current_time},
         )
 
-    async def animation_set_paused(
-        self, animations: list[str], paused: bool
-    ) -> None:
+    async def animation_set_paused(self, animations: list[str], paused: bool) -> None:
         """Pause or resume animations.
 
         Args:
@@ -8260,13 +8336,9 @@ class CDPBackend(AbstractBackend):
             playback_rate: Playback rate (1.0 = normal).
         """
         session = self._require_session()
-        await session.send(
-            "Animation.setPlaybackRate", {"playbackRate": playback_rate}
-        )
+        await session.send("Animation.setPlaybackRate", {"playbackRate": playback_rate})
 
-    async def animation_set_timing(
-        self, animation_id: str, duration: int, delay: int
-    ) -> None:
+    async def animation_set_timing(self, animation_id: str, duration: int, delay: int) -> None:
         """Set the timing of an animation.
 
         Args:
@@ -8340,9 +8412,7 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("Autofill.enable")
 
-    async def autofill_set_addresses(
-        self, addresses: list[dict[str, Any]]
-    ) -> None:
+    async def autofill_set_addresses(self, addresses: list[dict[str, Any]]) -> None:
         """Set autofill addresses for testing.
 
         Args:
@@ -8425,13 +8495,9 @@ class CDPBackend(AbstractBackend):
             service: The background service name.
         """
         session = self._require_session()
-        await session.send(
-            "BackgroundService.clearEvents", {"service": service}
-        )
+        await session.send("BackgroundService.clearEvents", {"service": service})
 
-    async def background_service_set_recording(
-        self, should_record: bool, service: str
-    ) -> None:
+    async def background_service_set_recording(self, should_record: bool, service: str) -> None:
         """Set recording state for a background service.
 
         Args:
@@ -8451,9 +8517,7 @@ class CDPBackend(AbstractBackend):
             service: The background service name.
         """
         session = self._require_session()
-        await session.send(
-            "BackgroundService.startObserving", {"service": service}
-        )
+        await session.send("BackgroundService.startObserving", {"service": service})
 
     async def background_service_stop_observing(self, service: str) -> None:
         """Stop observing events for a background service.
@@ -8462,9 +8526,7 @@ class CDPBackend(AbstractBackend):
             service: The background service name.
         """
         session = self._require_session()
-        await session.send(
-            "BackgroundService.stopObserving", {"service": service}
-        )
+        await session.send("BackgroundService.stopObserving", {"service": service})
 
     # ── Bluetooth Emulation ────────────────────────────────
 
@@ -8514,9 +8576,7 @@ class CDPBackend(AbstractBackend):
         )
         return str(result.get("descriptorId", ""))
 
-    async def bluetooth_emulation_add_service(
-        self, address: str, service_uuid: str
-    ) -> str:
+    async def bluetooth_emulation_add_service(self, address: str, service_uuid: str) -> str:
         """Add a service to a peripheral.
 
         Args:
@@ -8538,9 +8598,7 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("BluetoothEmulation.disable")
 
-    async def bluetooth_emulation_enable(
-        self, state: str, le_supported: bool
-    ) -> None:
+    async def bluetooth_emulation_enable(self, state: str, le_supported: bool) -> None:
         """Enable the Bluetooth emulation domain.
 
         Args:
@@ -8553,9 +8611,7 @@ class CDPBackend(AbstractBackend):
             {"state": state, "leSupported": le_supported},
         )
 
-    async def bluetooth_emulation_remove_characteristic(
-        self, characteristic_id: str
-    ) -> None:
+    async def bluetooth_emulation_remove_characteristic(self, characteristic_id: str) -> None:
         """Remove a characteristic from the simulated central.
 
         Args:
@@ -8567,9 +8623,7 @@ class CDPBackend(AbstractBackend):
             {"characteristicId": characteristic_id},
         )
 
-    async def bluetooth_emulation_remove_descriptor(
-        self, descriptor_id: str
-    ) -> None:
+    async def bluetooth_emulation_remove_descriptor(self, descriptor_id: str) -> None:
         """Remove a descriptor from the simulated central.
 
         Args:
@@ -8588,35 +8642,25 @@ class CDPBackend(AbstractBackend):
             service_id: The service ID.
         """
         session = self._require_session()
-        await session.send(
-            "BluetoothEmulation.removeService", {"serviceId": service_id}
-        )
+        await session.send("BluetoothEmulation.removeService", {"serviceId": service_id})
 
-    async def bluetooth_emulation_set_simulated_central_state(
-        self, state: str
-    ) -> None:
+    async def bluetooth_emulation_set_simulated_central_state(self, state: str) -> None:
         """Set the simulated central state.
 
         Args:
             state: The central state ("powered-on", "powered-off").
         """
         session = self._require_session()
-        await session.send(
-            "BluetoothEmulation.setSimulatedCentralState", {"state": state}
-        )
+        await session.send("BluetoothEmulation.setSimulatedCentralState", {"state": state})
 
-    async def bluetooth_emulation_simulate_advertisement(
-        self, entry: dict[str, Any]
-    ) -> None:
+    async def bluetooth_emulation_simulate_advertisement(self, entry: dict[str, Any]) -> None:
         """Simulate a Bluetooth advertisement.
 
         Args:
             entry: Advertisement entry dict.
         """
         session = self._require_session()
-        await session.send(
-            "BluetoothEmulation.simulateAdvertisement", {"entry": entry}
-        )
+        await session.send("BluetoothEmulation.simulateAdvertisement", {"entry": entry})
 
     async def bluetooth_emulation_simulate_characteristic_operation_response(
         self, characteristic_id: str, op_type: str, code: int, data: str | None = None
@@ -8637,9 +8681,7 @@ class CDPBackend(AbstractBackend):
         }
         if data is not None:
             params["data"] = data
-        await session.send(
-            "BluetoothEmulation.simulateCharacteristicOperationResponse", params
-        )
+        await session.send("BluetoothEmulation.simulateCharacteristicOperationResponse", params)
 
     async def bluetooth_emulation_simulate_descriptor_operation_response(
         self, descriptor_id: str, op_type: str, code: int, data: str | None = None
@@ -8660,22 +8702,16 @@ class CDPBackend(AbstractBackend):
         }
         if data is not None:
             params["data"] = data
-        await session.send(
-            "BluetoothEmulation.simulateDescriptorOperationResponse", params
-        )
+        await session.send("BluetoothEmulation.simulateDescriptorOperationResponse", params)
 
-    async def bluetooth_emulation_simulate_gatt_disconnection(
-        self, address: str
-    ) -> None:
+    async def bluetooth_emulation_simulate_gatt_disconnection(self, address: str) -> None:
         """Simulate a GATT disconnection.
 
         Args:
             address: The peripheral address.
         """
         session = self._require_session()
-        await session.send(
-            "BluetoothEmulation.simulateGATTDisconnection", {"address": address}
-        )
+        await session.send("BluetoothEmulation.simulateGATTDisconnection", {"address": address})
 
     async def bluetooth_emulation_simulate_gatt_operation_response(
         self, address: str, op_type: str, code: int
@@ -8722,7 +8758,10 @@ class CDPBackend(AbstractBackend):
     # ── Browser (extended) ─────────────────────────────────
 
     async def browser_add_privacy_sandbox_coordinator_key_config(
-        self, api: str, coordinator_origin: str, key_config: str,
+        self,
+        api: str,
+        coordinator_origin: str,
+        key_config: str,
         browser_context_id: str | None = None,
     ) -> None:
         """Configure encryption keys for a privacy sandbox API.
@@ -8743,18 +8782,14 @@ class CDPBackend(AbstractBackend):
             params["browserContextId"] = browser_context_id
         await session.send("Browser.addPrivacySandboxCoordinatorKeyConfig", params)
 
-    async def browser_add_privacy_sandbox_enrollment_override(
-        self, url: str
-    ) -> None:
+    async def browser_add_privacy_sandbox_enrollment_override(self, url: str) -> None:
         """Allow a site to use privacy sandbox features that require enrollment.
 
         Args:
             url: The URL to enroll.
         """
         session = self._require_session()
-        await session.send(
-            "Browser.addPrivacySandboxEnrollmentOverride", {"url": url}
-        )
+        await session.send("Browser.addPrivacySandboxEnrollmentOverride", {"url": url})
 
     async def browser_cancel_download(
         self, guid: str, browser_context_id: str | None = None
@@ -8781,18 +8816,14 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("Browser.crashGpuProcess")
 
-    async def browser_execute_browser_command(
-        self, command_id: str
-    ) -> None:
+    async def browser_execute_browser_command(self, command_id: str) -> None:
         """Invoke custom browser commands used by telemetry.
 
         Args:
             command_id: The command ID.
         """
         session = self._require_session()
-        await session.send(
-            "Browser.executeBrowserCommand", {"commandId": command_id}
-        )
+        await session.send("Browser.executeBrowserCommand", {"commandId": command_id})
 
     async def browser_get_browser_command_line(self) -> str:
         """Returns the command line switches for the browser process.
@@ -8814,9 +8845,7 @@ class CDPBackend(AbstractBackend):
         result = await session.send("Browser.getCommandLine")
         return str(result.get("commandLine", ""))
 
-    async def browser_get_histogram(
-        self, name: str, delta: bool = False
-    ) -> dict[str, Any]:
+    async def browser_get_histogram(self, name: str, delta: bool = False) -> dict[str, Any]:
         """Get a Chrome histogram by name.
 
         Args:
@@ -8827,9 +8856,7 @@ class CDPBackend(AbstractBackend):
             Dict with histogram data.
         """
         session = self._require_session()
-        return dict(await session.send(
-            "Browser.getHistogram", {"name": name, "delta": delta}
-        ))
+        return dict(await session.send("Browser.getHistogram", {"name": name, "delta": delta}))
 
     async def browser_get_histograms(
         self, query: str | None = None, delta: bool = False
@@ -8859,9 +8886,7 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         return dict(await session.send("Browser.getVersion"))
 
-    async def browser_get_window_for_target(
-        self, target_id: str | None = None
-    ) -> dict[str, Any]:
+    async def browser_get_window_for_target(self, target_id: str | None = None) -> dict[str, Any]:
         """Get the browser window that contains the devtools target.
 
         Args:
@@ -8877,7 +8902,9 @@ class CDPBackend(AbstractBackend):
         return dict(await session.send("Browser.getWindowForTarget", params))
 
     async def browser_grant_permissions(
-        self, origin: str, permissions: list[str],
+        self,
+        origin: str,
+        permissions: list[str],
         browser_context_id: str | None = None,
     ) -> None:
         """Grant specific permissions to the given origin.
@@ -8929,7 +8956,8 @@ class CDPBackend(AbstractBackend):
         await session.send("Browser.setDockTile", params)
 
     async def browser_set_download_behavior(
-        self, behavior: str,
+        self,
+        behavior: str,
         browser_context_id: str | None = None,
         download_path: str | None = None,
         events_enabled: bool = False,
@@ -8954,7 +8982,9 @@ class CDPBackend(AbstractBackend):
         await session.send("Browser.setDownloadBehavior", params)
 
     async def browser_set_permission(
-        self, permission: dict[str, Any], setting: str,
+        self,
+        permission: dict[str, Any],
+        setting: str,
         origin: str | None = None,
         embedded_origin: str | None = None,
         browser_context_id: str | None = None,
@@ -9009,7 +9039,9 @@ class CDPBackend(AbstractBackend):
         await session.send("Debugger.enable", params)
 
     async def debugger_evaluate_on_call_frame(
-        self, call_frame_id: str, expression: str,
+        self,
+        call_frame_id: str,
+        expression: str,
         object_group: str | None = None,
         include_command_line_api: bool | None = None,
         silent: bool | None = None,
@@ -9038,7 +9070,8 @@ class CDPBackend(AbstractBackend):
         return dict(await session.send("Debugger.evaluateOnCallFrame", params))
 
     async def debugger_get_possible_breakpoints(
-        self, start: dict[str, Any],
+        self,
+        start: dict[str, Any],
         end: dict[str, Any] | None = None,
         restrict_to_function: bool | None = None,
     ) -> list[dict[str, Any]]:
@@ -9071,7 +9104,9 @@ class CDPBackend(AbstractBackend):
     async def debugger_next_wasm_disassembly_chunk(self, stream_id: str) -> dict[str, Any]:
         """Get the next chunk of Wasm disassembly."""
         session = self._require_session()
-        return dict(await session.send("Debugger.nextWasmDisassemblyChunk", {"streamId": stream_id}))
+        return dict(
+            await session.send("Debugger.nextWasmDisassemblyChunk", {"streamId": stream_id})
+        )
 
     async def debugger_pause(self) -> None:
         """Pause script execution."""
@@ -9081,7 +9116,9 @@ class CDPBackend(AbstractBackend):
     async def debugger_pause_on_async_call(self, parent_stack_trace_id: dict[str, Any]) -> None:
         """Pause on the next async call."""
         session = self._require_session()
-        await session.send("Debugger.pauseOnAsyncCall", {"parentStackTraceId": parent_stack_trace_id})
+        await session.send(
+            "Debugger.pauseOnAsyncCall", {"parentStackTraceId": parent_stack_trace_id}
+        )
 
     async def debugger_remove_breakpoint(self, breakpoint_id: str) -> None:
         """Remove a breakpoint by ID."""
@@ -9102,7 +9139,9 @@ class CDPBackend(AbstractBackend):
         await session.send("Debugger.resume", params)
 
     async def debugger_search_in_content(
-        self, script_id: str, query: str,
+        self,
+        script_id: str,
+        query: str,
         case_sensitive: bool | None = None,
         is_regex: bool | None = None,
     ) -> list[dict[str, Any]]:
@@ -9121,10 +9160,14 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("Debugger.setAsyncCallStackDepth", {"maxDepth": max_depth})
 
-    async def debugger_set_blackbox_execution_contexts(self, execution_context_ids: list[int]) -> None:
+    async def debugger_set_blackbox_execution_contexts(
+        self, execution_context_ids: list[int]
+    ) -> None:
         """Replace blackbox execution contexts."""
         session = self._require_session()
-        await session.send("Debugger.setBlackboxExecutionContexts", {"executionContextIds": execution_context_ids})
+        await session.send(
+            "Debugger.setBlackboxExecutionContexts", {"executionContextIds": execution_context_ids}
+        )
 
     async def debugger_set_blackbox_patterns(
         self, patterns: list[str], skip_anonymous: bool | None = None
@@ -9141,7 +9184,9 @@ class CDPBackend(AbstractBackend):
     ) -> None:
         """Set blackboxed ranges for a script."""
         session = self._require_session()
-        await session.send("Debugger.setBlackboxedRanges", {"scriptId": script_id, "positions": positions})
+        await session.send(
+            "Debugger.setBlackboxedRanges", {"scriptId": script_id, "positions": positions}
+        )
 
     async def debugger_set_breakpoint(
         self, location: dict[str, Any], condition: str | None = None
@@ -9154,7 +9199,8 @@ class CDPBackend(AbstractBackend):
         return dict(await session.send("Debugger.setBreakpoint", params))
 
     async def debugger_set_breakpoint_by_url(
-        self, line_number: int,
+        self,
+        line_number: int,
         url: str | None = None,
         url_regex: str | None = None,
         script_hash: str | None = None,
@@ -9194,7 +9240,9 @@ class CDPBackend(AbstractBackend):
     async def debugger_set_instrumentation_breakpoint(self, instrumentation: str) -> None:
         """Set instrumentation breakpoint."""
         session = self._require_session()
-        await session.send("Debugger.setInstrumentationBreakpoint", {"instrumentation": instrumentation})
+        await session.send(
+            "Debugger.setInstrumentationBreakpoint", {"instrumentation": instrumentation}
+        )
 
     async def debugger_set_pause_on_exceptions(self, state: str) -> None:
         """Set pause on exceptions mode."""
@@ -9207,7 +9255,9 @@ class CDPBackend(AbstractBackend):
         await session.send("Debugger.setReturnValue", {"newValue": new_value})
 
     async def debugger_set_script_source(
-        self, script_id: str, source: str,
+        self,
+        script_id: str,
+        source: str,
         dry_run: bool | None = None,
         allow_top_frame_editing: bool | None = None,
     ) -> dict[str, Any]:
@@ -9226,18 +9276,27 @@ class CDPBackend(AbstractBackend):
         await session.send("Debugger.setSkipAllPauses", {"skip": skip})
 
     async def debugger_set_variable_value(
-        self, call_frame_id: str, scope_number: int,
-        variable_name: str, new_value: dict[str, Any],
+        self,
+        call_frame_id: str,
+        scope_number: int,
+        variable_name: str,
+        new_value: dict[str, Any],
     ) -> None:
         """Set the value of a variable in a call frame."""
         session = self._require_session()
-        await session.send("Debugger.setVariableValue", {
-            "callFrameId": call_frame_id, "scopeNumber": scope_number,
-            "variableName": variable_name, "newValue": new_value,
-        })
+        await session.send(
+            "Debugger.setVariableValue",
+            {
+                "callFrameId": call_frame_id,
+                "scopeNumber": scope_number,
+                "variableName": variable_name,
+                "newValue": new_value,
+            },
+        )
 
     async def debugger_step_into(
-        self, break_on_async_call: bool | None = None,
+        self,
+        break_on_async_call: bool | None = None,
         skip_list: list[dict[str, Any]] | None = None,
     ) -> None:
         """Step into the next function call."""
@@ -9254,9 +9313,7 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("Debugger.stepOut", {})
 
-    async def debugger_step_over(
-        self, skip_list: list[dict[str, Any]] | None = None
-    ) -> None:
+    async def debugger_step_over(self, skip_list: list[dict[str, Any]] | None = None) -> None:
         """Step over the next function call."""
         session = self._require_session()
         params: dict[str, Any] = {}
@@ -9308,7 +9365,8 @@ class CDPBackend(AbstractBackend):
         return dict(await session.send("HeapProfiler.getSamplingProfile", {}))
 
     async def heap_profiler_start_sampling(
-        self, sampling_interval: float | None = None,
+        self,
+        sampling_interval: float | None = None,
         stack_depth: float | None = None,
         include_objects_collected_by_major_gc: bool = False,
         include_objects_collected_by_minor_gc: bool = False,
@@ -9325,10 +9383,14 @@ class CDPBackend(AbstractBackend):
             params["stackDepth"] = stack_depth
         await session.send("HeapProfiler.startSampling", params)
 
-    async def heap_profiler_start_tracking_heap_objects(self, track_allocations: bool = False) -> None:
+    async def heap_profiler_start_tracking_heap_objects(
+        self, track_allocations: bool = False
+    ) -> None:
         """Start tracking heap object allocation."""
         session = self._require_session()
-        await session.send("HeapProfiler.startTrackingHeapObjects", {"trackAllocations": track_allocations})
+        await session.send(
+            "HeapProfiler.startTrackingHeapObjects", {"trackAllocations": track_allocations}
+        )
 
     async def heap_profiler_stop_sampling(self) -> dict[str, Any]:
         """Stop sampling heap allocations and return the profile."""
@@ -9336,30 +9398,40 @@ class CDPBackend(AbstractBackend):
         return dict(await session.send("HeapProfiler.stopSampling", {}))
 
     async def heap_profiler_stop_tracking_heap_objects(
-        self, report_progress: bool = False,
+        self,
+        report_progress: bool = False,
         capture_numeric_value: bool = False,
         expose_internals: bool = False,
     ) -> dict[str, Any]:
         """Stop tracking heap object allocation."""
         session = self._require_session()
-        return dict(await session.send("HeapProfiler.stopTrackingHeapObjects", {
-            "reportProgress": report_progress,
-            "captureNumericValue": capture_numeric_value,
-            "exposeInternals": expose_internals,
-        }))
+        return dict(
+            await session.send(
+                "HeapProfiler.stopTrackingHeapObjects",
+                {
+                    "reportProgress": report_progress,
+                    "captureNumericValue": capture_numeric_value,
+                    "exposeInternals": expose_internals,
+                },
+            )
+        )
 
     async def heap_profiler_take_heap_snapshot(
-        self, report_progress: bool = False,
+        self,
+        report_progress: bool = False,
         capture_numeric_value: bool = False,
         expose_internals: bool = False,
     ) -> None:
         """Take a heap snapshot."""
         session = self._require_session()
-        await session.send("HeapProfiler.takeHeapSnapshot", {
-            "reportProgress": report_progress,
-            "captureNumericValue": capture_numeric_value,
-            "exposeInternals": expose_internals,
-        })
+        await session.send(
+            "HeapProfiler.takeHeapSnapshot",
+            {
+                "reportProgress": report_progress,
+                "captureNumericValue": capture_numeric_value,
+                "exposeInternals": expose_internals,
+            },
+        )
 
     # ── SmartCardEmulation ────────────────────────────────
 
@@ -9378,7 +9450,10 @@ class CDPBackend(AbstractBackend):
     ) -> None:
         """Report the result of beginning a transaction."""
         session = self._require_session()
-        await session.send("SmartCardEmulation.reportBeginTransactionResult", {"requestId": request_id, "handle": handle})
+        await session.send(
+            "SmartCardEmulation.reportBeginTransactionResult",
+            {"requestId": request_id, "handle": handle},
+        )
 
     async def smart_card_emulation_report_connect_result(
         self, request_id: str, handle: int, active_protocol: str | None = None
@@ -9390,40 +9465,49 @@ class CDPBackend(AbstractBackend):
             params["activeProtocol"] = active_protocol
         await session.send("SmartCardEmulation.reportConnectResult", params)
 
-    async def smart_card_emulation_report_data_result(
-        self, request_id: str, data: str
-    ) -> None:
+    async def smart_card_emulation_report_data_result(self, request_id: str, data: str) -> None:
         """Report the result of a data transfer."""
         session = self._require_session()
-        await session.send("SmartCardEmulation.reportDataResult", {"requestId": request_id, "data": data})
+        await session.send(
+            "SmartCardEmulation.reportDataResult", {"requestId": request_id, "data": data}
+        )
 
-    async def smart_card_emulation_report_error(
-        self, request_id: str, result_code: str
-    ) -> None:
+    async def smart_card_emulation_report_error(self, request_id: str, result_code: str) -> None:
         """Report an error result for a request."""
         session = self._require_session()
-        await session.send("SmartCardEmulation.reportError", {"requestId": request_id, "resultCode": result_code})
+        await session.send(
+            "SmartCardEmulation.reportError", {"requestId": request_id, "resultCode": result_code}
+        )
 
     async def smart_card_emulation_report_establish_context_result(
         self, request_id: str, context_id: int
     ) -> None:
         """Report the result of establishing a context."""
         session = self._require_session()
-        await session.send("SmartCardEmulation.reportEstablishContextResult", {"requestId": request_id, "contextId": context_id})
+        await session.send(
+            "SmartCardEmulation.reportEstablishContextResult",
+            {"requestId": request_id, "contextId": context_id},
+        )
 
     async def smart_card_emulation_report_get_status_change_result(
         self, request_id: str, reader_states: list[dict[str, Any]]
     ) -> None:
         """Report the result of getting status changes."""
         session = self._require_session()
-        await session.send("SmartCardEmulation.reportGetStatusChangeResult", {"requestId": request_id, "readerStates": reader_states})
+        await session.send(
+            "SmartCardEmulation.reportGetStatusChangeResult",
+            {"requestId": request_id, "readerStates": reader_states},
+        )
 
     async def smart_card_emulation_report_list_readers_result(
         self, request_id: str, readers: list[str]
     ) -> None:
         """Report the result of listing readers."""
         session = self._require_session()
-        await session.send("SmartCardEmulation.reportListReadersResult", {"requestId": request_id, "readers": readers})
+        await session.send(
+            "SmartCardEmulation.reportListReadersResult",
+            {"requestId": request_id, "readers": readers},
+        )
 
     async def smart_card_emulation_report_plain_result(self, request_id: str) -> None:
         """Report a plain result."""
@@ -9433,15 +9517,26 @@ class CDPBackend(AbstractBackend):
     async def smart_card_emulation_report_release_context_result(self, request_id: str) -> None:
         """Report the result of releasing a context."""
         session = self._require_session()
-        await session.send("SmartCardEmulation.reportReleaseContextResult", {"requestId": request_id})
+        await session.send(
+            "SmartCardEmulation.reportReleaseContextResult", {"requestId": request_id}
+        )
 
     async def smart_card_emulation_report_status_result(
-        self, request_id: str, reader_name: str, state: str, atr: str,
+        self,
+        request_id: str,
+        reader_name: str,
+        state: str,
+        atr: str,
         protocol: str | None = None,
     ) -> None:
         """Report the status of a card."""
         session = self._require_session()
-        params: dict[str, Any] = {"requestId": request_id, "readerName": reader_name, "state": state, "atr": atr}
+        params: dict[str, Any] = {
+            "requestId": request_id,
+            "readerName": reader_name,
+            "state": state,
+            "atr": atr,
+        }
         if protocol is not None:
             params["protocol"] = protocol
         await session.send("SmartCardEmulation.reportStatusResult", params)
@@ -9449,14 +9544,19 @@ class CDPBackend(AbstractBackend):
     # ── IndexedDB ─────────────────────────────────────────
 
     async def indexed_db_clear_object_store(
-        self, database_name: str, object_store_name: str,
+        self,
+        database_name: str,
+        object_store_name: str,
         security_origin: str | None = None,
         storage_key: str | None = None,
         storage_bucket: dict[str, Any] | None = None,
     ) -> None:
         """Clears all entries from an object store."""
         session = self._require_session()
-        params: dict[str, Any] = {"databaseName": database_name, "objectStoreName": object_store_name}
+        params: dict[str, Any] = {
+            "databaseName": database_name,
+            "objectStoreName": object_store_name,
+        }
         if security_origin is not None:
             params["securityOrigin"] = security_origin
         if storage_key is not None:
@@ -9466,7 +9566,8 @@ class CDPBackend(AbstractBackend):
         await session.send("IndexedDB.clearObjectStore", params)
 
     async def indexed_db_delete_database(
-        self, database_name: str,
+        self,
+        database_name: str,
         security_origin: str | None = None,
         storage_key: str | None = None,
         storage_bucket: dict[str, Any] | None = None,
@@ -9483,14 +9584,21 @@ class CDPBackend(AbstractBackend):
         await session.send("IndexedDB.deleteDatabase", params)
 
     async def indexed_db_delete_object_store_entries(
-        self, database_name: str, object_store_name: str, key_range: dict[str, Any],
+        self,
+        database_name: str,
+        object_store_name: str,
+        key_range: dict[str, Any],
         security_origin: str | None = None,
         storage_key: str | None = None,
         storage_bucket: dict[str, Any] | None = None,
     ) -> None:
         """Delete a range of entries from an object store."""
         session = self._require_session()
-        params: dict[str, Any] = {"databaseName": database_name, "objectStoreName": object_store_name, "keyRange": key_range}
+        params: dict[str, Any] = {
+            "databaseName": database_name,
+            "objectStoreName": object_store_name,
+            "keyRange": key_range,
+        }
         if security_origin is not None:
             params["securityOrigin"] = security_origin
         if storage_key is not None:
@@ -9510,14 +9618,19 @@ class CDPBackend(AbstractBackend):
         await session.send("IndexedDB.enable", {})
 
     async def indexed_db_get_metadata(
-        self, database_name: str, object_store_name: str,
+        self,
+        database_name: str,
+        object_store_name: str,
         security_origin: str | None = None,
         storage_key: str | None = None,
         storage_bucket: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Gets metadata of an object store."""
         session = self._require_session()
-        params: dict[str, Any] = {"databaseName": database_name, "objectStoreName": object_store_name}
+        params: dict[str, Any] = {
+            "databaseName": database_name,
+            "objectStoreName": object_store_name,
+        }
         if security_origin is not None:
             params["securityOrigin"] = security_origin
         if storage_key is not None:
@@ -9527,7 +9640,9 @@ class CDPBackend(AbstractBackend):
         return dict(await session.send("IndexedDB.getMetadata", params))
 
     async def indexed_db_request_data(
-        self, database_name: str, object_store_name: str,
+        self,
+        database_name: str,
+        object_store_name: str,
         security_origin: str | None = None,
         storage_key: str | None = None,
         index_name: str = "",
@@ -9538,7 +9653,13 @@ class CDPBackend(AbstractBackend):
     ) -> dict[str, Any]:
         """Requests data from object store or index."""
         session = self._require_session()
-        params: dict[str, Any] = {"databaseName": database_name, "objectStoreName": object_store_name, "indexName": index_name, "skipCount": skip_count, "pageSize": page_size}
+        params: dict[str, Any] = {
+            "databaseName": database_name,
+            "objectStoreName": object_store_name,
+            "indexName": index_name,
+            "skipCount": skip_count,
+            "pageSize": page_size,
+        }
         if security_origin is not None:
             params["securityOrigin"] = security_origin
         if storage_key is not None:
@@ -9550,7 +9671,8 @@ class CDPBackend(AbstractBackend):
         return dict(await session.send("IndexedDB.requestData", params))
 
     async def indexed_db_request_database(
-        self, database_name: str,
+        self,
+        database_name: str,
         security_origin: str | None = None,
         storage_key: str | None = None,
         storage_bucket: dict[str, Any] | None = None,
@@ -9567,7 +9689,8 @@ class CDPBackend(AbstractBackend):
         return dict(await session.send("IndexedDB.requestDatabase", params))
 
     async def indexed_db_request_database_names(
-        self, security_origin: str | None = None,
+        self,
+        security_origin: str | None = None,
         storage_key: str | None = None,
         storage_bucket: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
@@ -9612,7 +9735,8 @@ class CDPBackend(AbstractBackend):
         return str(result.get("snapshotId", ""))
 
     async def layer_tree_profile_snapshot(
-        self, snapshot_id: str,
+        self,
+        snapshot_id: str,
         min_repeat_count: int | None = None,
         min_duration: float | None = None,
         clip_rect: dict[str, Any] | None = None,
@@ -9634,7 +9758,8 @@ class CDPBackend(AbstractBackend):
         await session.send("LayerTree.releaseSnapshot", {"snapshotId": snapshot_id})
 
     async def layer_tree_replay_snapshot(
-        self, snapshot_id: str,
+        self,
+        snapshot_id: str,
         from_step: int | None = None,
         to_step: int | None = None,
         scale: float | None = None,
@@ -9660,7 +9785,9 @@ class CDPBackend(AbstractBackend):
     async def fed_cm_click_dialog_button(self, dialog_id: str, dialog_button: str) -> None:
         """Click a FedCM dialog button."""
         session = self._require_session()
-        await session.send("FedCM.clickDialogButton", {"dialogId": dialog_id, "dialogButton": dialog_button})
+        await session.send(
+            "FedCM.clickDialogButton", {"dialogId": dialog_id, "dialogButton": dialog_button}
+        )
 
     async def fed_cm_disable(self) -> None:
         """Disable the FedCM domain."""
@@ -9670,7 +9797,9 @@ class CDPBackend(AbstractBackend):
     async def fed_cm_dismiss_dialog(self, dialog_id: str, trigger_cooldown: bool = False) -> None:
         """Dismiss a FedCM dialog."""
         session = self._require_session()
-        await session.send("FedCM.dismissDialog", {"dialogId": dialog_id, "triggerCooldown": trigger_cooldown})
+        await session.send(
+            "FedCM.dismissDialog", {"dialogId": dialog_id, "triggerCooldown": trigger_cooldown}
+        )
 
     async def fed_cm_enable(self, disable_rejection_delay: bool = False) -> None:
         """Enable the FedCM domain."""
@@ -9682,7 +9811,14 @@ class CDPBackend(AbstractBackend):
     ) -> None:
         """Open a URL in a FedCM dialog."""
         session = self._require_session()
-        await session.send("FedCM.openURL", {"dialogId": dialog_id, "accountIndex": account_index, "accountUrlType": account_url_type})
+        await session.send(
+            "FedCM.openURL",
+            {
+                "dialogId": dialog_id,
+                "accountIndex": account_index,
+                "accountUrlType": account_url_type,
+            },
+        )
 
     async def fed_cm_reset_cooldown(self) -> None:
         """Reset the FedCM cooldown."""
@@ -9692,7 +9828,9 @@ class CDPBackend(AbstractBackend):
     async def fed_cm_select_account(self, dialog_id: str, account_index: int) -> None:
         """Select an account in a FedCM dialog."""
         session = self._require_session()
-        await session.send("FedCM.selectAccount", {"dialogId": dialog_id, "accountIndex": account_index})
+        await session.send(
+            "FedCM.selectAccount", {"dialogId": dialog_id, "accountIndex": account_index}
+        )
 
     # ── CacheStorage ──────────────────────────────────────
 
@@ -9707,7 +9845,8 @@ class CDPBackend(AbstractBackend):
         await session.send("CacheStorage.deleteEntry", {"cacheId": cache_id, "request": request})
 
     async def cache_storage_request_cache_names(
-        self, security_origin: str | None = None,
+        self,
+        security_origin: str | None = None,
         storage_key: str | None = None,
         storage_bucket: dict[str, Any] | None = None,
     ) -> list[dict[str, Any]]:
@@ -9728,12 +9867,20 @@ class CDPBackend(AbstractBackend):
     ) -> dict[str, Any]:
         """Fetches cache entry."""
         session = self._require_session()
-        return dict(await session.send("CacheStorage.requestCachedResponse", {
-            "cacheId": cache_id, "requestUrl": request_url, "requestHeaders": request_headers,
-        }))
+        return dict(
+            await session.send(
+                "CacheStorage.requestCachedResponse",
+                {
+                    "cacheId": cache_id,
+                    "requestUrl": request_url,
+                    "requestHeaders": request_headers,
+                },
+            )
+        )
 
     async def cache_storage_request_entries(
-        self, cache_id: str,
+        self,
+        cache_id: str,
         skip_count: int | None = None,
         page_size: int | None = None,
         path_filter: str | None = None,
@@ -9771,7 +9918,9 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.send("DOMStorage.enable", {})
 
-    async def dom_storage_get_dom_storage_items(self, storage_id: dict[str, Any]) -> list[dict[str, Any]]:
+    async def dom_storage_get_dom_storage_items(
+        self, storage_id: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """Get DOM storage items."""
         session = self._require_session()
         result = await session.send("DOMStorage.getDOMStorageItems", {"storageId": storage_id})
@@ -9789,14 +9938,18 @@ class CDPBackend(AbstractBackend):
     ) -> None:
         """Set a DOM storage item."""
         session = self._require_session()
-        await session.send("DOMStorage.setDOMStorageItem", {"storageId": storage_id, "key": key, "value": value})
+        await session.send(
+            "DOMStorage.setDOMStorageItem", {"storageId": storage_id, "key": key, "value": value}
+        )
 
     # ── EventBreakpoints ──────────────────────────────────
 
     async def event_breakpoints_clear_instrumentation_breakpoint(self, event_name: str) -> None:
         """Remove a breakpoint on a particular native event."""
         session = self._require_session()
-        await session.send("EventBreakpoints.clearInstrumentationBreakpoint", {"eventName": event_name})
+        await session.send(
+            "EventBreakpoints.clearInstrumentationBreakpoint", {"eventName": event_name}
+        )
 
     async def event_breakpoints_disable(self) -> None:
         """Remove all breakpoints."""
@@ -9806,12 +9959,16 @@ class CDPBackend(AbstractBackend):
     async def event_breakpoints_remove_instrumentation_breakpoint(self, event_name: str) -> None:
         """Remove a breakpoint on a particular native event."""
         session = self._require_session()
-        await session.send("EventBreakpoints.removeInstrumentationBreakpoint", {"eventName": event_name})
+        await session.send(
+            "EventBreakpoints.removeInstrumentationBreakpoint", {"eventName": event_name}
+        )
 
     async def event_breakpoints_set_instrumentation_breakpoint(self, event_name: str) -> None:
         """Set a breakpoint on a particular native event."""
         session = self._require_session()
-        await session.send("EventBreakpoints.setInstrumentationBreakpoint", {"eventName": event_name})
+        await session.send(
+            "EventBreakpoints.setInstrumentationBreakpoint", {"eventName": event_name}
+        )
 
     # ── Extensions ────────────────────────────────────────
 
@@ -9826,7 +9983,11 @@ class CDPBackend(AbstractBackend):
     ) -> dict[str, Any]:
         """Installs an unpacked extension from the filesystem."""
         session = self._require_session()
-        return dict(await session.send("Extensions.loadUnpacked", {"path": path, "enableInIncognito": enable_in_incognito}))
+        return dict(
+            await session.send(
+                "Extensions.loadUnpacked", {"path": path, "enableInIncognito": enable_in_incognito}
+            )
+        )
 
     async def extensions_uninstall(self, extension_id: str) -> None:
         """Uninstalls an unpacked extension."""
@@ -9836,7 +9997,8 @@ class CDPBackend(AbstractBackend):
     # ── HeadlessExperimental ──────────────────────────────
 
     async def headless_experimental_begin_frame(
-        self, frame_time_ticks: float | None = None,
+        self,
+        frame_time_ticks: float | None = None,
         interval: float | None = None,
         no_display_updates: bool | None = None,
         screenshot: dict[str, Any] | None = None,
@@ -9869,7 +10031,9 @@ class CDPBackend(AbstractBackend):
     async def system_info_get_feature_state(self, feature_state: str) -> dict[str, Any]:
         """Returns information about the feature state."""
         session = self._require_session()
-        return dict(await session.send("SystemInfo.getFeatureState", {"featureState": feature_state}))
+        return dict(
+            await session.send("SystemInfo.getFeatureState", {"featureState": feature_state})
+        )
 
     async def system_info_get_info(self) -> dict[str, Any]:
         """Returns information about the system."""
@@ -9893,7 +10057,10 @@ class CDPBackend(AbstractBackend):
     ) -> None:
         """Set a device orientation override."""
         session = self._require_session()
-        await session.send("DeviceOrientation.setDeviceOrientationOverride", {"alpha": alpha, "beta": beta, "gamma": gamma})
+        await session.send(
+            "DeviceOrientation.setDeviceOrientationOverride",
+            {"alpha": alpha, "beta": beta, "gamma": gamma},
+        )
 
     # ── DOMDebugger ───────────────────────────────────────
 
@@ -9938,7 +10105,9 @@ class CDPBackend(AbstractBackend):
     async def dom_debugger_set_break_on_csp_violation(self, violation_types: list[str]) -> None:
         """Set breakpoints on CSP violations."""
         session = self._require_session()
-        await session.send("DOMDebugger.setBreakOnCSPViolation", {"violationTypes": violation_types})
+        await session.send(
+            "DOMDebugger.setBreakOnCSPViolation", {"violationTypes": violation_types}
+        )
 
     async def dom_debugger_set_dom_breakpoint(self, node_id: int, type: str) -> None:
         """Set a DOM breakpoint on a node."""
@@ -9968,7 +10137,8 @@ class CDPBackend(AbstractBackend):
     # ── DOMSnapshot ───────────────────────────────────────
 
     async def dom_snapshot_capture_snapshot(
-        self, computed_styles: list[str],
+        self,
+        computed_styles: list[str],
         include_paint_order: bool = False,
         include_dom_rects: bool = False,
         include_blended_background_colors: bool = False,
@@ -9976,13 +10146,18 @@ class CDPBackend(AbstractBackend):
     ) -> dict[str, Any]:
         """Capture a document snapshot."""
         session = self._require_session()
-        return dict(await session.send("DOMSnapshot.captureSnapshot", {
-            "computedStyles": computed_styles,
-            "includePaintOrder": include_paint_order,
-            "includeDOMRects": include_dom_rects,
-            "includeBlendedBackgroundColors": include_blended_background_colors,
-            "includeTextColorOpacities": include_text_color_opacities,
-        }))
+        return dict(
+            await session.send(
+                "DOMSnapshot.captureSnapshot",
+                {
+                    "computedStyles": computed_styles,
+                    "includePaintOrder": include_paint_order,
+                    "includeDOMRects": include_dom_rects,
+                    "includeBlendedBackgroundColors": include_blended_background_colors,
+                    "includeTextColorOpacities": include_text_color_opacities,
+                },
+            )
+        )
 
     async def dom_snapshot_disable(self) -> None:
         """Disable the DOM snapshot agent."""
@@ -9995,7 +10170,8 @@ class CDPBackend(AbstractBackend):
         await session.send("DOMSnapshot.enable", {})
 
     async def dom_snapshot_get_snapshot(
-        self, computed_style_whitelist: list[str],
+        self,
+        computed_style_whitelist: list[str],
         include_event_listeners: bool | None = None,
         include_paint_order: bool | None = None,
         include_user_agent_shadow_tree: bool | None = None,
@@ -10046,7 +10222,9 @@ class CDPBackend(AbstractBackend):
     async def webauthn_remove_virtual_authenticator(self, authenticator_id: str) -> None:
         """Remove a virtual authenticator."""
         session = self._require_session()
-        await session.send("WebAuthn.removeVirtualAuthenticator", {"authenticatorId": authenticator_id})
+        await session.send(
+            "WebAuthn.removeVirtualAuthenticator", {"authenticatorId": authenticator_id}
+        )
 
     async def crash_report_context_get_entries(self) -> list[dict[str, Any]]:
         """Return all entries in the CrashReportContext."""
@@ -10055,7 +10233,8 @@ class CDPBackend(AbstractBackend):
         return list(result.get("entries", []))
 
     async def digital_credentials_set_virtual_wallet_behavior(
-        self, action: str,
+        self,
+        action: str,
         protocol: str | None = None,
         response: dict[str, Any] | None = None,
         frame_id: str | None = None,
@@ -10076,9 +10255,16 @@ class CDPBackend(AbstractBackend):
     ) -> dict[str, Any]:
         """Get a file system directory."""
         session = self._require_session()
-        return dict(await session.send("FileSystem.getDirectory", {
-            "storageKey": storage_key, "pathComponents": path_components, "bucketName": bucket_name,
-        }))
+        return dict(
+            await session.send(
+                "FileSystem.getDirectory",
+                {
+                    "storageKey": storage_key,
+                    "pathComponents": path_components,
+                    "bucketName": bucket_name,
+                },
+            )
+        )
 
 
 class TabHandle(CDPBackend):

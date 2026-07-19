@@ -87,9 +87,7 @@ async def test_perf_coverage(backend: CDPBackend, browser_opts: BrowserOptions) 
     assert isinstance(result, dict)
 
 
-async def test_perf_css_coverage(
-    backend: CDPBackend, browser_opts: BrowserOptions
-) -> None:
+async def test_perf_css_coverage(backend: CDPBackend, browser_opts: BrowserOptions) -> None:
     """Test perf css coverage."""
     params = PerformanceParams(
         url="https://example.com",

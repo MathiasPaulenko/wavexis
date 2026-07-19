@@ -12,12 +12,13 @@ from wavexis.actions.bluetooth import BluetoothAction, BluetoothParams
 @pytest.mark.unit
 class TestBluetoothAction:
     """Test suite for bluetoothaction."""
+
     def _make_backend(self) -> MagicMock:
         """Create a mock backend for testing.
 
-            Returns:
-                A MagicMock backend instance.
-            """
+        Returns:
+            A MagicMock backend instance.
+        """
         backend = MagicMock()
         backend.launch = AsyncMock()
         backend.navigate = AsyncMock()
@@ -29,14 +30,10 @@ class TestBluetoothAction:
     async def test_emulate(self) -> None:
         """Test emulate."""
         backend = self._make_backend()
-        params = BluetoothParams(
-            url="https://example.com", action="emulate", name="Test Device"
-        )
+        params = BluetoothParams(url="https://example.com", action="emulate", name="Test Device")
         result = await BluetoothAction(params).execute(backend)
         assert result is None
-        backend.bluetooth_emulate.assert_called_once_with(
-            "Test Device", "00:00:00:00:00:01"
-        )
+        backend.bluetooth_emulate.assert_called_once_with("Test Device", "00:00:00:00:00:01")
 
     async def test_emulate_custom_address(self) -> None:
         """Test emulate custom address."""
@@ -48,9 +45,7 @@ class TestBluetoothAction:
             address="AA:BB:CC:DD:EE:FF",
         )
         await BluetoothAction(params).execute(backend)
-        backend.bluetooth_emulate.assert_called_once_with(
-            "My Device", "AA:BB:CC:DD:EE:FF"
-        )
+        backend.bluetooth_emulate.assert_called_once_with("My Device", "AA:BB:CC:DD:EE:FF")
 
     async def test_emulate_missing_name_raises(self) -> None:
         """Test that emulate missing name raises raises an appropriate error."""
@@ -77,8 +72,6 @@ class TestBluetoothAction:
     async def test_lifecycle(self) -> None:
         """Test the action lifecycle (launch, execute, close)."""
         backend = self._make_backend()
-        params = BluetoothParams(
-            url="https://example.com", action="emulate", name="Test"
-        )
+        params = BluetoothParams(url="https://example.com", action="emulate", name="Test")
         await BluetoothAction(params).execute(backend)
         backend.navigate.assert_called_once()

@@ -12,19 +12,18 @@ from wavexis.config import AnimationParams
 @pytest.mark.unit
 class TestAnimationAction:
     """Test suite for animationaction."""
+
     def _make_backend(self) -> MagicMock:
         """Create a mock backend for testing.
 
-            Returns:
-                A MagicMock backend instance.
-            """
+        Returns:
+            A MagicMock backend instance.
+        """
         backend = MagicMock(spec=AbstractBackend)
         backend.launch = AsyncMock()
         backend.close = AsyncMock()
         backend.navigate = AsyncMock()
-        backend.animation_list = AsyncMock(
-            return_value=[{"id": "anim1", "name": "fade"}]
-        )
+        backend.animation_list = AsyncMock(return_value=[{"id": "anim1", "name": "fade"}])
         backend.animation_pause = AsyncMock()
         backend.animation_play = AsyncMock()
         backend.animation_seek = AsyncMock()
@@ -41,9 +40,7 @@ class TestAnimationAction:
     async def test_pause_action(self) -> None:
         """Test pause action."""
         backend = self._make_backend()
-        params = AnimationParams(
-            url="https://example.com", action="pause", animation_id="anim1"
-        )
+        params = AnimationParams(url="https://example.com", action="pause", animation_id="anim1")
         result = await AnimationAction(params).execute(backend)
         assert result is None
         backend.animation_pause.assert_called_once_with("anim1")
@@ -51,9 +48,7 @@ class TestAnimationAction:
     async def test_play_action(self) -> None:
         """Test play action."""
         backend = self._make_backend()
-        params = AnimationParams(
-            url="https://example.com", action="play", animation_id="anim1"
-        )
+        params = AnimationParams(url="https://example.com", action="play", animation_id="anim1")
         result = await AnimationAction(params).execute(backend)
         assert result is None
         backend.animation_play.assert_called_once_with("anim1")
@@ -78,9 +73,7 @@ class TestAnimationAction:
     async def test_seek_missing_time_raises(self) -> None:
         """Test that seek missing time raises raises an appropriate error."""
         backend = self._make_backend()
-        params = AnimationParams(
-            url="https://example.com", action="seek", animation_id="anim1"
-        )
+        params = AnimationParams(url="https://example.com", action="seek", animation_id="anim1")
         with pytest.raises(ValueError, match="animation_id and time_ms are required"):
             await AnimationAction(params).execute(backend)
 

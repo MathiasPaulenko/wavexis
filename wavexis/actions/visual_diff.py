@@ -55,23 +55,15 @@ class VisualDiffAction(BaseAction[VisualDiffParams, dict[str, Any]]):
             await backend.navigate(self.params.url, self.params.wait)
 
         if self.params.selector:
-            current_bytes = await backend.screenshot_selector(
-                self.params.selector, format="png"
-            )
+            current_bytes = await backend.screenshot_selector(self.params.selector, format="png")
         else:
-            current_bytes = await backend.screenshot(
-                ScreenshotParams(url="", format="png")
-            )
+            current_bytes = await backend.screenshot(ScreenshotParams(url="", format="png"))
 
-        baseline_bytes = await asyncio.to_thread(
-            Path(self.params.baseline_path).read_bytes
-        )
+        baseline_bytes = await asyncio.to_thread(Path(self.params.baseline_path).read_bytes)
 
         return self._compare(baseline_bytes, current_bytes)
 
-    def _compare(
-        self, baseline: bytes, current: bytes
-    ) -> dict[str, Any]:
+    def _compare(self, baseline: bytes, current: bytes) -> dict[str, Any]:
         """Compare two PNG byte buffers and return diff metrics.
 
         Args:
@@ -98,11 +90,7 @@ class VisualDiffAction(BaseAction[VisualDiffParams, dict[str, Any]]):
 
         diff_array = list(diff.getdata())  # noqa: SIM118
         total_pixels = len(diff_array)
-        diff_count = sum(
-            1
-            for r, g, b in diff_array
-            if max(r, g, b) > self.params.threshold
-        )
+        diff_count = sum(1 for r, g, b in diff_array if max(r, g, b) > self.params.threshold)
 
         diff_percentage = (diff_count / total_pixels * 100) if total_pixels else 0.0
 

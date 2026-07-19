@@ -11,12 +11,13 @@ from wavexis.backend.base import AbstractBackend
 @pytest.mark.unit
 class TestPerformanceAction:
     """Test suite for performanceaction."""
+
     def _make_backend(self) -> MagicMock:
         """Create a mock backend for testing.
 
-            Returns:
-                A MagicMock backend instance.
-            """
+        Returns:
+            A MagicMock backend instance.
+        """
         backend = MagicMock(spec=AbstractBackend)
         backend.launch = AsyncMock()
         backend.close = AsyncMock()
@@ -24,9 +25,7 @@ class TestPerformanceAction:
         backend.perf_metrics = AsyncMock(
             return_value={"Timestamp": 1234.5, "Documents": 1, "Frames": 1}
         )
-        backend.perf_trace = AsyncMock(
-            return_value={"traceEvents": [{"name": "X", "ts": 100}]}
-        )
+        backend.perf_trace = AsyncMock(return_value={"traceEvents": [{"name": "X", "ts": 100}]})
         backend.perf_profile = AsyncMock(
             return_value={"nodes": [], "samples": [], "timeDeltas": []}
         )
@@ -53,9 +52,7 @@ class TestPerformanceAction:
     async def test_trace_action(self) -> None:
         """Test trace action."""
         backend = self._make_backend()
-        params = PerformanceParams(
-            url="https://example.com", action="trace", duration_ms=1000
-        )
+        params = PerformanceParams(url="https://example.com", action="trace", duration_ms=1000)
         result = await PerformanceAction(params).execute(backend)
         backend.perf_trace.assert_called_once_with(1000)
         assert "traceEvents" in result
@@ -63,9 +60,7 @@ class TestPerformanceAction:
     async def test_profile_action(self) -> None:
         """Test profile action."""
         backend = self._make_backend()
-        params = PerformanceParams(
-            url="https://example.com", action="profile", duration_ms=2000
-        )
+        params = PerformanceParams(url="https://example.com", action="profile", duration_ms=2000)
         result = await PerformanceAction(params).execute(backend)
         backend.perf_profile.assert_called_once_with(2000)
         assert "nodes" in result
@@ -89,9 +84,7 @@ class TestPerformanceAction:
     async def test_css_coverage_action(self) -> None:
         """Test css coverage action."""
         backend = self._make_backend()
-        params = PerformanceParams(
-            url="https://example.com", action="css-coverage"
-        )
+        params = PerformanceParams(url="https://example.com", action="css-coverage")
         result = await PerformanceAction(params).execute(backend)
         backend.perf_css_coverage.assert_called_once()
         assert "result" in result
@@ -127,9 +120,7 @@ class TestPerformanceAction:
 
     def test_params_custom(self) -> None:
         """Test params custom."""
-        params = PerformanceParams(
-            url="https://test.com", action="trace", duration_ms=5000
-        )
+        params = PerformanceParams(url="https://test.com", action="trace", duration_ms=5000)
         assert params.url == "https://test.com"
         assert params.action == "trace"
         assert params.duration_ms == 5000

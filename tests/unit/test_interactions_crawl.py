@@ -93,9 +93,7 @@ class TestUploadAction:
         )
         await InputAction(params).execute(backend)
 
-        backend.set_files.assert_called_once_with(
-            "#file-input", ["/abs/path/file.pdf"]
-        )
+        backend.set_files.assert_called_once_with("#file-input", ["/abs/path/file.pdf"])
 
 
 class TestCrawlParams:
@@ -230,9 +228,7 @@ class TestCrawlAction:
     async def test_crawl_max_pages_limit(self) -> None:
         backend = MagicMock()
         backend.navigate = AsyncMock()
-        backend.eval = AsyncMock(
-            side_effect=["Page", []]
-        )
+        backend.eval = AsyncMock(side_effect=["Page", []])
 
         params = CrawlParams(
             start_url="https://example.com",
@@ -259,3 +255,19 @@ class TestCrawlAction:
         results = await action.execute(backend)
 
         assert len(results) == 0
+
+    async def test_crawl_invalid_regex_pattern(self) -> None:
+        """Test that invalid url_pattern regex raises WavexisError."""
+        backend = MagicMock()
+        backend.navigate = AsyncMock()
+        backend.eval = AsyncMock(return_value=None)
+
+        params = CrawlParams(
+            start_url="https://example.com",
+            url_pattern="[unclosed",
+            max_depth=1,
+            max_pages=10,
+        )
+        action = CrawlAction(params)
+        with pytest.raises(WavexisError, match="Invalid url_pattern regex"):
+            await action.execute(backend)

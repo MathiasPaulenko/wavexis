@@ -19,9 +19,7 @@ def _make_cdp_backend() -> Any:
     backend = CDPBackend()
     backend._session = MagicMock()
     backend._session.runtime = MagicMock()
-    backend._session.runtime.evaluate = AsyncMock(
-        return_value={"result": {"value": None}}
-    )
+    backend._session.runtime.evaluate = AsyncMock(return_value={"result": {"value": None}})
     return backend
 
 
@@ -76,9 +74,7 @@ class TestFindByTextCDP:
     def test_raises_on_null_result(self) -> None:
         """Test that find_by_text raises when JS returns null."""
         backend = _make_cdp_backend()
-        backend._session.runtime.evaluate = AsyncMock(
-            return_value={"result": {"value": None}}
-        )
+        backend._session.runtime.evaluate = AsyncMock(return_value={"result": {"value": None}})
         with pytest.raises(ElementNotFoundError):
             asyncio.run(backend.find_by_text("anything"))
 
@@ -131,9 +127,7 @@ class TestNlClick:
         )
         backend.click = AsyncMock()
         asyncio.run(backend.nl_click("submit button", auto_wait=False))
-        backend.click.assert_called_once_with(
-            "#submit-btn", auto_wait=False
-        )
+        backend.click.assert_called_once_with("#submit-btn", auto_wait=False)
 
     def test_bidi_nl_click_calls_click(self) -> None:
         """Test that nl_click finds element and calls click."""
@@ -144,9 +138,7 @@ class TestNlClick:
         backend._client.script.evaluate = AsyncMock(return_value=result_mock)
         backend.click = AsyncMock()
         asyncio.run(backend.nl_click("submit button", auto_wait=False))
-        backend.click.assert_called_once_with(
-            "#submit-btn", auto_wait=False
-        )
+        backend.click.assert_called_once_with("#submit-btn", auto_wait=False)
 
 
 @pytest.mark.unit
@@ -162,9 +154,7 @@ class TestNlFill:
         )
         backend.fill = AsyncMock()
         asyncio.run(backend.nl_fill("email field", "test@test.com", auto_wait=False))
-        backend.fill.assert_called_once_with(
-            "#email-field", "test@test.com", auto_wait=False
-        )
+        backend.fill.assert_called_once_with("#email-field", "test@test.com", auto_wait=False)
 
     def test_bidi_nl_fill_calls_fill(self) -> None:
         """Test that nl_fill finds element and calls fill."""
@@ -175,6 +165,4 @@ class TestNlFill:
         backend._client.script.evaluate = AsyncMock(return_value=result_mock)
         backend.fill = AsyncMock()
         asyncio.run(backend.nl_fill("email field", "test@test.com", auto_wait=False))
-        backend.fill.assert_called_once_with(
-            "#email-field", "test@test.com", auto_wait=False
-        )
+        backend.fill.assert_called_once_with("#email-field", "test@test.com", auto_wait=False)

@@ -18,9 +18,7 @@ class ScrapeAction(BaseAction[ScrapeParams, list[dict[str, Any]]]):
     and collects results. Supports reading expression from a file via @file syntax.
     """
 
-    async def execute(
-        self, backend: AbstractBackend
-    ) -> list[dict[str, Any]]:
+    async def execute(self, backend: AbstractBackend) -> list[dict[str, Any]]:
         """Execute the scrape action.
 
         Args:

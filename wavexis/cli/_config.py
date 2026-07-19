@@ -19,6 +19,7 @@ from wavexis.cli._shared import (
     _run_async,
     _write_json_output,
     app,
+    unregister_backend,
 )
 from wavexis.config import EvalParams, ScreenshotParams, WaitStrategy
 
@@ -53,7 +54,9 @@ def auth(
     url: str = typer.Argument(..., help="URL to navigate to with auth context"),
     output: str = typer.Option("-", "-o", "--output", help="Output file (- for stdout)"),
     screenshot: bool = typer.Option(
-        False, "--screenshot", help="Take screenshot after applying auth",
+        False,
+        "--screenshot",
+        help="Take screenshot after applying auth",
     ),
 ) -> None:
     """Apply auth context (cookies, headers, basic auth) and navigate to a URL."""
@@ -74,7 +77,8 @@ def auth(
             if screenshot:
                 return await backend.screenshot(
                     ScreenshotParams(
-                        url=url, wait=WaitStrategy(strategy="load"),
+                        url=url,
+                        wait=WaitStrategy(strategy="load"),
                     ),
                 )
             return await backend.eval(
@@ -104,9 +108,7 @@ def auth(
 
 @app.command()
 def repl(
-    url: str = typer.Argument(
-        "", help="Optional URL to navigate to before starting the REPL"
-    ),
+    url: str = typer.Argument("", help="Optional URL to navigate to before starting the REPL"),
 ) -> None:
     """Start an interactive REPL session with a live browser.
 
@@ -116,20 +118,19 @@ def repl(
     from wavexis.repl import repl_loop
 
     backend = _get_backend()
-    _run_async(repl_loop(backend, url or None))
+    try:
+        _run_async(repl_loop(backend, url or None))
+    finally:
+        unregister_backend(backend)
 
 
 @app.command()
 def config(
-    action: str = typer.Argument(
-        "show", help="Config action: show, set, init, path"
-    ),
+    action: str = typer.Argument("show", help="Config action: show, set, init, path"),
     key: str = typer.Option(
         "", "--key", help="Config key to set (backend, headless, timeout, proxy)"
     ),
-    value: str = typer.Option(
-        "", "--value", help="Value to set for the given key"
-    ),
+    value: str = typer.Option("", "--value", help="Value to set for the given key"),
 ) -> None:
     """Manage global wavexis configuration at ~/.wavexis/config.yml.
 
@@ -203,7 +204,11 @@ def config(
         if key in ("headless",):
             current[key] = value.lower() in ("true", "1", "yes")
         elif key in ("timeout",):
-            current[key] = int(value)
+            try:
+                current[key] = int(value)
+            except ValueError:
+                typer.echo(f"Error: timeout must be an integer, got '{value}'", err=True)
+                raise typer.Exit(EXIT_CONFIG_ERROR)
         else:
             current[key] = value
 
@@ -225,24 +230,16 @@ def init(
         "-t",
         help="Template name (screenshot, pdf, scrape, eval, multi-step, cookies, har)",
     ),
-    url: str = typer.Option(
-        "", "--url", "-u", help="URL to use in the generated config"
-    ),
+    url: str = typer.Option("", "--url", "-u", help="URL to use in the generated config"),
     expression: str = typer.Option(
         "", "--expression", "-e", help="JS expression for scrape/eval templates"
     ),
     selector: str = typer.Option(
         "", "--selector", "-s", help="CSS selector for multi-step template"
     ),
-    text: str = typer.Option(
-        "", "--text", help="Text for type action in multi-step template"
-    ),
-    output: str = typer.Option(
-        "wavexis.yaml", "--output", "-o", help="Output YAML file path"
-    ),
-    list_templates: bool = typer.Option(
-        False, "--list", help="List available templates and exit"
-    ),
+    text: str = typer.Option("", "--text", help="Text for type action in multi-step template"),
+    output: str = typer.Option("wavexis.yaml", "--output", "-o", help="Output YAML file path"),
+    list_templates: bool = typer.Option(False, "--list", help="List available templates and exit"),
 ) -> None:
     """Generate a wavexis.yaml config from a template.
 

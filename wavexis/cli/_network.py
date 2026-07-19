@@ -23,24 +23,19 @@ from wavexis.config import CookieParams, ThrottleParams, WaitStrategy
 network_app = typer.Typer(help="Network commands (block, throttle, cache, intercept, mock)")
 app.add_typer(network_app, name="network")
 
+
 @app.command()
 def cookies(
-    action: str = typer.Argument(
-        "get", help="Cookie action: get, set, delete, clear"
-    ),
+    action: str = typer.Argument("get", help="Cookie action: get, set, delete, clear"),
     url: str = typer.Option("", "--url", help="URL for cookie context"),
     name: str = typer.Option("", "--name", help="Cookie name"),
     value: str = typer.Option("", "--value", help="Cookie value"),
     domain: str = typer.Option("", "--domain", help="Cookie domain"),
     path: str = typer.Option("/", "--path", help="Cookie path"),
-    output: str | None = typer.Option(
-        None, "--output", "-o", help="Output file path (JSON)"
-    ),
+    output: str | None = typer.Option(None, "--output", "-o", help="Output file path (JSON)"),
 ) -> None:
     """Manage browser cookies (get, set, delete, clear)."""
-    result = _run_async(
-        _cookies(action, url, name, value, domain, path)
-    )
+    result = _run_async(_cookies(action, url, name, value, domain, path))
     if result is None:
         return
 
@@ -52,6 +47,7 @@ def cookies(
             typer.echo(json.dumps(result, indent=2, default=str))
     else:
         typer.echo(f"Cookies {action} done")
+
 
 async def _cookies(
     action: str,
@@ -71,9 +67,7 @@ async def _cookies(
         if action == "get":
             return await backend.get_cookies()
         if action == "set":
-            cookie = CookieParams(
-                name=name, value=value, domain=domain, path=path
-            )
+            cookie = CookieParams(name=name, value=value, domain=domain, path=path)
             await backend.set_cookie(cookie)
         elif action == "delete":
             await backend.delete_cookie(name, domain)
@@ -83,21 +77,28 @@ async def _cookies(
     finally:
         await _close_backend(backend)
 
+
 @app.command()
 def headers(
     headers_json: str = typer.Argument(
-        ..., help='JSON dict of headers, or @path to read from file'
+        ..., help="JSON dict of headers, or @path to read from file"
     ),
 ) -> None:
     """Set extra HTTP headers for all requests."""
-    if headers_json.startswith("@"):
-        from pathlib import Path
-        data = json.loads(Path(headers_json[1:]).read_text(encoding="utf-8"))
-    else:
-        data = json.loads(headers_json)
+    try:
+        if headers_json.startswith("@"):
+            from pathlib import Path
+
+            data = json.loads(Path(headers_json[1:]).read_text(encoding="utf-8"))
+        else:
+            data = json.loads(headers_json)
+    except json.JSONDecodeError as e:
+        typer.echo(f"Error: invalid JSON headers: {e}", err=True)
+        raise typer.Exit(1) from e
 
     _run_async(_headers(data))
     typer.echo("Headers set")
+
 
 async def _headers(headers: dict[str, str]) -> None:
     """Async helper for setting headers."""
@@ -108,6 +109,7 @@ async def _headers(headers: dict[str, str]) -> None:
     finally:
         await _close_backend(backend)
 
+
 @app.command()
 def user_agent(
     ua: str = typer.Argument(..., help="User-Agent string to set"),
@@ -115,6 +117,7 @@ def user_agent(
     """Override the browser's User-Agent string."""
     _run_async(_user_agent(ua))
     typer.echo("User-Agent set")
+
 
 async def _user_agent(ua: str) -> None:
     """Async helper for setting user agent."""
@@ -124,6 +127,7 @@ async def _user_agent(ua: str) -> None:
         await backend.set_user_agent(ua)
     finally:
         await _close_backend(backend)
+
 
 @app.command()
 def browser(
@@ -143,6 +147,7 @@ def browser(
     else:
         typer.echo("Done")
 
+
 async def _browser(action: str) -> Any:
     """Async helper for browser management."""
     backend = _get_backend()
@@ -152,6 +157,7 @@ async def _browser(action: str) -> Any:
     finally:
         await _close_backend(backend)
 
+
 @network_app.command("block")
 def network_block(
     patterns: Annotated[list[str], typer.Argument(help="URL patterns to block (glob-style)")],
@@ -159,6 +165,7 @@ def network_block(
     """Block requests matching URL patterns."""
     _run_async(_network_block(patterns))
     typer.echo(f"Blocked {len(patterns)} URL pattern(s)")
+
 
 async def _network_block(patterns: list[str]) -> None:
     """Block network requests matching the given patterns.
@@ -172,6 +179,7 @@ async def _network_block(patterns: list[str]) -> None:
         await backend.block_requests(patterns)
     finally:
         await _close_backend(backend)
+
 
 @network_app.command("throttle")
 def network_throttle(
@@ -187,6 +195,7 @@ def network_throttle(
     _run_async(_network_throttle(params))
     typer.echo("Network throttling set")
 
+
 async def _network_throttle(params: ThrottleParams) -> None:
     """Apply network throttling conditions.
 
@@ -200,6 +209,7 @@ async def _network_throttle(params: ThrottleParams) -> None:
     finally:
         await _close_backend(backend)
 
+
 @network_app.command("cache")
 def network_cache(
     disabled: bool = typer.Option(True, "--disabled/--enabled", help="Disable or enable cache"),
@@ -207,6 +217,7 @@ def network_cache(
     """Disable or enable the browser cache."""
     _run_async(_network_cache(disabled))
     typer.echo(f"Cache {'disabled' if disabled else 'enabled'}")
+
 
 async def _network_cache(disabled: bool) -> None:
     """Enable or disable the browser cache.
@@ -221,6 +232,7 @@ async def _network_cache(disabled: bool) -> None:
     finally:
         await _close_backend(backend)
 
+
 @network_app.command("intercept")
 def network_intercept(
     url_pattern: str = typer.Argument(..., help="URL pattern to intercept"),
@@ -232,6 +244,7 @@ def network_intercept(
         pattern["resourceType"] = resource_type
     _run_async(_network_intercept(pattern))
     typer.echo(f"Intercepting requests matching '{url_pattern}'")
+
 
 async def _network_intercept(pattern: dict[str, Any]) -> None:
     """Intercept network requests matching a pattern.
@@ -245,6 +258,7 @@ async def _network_intercept(pattern: dict[str, Any]) -> None:
         await backend.intercept_requests(pattern)
     finally:
         await _close_backend(backend)
+
 
 @network_app.command("mock")
 def network_mock(
@@ -260,6 +274,7 @@ def network_mock(
     _run_async(_network_mock(url, response))
     typer.echo(f"Mocking responses for '{url}'")
 
+
 async def _network_mock(url: str, response: dict[str, Any]) -> None:
     """Mock a response for requests matching a URL pattern.
 
@@ -274,6 +289,7 @@ async def _network_mock(url: str, response: dict[str, Any]) -> None:
     finally:
         await _close_backend(backend)
 
+
 @network_app.command("auth")
 def network_auth(
     url_pattern: str = typer.Argument(..., help="URL pattern to match auth challenges"),
@@ -287,6 +303,7 @@ def network_auth(
     """Handle HTTP authentication challenges for matching URLs."""
     _run_async(_network_auth(url_pattern, username, password, navigate_url, wait))
     typer.echo(f"Auth handler set for '{url_pattern}'")
+
 
 async def _network_auth(
     url_pattern: str,
@@ -313,17 +330,20 @@ async def _network_auth(
     finally:
         await _close_backend(backend)
 
+
 @network_app.command("clear-cache")
 def network_clear_cache() -> None:
     """Clear the browser cache."""
     _run_async(_network_direct(lambda b: b.network_clear_browser_cache()))
     _echo("Browser cache cleared")
 
+
 @network_app.command("clear-cookies")
 def network_clear_cookies() -> None:
     """Clear all browser cookies."""
     _run_async(_network_direct(lambda b: b.network_clear_browser_cookies()))
     _echo("Browser cookies cleared")
+
 
 @network_app.command("delete-cookies")
 def network_delete_cookies(
@@ -334,6 +354,7 @@ def network_delete_cookies(
     _run_async(_network_direct(lambda b: b.network_delete_cookies(name, domain)))
     _echo(f"Deleted cookies named '{name}'")
 
+
 @network_app.command("block-urls")
 def network_block_urls(
     urls: list[str] = typer.Argument(..., help="URLs to block"),
@@ -342,6 +363,7 @@ def network_block_urls(
     _run_async(_network_direct(lambda b: b.network_set_blocked_urls(urls)))
     _echo(f"Blocked {len(urls)} URL(s)")
 
+
 @network_app.command("bypass-sw")
 def network_bypass_sw(
     bypass: bool = typer.Option(True, "--bypass/--no-bypass", help="Bypass service worker"),
@@ -349,6 +371,7 @@ def network_bypass_sw(
     """Bypass the service worker for all network requests."""
     _run_async(_network_direct(lambda b: b.network_set_bypass_service_worker(bypass)))
     _echo(f"Service worker {'bypassed' if bypass else 'enabled'}")
+
 
 @network_app.command("cookie-controls")
 def network_cookie_controls(
@@ -359,18 +382,27 @@ def network_cookie_controls(
     _run_async(_network_direct(lambda b: b.network_set_cookie_controls(mode, third_party_mode)))
     _echo(f"Cookie controls set: {mode}, third-party: {third_party_mode}")
 
+
 @network_app.command("extra-headers")
 def network_extra_headers(
-    headers_json: str = typer.Argument(..., help='JSON dict of headers, or @path to read from file'),
+    headers_json: str = typer.Argument(
+        ..., help="JSON dict of headers, or @path to read from file"
+    ),
 ) -> None:
     """Set extra HTTP headers for all requests."""
-    if headers_json.startswith("@"):
-        with open(headers_json[1:]) as f:
-            headers = json.loads(f.read())
-    else:
-        headers = json.loads(headers_json)
+    try:
+        if headers_json.startswith("@"):
+            from pathlib import Path
+
+            headers = json.loads(Path(headers_json[1:]).read_text(encoding="utf-8"))
+        else:
+            headers = json.loads(headers_json)
+    except json.JSONDecodeError as e:
+        typer.echo(f"Error: invalid JSON headers: {e}", err=True)
+        raise typer.Exit(1) from e
     _run_async(_network_direct(lambda b: b.network_set_extra_request_headers(headers)))
     _echo(f"Extra headers set: {len(headers)} header(s)")
+
 
 @network_app.command("ua-override")
 def network_ua_override(
@@ -379,8 +411,13 @@ def network_ua_override(
     platform: str = typer.Option("", "--platform", help="Platform string"),
 ) -> None:
     """Override the User-Agent string with metadata."""
-    _run_async(_network_direct(lambda b: b.network_set_user_agent_override(user_agent, accept_language, platform)))
+    _run_async(
+        _network_direct(
+            lambda b: b.network_set_user_agent_override(user_agent, accept_language, platform)
+        )
+    )
     _echo("User-Agent override set")
+
 
 @network_app.command("replay-xhr")
 def network_replay_xhr(
@@ -389,6 +426,7 @@ def network_replay_xhr(
     """Replay a previously captured XHR request by ID."""
     _run_async(_network_direct(lambda b: b.network_replay_xhr(request_id)))
     _echo(f"Replayed XHR: {request_id}")
+
 
 @network_app.command("load-resource")
 def network_load_resource(
@@ -401,6 +439,7 @@ def network_load_resource(
     if result is None:
         return
     _write_json_output(result, output, "resource")
+
 
 async def _network_direct(action_fn: Any) -> Any:
     """Launch backend and run a direct network action."""

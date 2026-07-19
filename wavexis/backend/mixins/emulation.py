@@ -16,9 +16,7 @@ class EmulationBackend(ABC):
         """Emulate a device by preset name (e.g. 'iphone-15')."""
 
     @abstractmethod
-    async def set_viewport(
-        self, width: int, height: int, device_scale_factor: float = 1.0
-    ) -> None:
+    async def set_viewport(self, width: int, height: int, device_scale_factor: float = 1.0) -> None:
         """Set a custom viewport with given dimensions and scale factor."""
 
     @abstractmethod
@@ -90,7 +88,9 @@ class EmulationBackend(ABC):
         """Clear emulated vision deficiency override."""
 
     @abstractmethod
-    async def set_idle_override(self, is_user_active: bool = True, is_screen_active: bool = True) -> None:
+    async def set_idle_override(
+        self, is_user_active: bool = True, is_screen_active: bool = True
+    ) -> None:
         """Override the idle state to prevent screen sleep/lock."""
 
     @abstractmethod
@@ -190,7 +190,9 @@ class EmulationBackend(ABC):
         """Disable or enable document cookies."""
 
     @abstractmethod
-    async def set_emit_touch_events_for_mouse(self, enabled: bool, configuration: dict[str, Any] | None = None) -> None:
+    async def set_emit_touch_events_for_mouse(
+        self, enabled: bool, configuration: dict[str, Any] | None = None
+    ) -> None:
         """Enable or disable touch event emulation for mouse input."""
 
     @abstractmethod
@@ -206,7 +208,9 @@ class EmulationBackend(ABC):
         """Enable or disable focus emulation."""
 
     @abstractmethod
-    async def set_geolocation_override(self, latitude: float, longitude: float, accuracy: float = 100.0) -> None:
+    async def set_geolocation_override(
+        self, latitude: float, longitude: float, accuracy: float = 100.0
+    ) -> None:
         """Override the geolocation position with latitude, longitude, and accuracy."""
 
     @abstractmethod
@@ -266,7 +270,13 @@ class EmulationBackend(ABC):
         """Enable or disable touch emulation with optional max touch points."""
 
     @abstractmethod
-    async def set_user_agent_override(self, user_agent: str, accept_language: str = "", platform: str = "", user_agent_metadata: dict[str, Any] | None = None) -> None:
+    async def set_user_agent_override(
+        self,
+        user_agent: str,
+        accept_language: str = "",
+        platform: str = "",
+        user_agent_metadata: dict[str, Any] | None = None,
+    ) -> None:
         """Override the user agent string and related metadata."""
 
     @abstractmethod

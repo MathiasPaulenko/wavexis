@@ -44,6 +44,7 @@ def navigate(
     _run_async(_navigate(url, wait))
     typer.echo(f"Navigated to {url}")
 
+
 async def _navigate(url: str, wait: WaitStrategy) -> None:
     """Async helper for navigation."""
     backend = _get_backend()
@@ -54,17 +55,20 @@ async def _navigate(url: str, wait: WaitStrategy) -> None:
     finally:
         await _close_backend(backend)
 
+
 @app.command()
 def back() -> None:
     """Navigate back in browser history."""
     _run_async(_nav_simple(lambda b: BackAction(None).execute(b)))
     typer.echo("Navigated back")
 
+
 @app.command()
 def forward() -> None:
     """Navigate forward in browser history."""
     _run_async(_nav_simple(lambda b: ForwardAction(None).execute(b)))
     typer.echo("Navigated forward")
+
 
 @app.command()
 def reload(
@@ -74,11 +78,13 @@ def reload(
     _run_async(_nav_simple(lambda b: ReloadAction(ignore_cache).execute(b)))
     typer.echo("Page reloaded")
 
+
 @app.command()
 def stop() -> None:
     """Stop all pending navigations and resource loads."""
     _run_async(_nav_simple(lambda b: StopAction(None).execute(b)))
     typer.echo("Stopped loading")
+
 
 async def _nav_simple(action_fn: Any) -> None:
     """Async helper for simple navigation actions (back, forward, reload, stop)."""
@@ -88,6 +94,7 @@ async def _nav_simple(action_fn: Any) -> None:
         await action_fn(backend)
     finally:
         await _close_backend(backend)
+
 
 @app.command()
 def tabs(
@@ -109,6 +116,7 @@ def tabs(
     elif action == "activate":
         typer.echo(f"Tab activated: {tab_id}")
 
+
 async def _tabs(action: str, url: str, tab_id: str) -> Any:
     """Async helper for tab operations."""
     backend = _get_backend()
@@ -122,9 +130,7 @@ async def _tabs(action: str, url: str, tab_id: str) -> Any:
 
 @app.command()
 def contexts(
-    action: str = typer.Argument(
-        "list", help="Context action: list, new, close, user-context"
-    ),
+    action: str = typer.Argument("list", help="Context action: list, new, close, user-context"),
     context_id: str = typer.Option("", "--context-id", "-c", help="Context ID for close"),
 ) -> None:
     """Manage browser contexts and user contexts."""
@@ -167,12 +173,8 @@ def console(
     level: str = typer.Option(
         "all", "--level", help="Minimum log level (all, error, warning, info)"
     ),
-    output: str | None = typer.Option(
-        None, "--output", "-o", help="Output file path (JSON)"
-    ),
-    format: str = typer.Option(
-        "json", "--format", "-f", help="Output format: json, csv, yaml"
-    ),
+    output: str | None = typer.Option(None, "--output", "-o", help="Output file path (JSON)"),
+    format: str = typer.Option("json", "--format", "-f", help="Output format: json, csv, yaml"),
     capture: str = typer.Option(
         "console",
         "--capture",
@@ -187,6 +189,7 @@ def console(
     Output.write_formatted(result, format, output)
     if output:
         typer.echo(f"Console output saved to {output}")
+
 
 async def _console(url: str, level: str, capture: str = "console") -> Any:
     """Async helper for console capture."""
@@ -203,12 +206,11 @@ async def _console(url: str, level: str, capture: str = "console") -> Any:
     finally:
         await _close_backend(backend)
 
+
 @app.command()
 def logs(
     url: str = typer.Argument(..., help="URL to navigate to"),
-    output: str | None = typer.Option(
-        None, "--output", "-o", help="Output file path (JSON)"
-    ),
+    output: str | None = typer.Option(None, "--output", "-o", help="Output file path (JSON)"),
 ) -> None:
     """Capture browser log entries from a web page."""
     result = _run_async(_logs(url))
@@ -220,6 +222,7 @@ def logs(
         typer.echo(f"Logs saved to {output}")
     else:
         typer.echo(json.dumps(result, indent=2, default=str))
+
 
 async def _logs(url: str) -> Any:
     """Async helper for log capture."""
@@ -243,8 +246,6 @@ def page_frame_tree(
     """Get the current page frame tree."""
     result = _run_async(_page_op(lambda b: b.page_get_frame_tree()))
     Output.write_json(result, output)
-    if not output:
-        typer.echo(json.dumps(result, indent=2, default=str))
 
 
 @app.command()
@@ -254,8 +255,6 @@ def page_layout_metrics(
     """Get page layout metrics (viewport, content size, etc.)."""
     result = _run_async(_page_op(lambda b: b.page_get_layout_metrics()))
     Output.write_json(result, output)
-    if not output:
-        typer.echo(json.dumps(result, indent=2, default=str))
 
 
 @app.command()
@@ -265,8 +264,6 @@ def page_history(
     """Get the navigation history for the current page."""
     result = _run_async(_page_op(lambda b: b.page_get_navigation_history()))
     Output.write_json(result, output)
-    if not output:
-        typer.echo(json.dumps(result, indent=2, default=str))
 
 
 @app.command()
@@ -288,6 +285,8 @@ def page_snapshot(
 ) -> None:
     """Capture a snapshot of the current page."""
     data = _run_async(_page_op(lambda b: b.page_capture_snapshot(fmt)))
+    if data is None:
+        return
     Output.write_bytes(data.encode("utf-8"), output)
     typer.echo(f"Snapshot saved to {output}")
 
@@ -301,9 +300,9 @@ def page_pdf(
     """Print the current page to PDF."""
     import base64
 
-    data = _run_async(
-        _page_op(lambda b: b.page_print_to_pdf(landscape=landscape, scale=scale))
-    )
+    data = _run_async(_page_op(lambda b: b.page_print_to_pdf(landscape=landscape, scale=scale)))
+    if data is None:
+        return
     Output.write_bytes(base64.b64decode(data), output)
     typer.echo(f"PDF saved to {output}")
 
@@ -371,8 +370,6 @@ def page_manifest(
     """Get the web app manifest for the current page."""
     result = _run_async(_page_op(lambda b: b.page_get_app_manifest()))
     Output.write_json(result, output)
-    if not output:
-        typer.echo(result)
 
 
 @app.command()
@@ -382,8 +379,6 @@ def page_resource_tree(
     """Get the resource tree for the current page."""
     result = _run_async(_page_op(lambda b: b.page_get_resource_tree()))
     Output.write_json(result, output)
-    if not output:
-        typer.echo(result)
 
 
 @app.command()
@@ -413,7 +408,10 @@ def page_capture_screenshot(
 ) -> None:
     """Capture a screenshot of the page."""
     import base64
+
     data = _run_async(_page_op(lambda b: b.page_capture_screenshot(format=fmt, quality=quality)))
+    if data is None:
+        return
     if output == "-":
         typer.echo(base64.b64decode(data), nl=False)
     else:
@@ -482,8 +480,6 @@ def page_ad_script_ancestry(
     """Get the ad script ancestry for a frame."""
     result = _run_async(_page_op(lambda b: b.page_get_ad_script_ancestry(frame_id)))
     Output.write_json(result, output)
-    if not output:
-        typer.echo(json.dumps(result, indent=2, default=str))
 
 
 @app.command()
@@ -493,8 +489,6 @@ def page_annotated_content(
     """Get annotated page content."""
     result = _run_async(_page_op(lambda b: b.page_get_annotated_page_content()))
     Output.write_json(result, output)
-    if not output:
-        typer.echo(json.dumps(result, indent=2, default=str))
 
 
 @app.command()
@@ -504,8 +498,6 @@ def page_app_id(
     """Get the app ID for the current page."""
     result = _run_async(_page_op(lambda b: b.page_get_app_id()))
     Output.write_json(result, output)
-    if not output:
-        typer.echo(json.dumps(result, indent=2, default=str))
 
 
 @app.command()
@@ -515,8 +507,6 @@ def page_installability_errors(
     """Get installability errors for the current page."""
     result = _run_async(_page_op(lambda b: b.page_get_installability_errors()))
     Output.write_json(result, output)
-    if not output:
-        typer.echo(json.dumps(result, indent=2, default=str))
 
 
 @app.command()
@@ -526,8 +516,6 @@ def page_manifest_icons(
     """Get manifest icons for the current page."""
     result = _run_async(_page_op(lambda b: b.page_get_manifest_icons()))
     Output.write_json(result, output)
-    if not output:
-        typer.echo(json.dumps(result, indent=2, default=str))
 
 
 @app.command()
@@ -537,8 +525,6 @@ def page_origin_trials(
     """Get origin trials for the current page."""
     result = _run_async(_page_op(lambda b: b.page_get_origin_trials()))
     Output.write_json(result, output)
-    if not output:
-        typer.echo(json.dumps(result, indent=2, default=str))
 
 
 @app.command()
@@ -549,8 +535,6 @@ def page_permissions_policy_state(
     """Get permissions policy state for a frame."""
     result = _run_async(_page_op(lambda b: b.page_get_permissions_policy_state(frame_id)))
     Output.write_json(result, output)
-    if not output:
-        typer.echo(json.dumps(result, indent=2, default=str))
 
 
 @app.command()
@@ -571,8 +555,6 @@ def page_produce_compilation_cache(
     """Produce compilation cache for the given URL."""
     result = _run_async(_page_op(lambda b: b.page_produce_compilation_cache(url)))
     Output.write_json(result, output)
-    if not output:
-        typer.echo(json.dumps(result, indent=2, default=str))
 
 
 @app.command()
@@ -610,12 +592,12 @@ def page_search_in_resource(
     output: str | None = typer.Option(None, "--output", "-o", help="Output file path (JSON)"),
 ) -> None:
     """Search for a string in a resource."""
-    result = _run_async(_page_op(lambda b: b.page_search_in_resource(
-        frame_id, url, query, case_sensitive, is_regex
-    )))
+    result = _run_async(
+        _page_op(
+            lambda b: b.page_search_in_resource(frame_id, url, query, case_sensitive, is_regex)
+        )
+    )
     Output.write_json(result, output)
-    if not output:
-        typer.echo(json.dumps(result, indent=2, default=str))
 
 
 @app.command()
@@ -644,7 +626,11 @@ def page_set_font_families(
     config: str = typer.Argument(..., help="Font families config as JSON"),
 ) -> None:
     """Set font families for the page."""
-    font_families = json.loads(config)
+    try:
+        font_families = json.loads(config)
+    except json.JSONDecodeError as e:
+        typer.echo(f"Error: invalid JSON config: {e}", err=True)
+        raise typer.Exit(1) from e
     _run_async(_page_op(lambda b: b.page_set_font_families(font_families)))
     typer.echo("Font families set")
 
@@ -654,7 +640,11 @@ def page_set_font_sizes(
     config: str = typer.Argument(..., help="Font sizes config as JSON"),
 ) -> None:
     """Set font sizes for the page."""
-    font_sizes = json.loads(config)
+    try:
+        font_sizes = json.loads(config)
+    except json.JSONDecodeError as e:
+        typer.echo(f"Error: invalid JSON config: {e}", err=True)
+        raise typer.Exit(1) from e
     _run_async(_page_op(lambda b: b.page_set_font_sizes(font_sizes)))
     typer.echo("Font sizes set")
 

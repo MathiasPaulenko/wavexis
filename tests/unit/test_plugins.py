@@ -19,6 +19,7 @@ from wavexis.plugins import (
 @pytest.mark.unit
 class TestPlugin:
     """Test suite for plugin."""
+
     def test_plugin_base_defaults(self) -> None:
         """Test plugin base defaults."""
         plugin = Plugin()
@@ -46,6 +47,7 @@ class TestPlugin:
 @pytest.mark.unit
 class TestPluginContext:
     """Test suite for plugincontext."""
+
     def test_defaults(self) -> None:
         """Test defaults."""
         ctx = PluginContext()
@@ -68,6 +70,7 @@ class TestPluginContext:
 @pytest.mark.unit
 class TestLoadPlugins:
     """Test suite for loadplugins."""
+
     def test_no_plugins_returns_empty_list(self) -> None:
         """Test no plugins returns empty list."""
         plugins = load_plugins()
@@ -83,10 +86,13 @@ class TestLoadPlugins:
 @pytest.mark.unit
 class TestCustomPlugin:
     """Test suite for customplugin."""
+
     def test_subclass(self) -> None:
         """Test subclass."""
+
         class MyPlugin(Plugin):
             """Test suite for myplugin."""
+
             name = "my-plugin"
             version = "1.0.0"
 
@@ -103,6 +109,7 @@ class TestCustomPlugin:
 @pytest.mark.unit
 class TestPluginRegistry:
     """Test suite for pluginregistry."""
+
     def test_empty_registry(self) -> None:
         """Test empty registry."""
         registry = PluginRegistry()
@@ -143,6 +150,7 @@ class TestPluginRegistry:
 
         class MyPlugin(Plugin):
             """Test suite for myplugin."""
+
             name = "test"
 
         plugin = MyPlugin()
@@ -154,6 +162,7 @@ class TestPluginRegistry:
 @pytest.mark.unit
 class TestPluginRegistryGlobal:
     """Test suite for pluginregistryglobal."""
+
     def teardown_method(self) -> None:
         """Clean up after each test method."""
         reset_registry()
@@ -175,12 +184,14 @@ class TestPluginRegistryGlobal:
 @pytest.mark.unit
 class TestActionPlugin:
     """Test suite for actionplugin."""
+
     def test_action_plugin_factory_called(self) -> None:
         """Test action plugin factory called."""
         from wavexis.actions.base import BaseAction
 
         class DummyAction(BaseAction[dict, str]):
             """Test suite for dummyaction."""
+
             async def execute(self, backend: object) -> str:
                 """Execute."""
                 return "ok"

@@ -15,6 +15,7 @@ from wavexis.config import (
     ScreenshotParams,
     WaitStrategy,
 )
+from wavexis.exceptions import ElementNotFoundError
 
 
 def _make_mock_backend() -> tuple[Any, Any]:
@@ -46,9 +47,7 @@ def _make_mock_backend() -> tuple[Any, Any]:
         return_value=MagicMock(data=base64.b64encode(b"img").decode())
     )
     mock_client.script = MagicMock()
-    mock_client.script.evaluate = AsyncMock(
-        return_value=MagicMock(value="result")
-    )
+    mock_client.script.evaluate = AsyncMock(return_value=MagicMock(value="result"))
     mock_client.storage = MagicMock()
     mock_client.storage.get_cookies = AsyncMock(return_value=[])
     mock_client.storage.set_cookie = AsyncMock()
@@ -115,9 +114,7 @@ class TestBiDiMethodBodies:
             b"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ"
             b"AAAAC0lEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
         )
-        mock.browsing.screenshot = AsyncMock(
-            return_value=MagicMock(data=_png_1x1.decode())
-        )
+        mock.browsing.screenshot = AsyncMock(return_value=MagicMock(data=_png_1x1.decode()))
         result = await backend.screenshot_selector("h1")
         assert isinstance(result, bytes)
 
@@ -125,7 +122,7 @@ class TestBiDiMethodBodies:
         backend, mock = _make_mock_backend()
         mock.browsing.locate_nodes = AsyncMock(return_value=[])
         mock.script.evaluate = AsyncMock(return_value=MagicMock(value=None))
-        with pytest.raises(Exception):
+        with pytest.raises(ElementNotFoundError):
             await backend.screenshot_selector("h1")
 
     async def test_eval(self) -> None:
@@ -166,6 +163,7 @@ class TestBiDiMethodBodies:
 
     async def test_wait_for_selector_timeout(self) -> None:
         from wavexis.exceptions import WaitTimeoutError
+
         backend, mock = _make_mock_backend()
         mock.script.evaluate = AsyncMock(return_value=MagicMock(value=False))
         with pytest.raises(WaitTimeoutError):
@@ -181,9 +179,7 @@ class TestBiDiMethodBodies:
         mock.cdp.send_command = AsyncMock(
             return_value={"data": base64.b64encode(b"frame").decode()}
         )
-        result = await backend.screencast(
-            ScreencastParams(url="https://example.com", duration=0.6)
-        )
+        result = await backend.screencast(ScreencastParams(url="https://example.com", duration=0.6))
         assert len(result) >= 1
 
     async def test_list_tabs(self) -> None:
@@ -265,6 +261,7 @@ class TestBiDiMethodBodies:
     async def test_set_cookie(self) -> None:
         backend, _ = _make_mock_backend()
         from wavexis.config import CookieParams
+
         with patch("bidiwave.Cookie", MagicMock()):
             await backend.set_cookie(CookieParams(name="test", value="val", domain="example.com"))
 
@@ -387,6 +384,7 @@ class TestBiDiMethodBodies:
     async def test_throttle_network(self) -> None:
         backend, _ = _make_mock_backend()
         from wavexis.config import ThrottleParams
+
         await backend.throttle_network(ThrottleParams())
 
     async def test_set_cache_disabled(self) -> None:
@@ -472,6 +470,7 @@ class TestBiDiMethodBodies:
     async def test_set_sensors(self) -> None:
         backend, _ = _make_mock_backend()
         from wavexis.config import SensorParams
+
         await backend.set_sensors(SensorParams())
 
     async def test_perf_metrics(self) -> None:
@@ -510,19 +509,19 @@ class TestBiDiMethodBodies:
 
     async def test_css_get_styles(self) -> None:
         backend, mock = _make_mock_backend()
-        mock.script.evaluate = AsyncMock(return_value=MagicMock(value='[]'))
+        mock.script.evaluate = AsyncMock(return_value=MagicMock(value="[]"))
         result = await backend.css_get_styles("h1")
         assert isinstance(result, list)
 
     async def test_css_get_stylesheets(self) -> None:
         backend, mock = _make_mock_backend()
-        mock.script.evaluate = AsyncMock(return_value=MagicMock(value='[]'))
+        mock.script.evaluate = AsyncMock(return_value=MagicMock(value="[]"))
         result = await backend.css_get_stylesheets()
         assert isinstance(result, list)
 
     async def test_css_get_rules(self) -> None:
         backend, mock = _make_mock_backend()
-        mock.script.evaluate = AsyncMock(return_value=MagicMock(value='[]'))
+        mock.script.evaluate = AsyncMock(return_value=MagicMock(value="[]"))
         result = await backend.css_get_rules("0")
         assert isinstance(result, list)
 
@@ -570,7 +569,7 @@ class TestBiDiMethodBodies:
 
     async def test_debug_get_listeners(self) -> None:
         backend, mock = _make_mock_backend()
-        mock.script.evaluate = AsyncMock(return_value=MagicMock(value='[]'))
+        mock.script.evaluate = AsyncMock(return_value=MagicMock(value="[]"))
         result = await backend.debug_get_listeners("h1")
         assert isinstance(result, list)
 
@@ -610,13 +609,13 @@ class TestBiDiMethodBodies:
 
     async def test_cache_storage_list(self) -> None:
         backend, mock = _make_mock_backend()
-        mock.script.evaluate = AsyncMock(return_value=MagicMock(value='[]'))
+        mock.script.evaluate = AsyncMock(return_value=MagicMock(value="[]"))
         result = await backend.cache_storage_list()
         assert isinstance(result, list)
 
     async def test_cache_storage_entries(self) -> None:
         backend, mock = _make_mock_backend()
-        mock.script.evaluate = AsyncMock(return_value=MagicMock(value='[]'))
+        mock.script.evaluate = AsyncMock(return_value=MagicMock(value="[]"))
         result = await backend.cache_storage_entries("my-cache")
         assert isinstance(result, list)
 
@@ -642,7 +641,7 @@ class TestBiDiMethodBodies:
 
     async def test_sw_list(self) -> None:
         backend, mock = _make_mock_backend()
-        mock.script.evaluate = AsyncMock(return_value=MagicMock(value='[]'))
+        mock.script.evaluate = AsyncMock(return_value=MagicMock(value="[]"))
         result = await backend.sw_list()
         assert isinstance(result, list)
 
@@ -656,7 +655,7 @@ class TestBiDiMethodBodies:
 
     async def test_animation_list(self) -> None:
         backend, mock = _make_mock_backend()
-        mock.script.evaluate = AsyncMock(return_value=MagicMock(value='[]'))
+        mock.script.evaluate = AsyncMock(return_value=MagicMock(value="[]"))
         result = await backend.animation_list()
         assert isinstance(result, list)
 
@@ -695,7 +694,6 @@ class TestBiDiMethodBodies:
     async def test_webaudio_get_contexts(self) -> None:
         backend, mock = _make_mock_backend()
         mock.cdp.send_command = AsyncMock(return_value={})
-        import asyncio as _asyncio
         mock.cdp.wait_for_event = AsyncMock(side_effect=TimeoutError())
         result = await backend.webaudio_get_contexts()
         assert isinstance(result, list)
@@ -771,7 +769,7 @@ class TestBiDiMethodBodies:
 
     async def test_annotated_screenshot(self) -> None:
         backend, mock = _make_mock_backend()
-        mock.script.evaluate = AsyncMock(return_value=MagicMock(value='{}'))
+        mock.script.evaluate = AsyncMock(return_value=MagicMock(value="{}"))
         mock.browsing.screenshot = AsyncMock(
             return_value=MagicMock(data=base64.b64encode(b"img").decode())
         )
@@ -836,6 +834,7 @@ class TestBiDiMethodBodies:
         backend, mock = _make_mock_backend()
         mock._connection.send_command = AsyncMock(return_value={})
         from wavexis.config import HarParams
+
         result = await backend.capture_har(HarParams(url="https://example.com"))
         assert isinstance(result, dict)
 
@@ -948,6 +947,7 @@ class TestBiDiMethodBodies:
 
     async def test_close_without_client(self) -> None:
         from wavexis.backend.bidi import BiDiBackend
+
         backend = BiDiBackend()
         await backend.close()
 

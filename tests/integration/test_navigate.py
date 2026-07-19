@@ -17,10 +17,12 @@ class TestNavigateIntegration:
         backend = manager.select()
         try:
             await backend.launch(BrowserOptions())
-            action = NavigateAction(NavigateParams(
-                url="https://example.com",
-                wait=WaitStrategy(strategy="load"),
-            ))
+            action = NavigateAction(
+                NavigateParams(
+                    url="https://example.com",
+                    wait=WaitStrategy(strategy="load"),
+                )
+            )
             await action.execute(backend)
         finally:
             await backend.close()
@@ -31,10 +33,12 @@ class TestNavigateIntegration:
         backend = manager.select()
         try:
             await backend.launch(BrowserOptions())
-            action = NavigateAction(NavigateParams(
-                url="https://example.com",
-                wait=WaitStrategy(strategy="selector", selector="h1", timeout=10000),
-            ))
+            action = NavigateAction(
+                NavigateParams(
+                    url="https://example.com",
+                    wait=WaitStrategy(strategy="selector", selector="h1", timeout=10000),
+                )
+            )
             await action.execute(backend)
         finally:
             await backend.close()

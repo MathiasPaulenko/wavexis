@@ -11,6 +11,7 @@ pytestmark = [pytest.mark.integration, pytest.mark.chrome]
 @pytest.mark.integration
 class TestNetworkAdvancedIntegration:
     """Test suite for networkadvancedintegration."""
+
     async def test_block_requests(self) -> None:
         """Test block requests."""
         backend = CDPBackend()

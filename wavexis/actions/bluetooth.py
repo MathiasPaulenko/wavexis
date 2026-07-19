@@ -51,9 +51,7 @@ class BluetoothAction(BaseAction[BluetoothParams, Any]):
         if action == "emulate":
             if not self.params.name:
                 raise ValueError("name is required for emulate action")
-            await backend.bluetooth_emulate(
-                self.params.name, self.params.address
-            )
+            await backend.bluetooth_emulate(self.params.name, self.params.address)
             return None
 
         if action == "stop":

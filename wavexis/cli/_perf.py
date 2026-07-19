@@ -22,6 +22,7 @@ from wavexis.config import WaitStrategy
 perf_app = typer.Typer(help="Performance commands (metrics, trace, profile, heap, coverage)")
 app.add_typer(perf_app, name="perf")
 
+
 @perf_app.command("metrics")
 def perf_metrics(
     url: str = typer.Argument(..., help="URL to navigate to"),
@@ -32,6 +33,7 @@ def perf_metrics(
     if result is None:
         return
     _write_json_output(result, output, "metrics")
+
 
 @perf_app.command("trace")
 def perf_trace(
@@ -45,6 +47,7 @@ def perf_trace(
         return
     _write_json_output(result, output, "trace")
 
+
 @perf_app.command("profile")
 def perf_profile(
     url: str = typer.Argument(..., help="URL to navigate to"),
@@ -57,6 +60,7 @@ def perf_profile(
         return
     _write_json_output(result, output, "profile")
 
+
 @perf_app.command("heap")
 def perf_heap(
     url: str = typer.Argument(..., help="URL to navigate to"),
@@ -67,6 +71,7 @@ def perf_heap(
     if result is None:
         return
     _write_json_output(result, output, "heap snapshot")
+
 
 @perf_app.command("coverage")
 def perf_coverage(
@@ -79,6 +84,7 @@ def perf_coverage(
         return
     _write_json_output(result, output, "JS coverage")
 
+
 @perf_app.command("css-coverage")
 def perf_css_coverage(
     url: str = typer.Argument(..., help="URL to navigate to"),
@@ -90,17 +96,20 @@ def perf_css_coverage(
         return
     _write_json_output(result, output, "CSS coverage")
 
+
 @perf_app.command("disable")
 def performance_disable() -> None:
     """Disable the Performance domain."""
     _run_async(_perf_domain_op(lambda b: b.performance_disable()))
     typer.echo("Performance domain disabled")
 
+
 @perf_app.command("enable")
 def performance_enable() -> None:
     """Enable the Performance domain."""
     _run_async(_perf_domain_op(lambda b: b.performance_enable()))
     typer.echo("Performance domain enabled")
+
 
 @perf_app.command("get-metrics")
 def performance_get_metrics(
@@ -110,11 +119,13 @@ def performance_get_metrics(
     result = _run_async(_perf_domain_op(lambda b: b.performance_get_metrics()))
     _write_json_output(result, output, "metrics")
 
+
 @perf_app.command("timeline-enable")
 def performance_timeline_enable() -> None:
     """Enable the PerformanceTimeline domain to receive timeline events."""
     _run_async(_perf_domain_op(lambda b: b.performance_timeline_enable()))
     typer.echo("PerformanceTimeline domain enabled")
+
 
 @perf_app.command("set-time-domain")
 def performance_set_time_domain(
@@ -123,6 +134,7 @@ def performance_set_time_domain(
     """Set the time domain for collecting and reporting durations."""
     _run_async(_perf_domain_op(lambda b: b.performance_set_time_domain(time_domain)))
     typer.echo(f"Time domain set to {time_domain}")
+
 
 async def _perf_domain_op(action_fn: Any) -> Any:
     """Async helper for Performance domain operations."""
@@ -133,9 +145,8 @@ async def _perf_domain_op(action_fn: Any) -> Any:
     finally:
         await _close_backend(backend)
 
-async def _perf_action(
-    url: str, action: str, duration_ms: int = 3000
-) -> dict[str, Any]:
+
+async def _perf_action(url: str, action: str, duration_ms: int = 3000) -> dict[str, Any]:
     """Execute a performance action on a web page.
 
     Args:
@@ -150,33 +161,30 @@ async def _perf_action(
     from wavexis.actions.performance import PerformanceAction, PerformanceParams
 
     params = PerformanceParams(
-        url=url, action=action, duration_ms=duration_ms,
+        url=url,
+        action=action,
+        duration_ms=duration_ms,
         wait=WaitStrategy(strategy="load"),
     )
     backend = _get_backend()
     act = PerformanceAction(params)
     try:
+        await backend.launch(_browser_options())
         return await act.execute(backend)
     finally:
         await _close_backend(backend)
 
+
 @app.command()
 def perf(
     url: str = typer.Argument(..., help="URL to navigate to"),
-    output: str | None = typer.Option(
-        None, "--output", "-o", help="Output file path"
-    ),
-    format: str = typer.Option(
-        "json", "--format", "-f", help="Output format: json, yaml"
-    ),
+    output: str | None = typer.Option(None, "--output", "-o", help="Output file path"),
+    format: str = typer.Option("json", "--format", "-f", help="Output format: json, yaml"),
     metric: str = typer.Option(
         "metrics",
         "--metric",
         "-m",
-        help=(
-            "Metric to capture: metrics, trace, profile, "
-            "heap-snapshot, coverage, css-coverage"
-        ),
+        help=("Metric to capture: metrics, trace, profile, heap-snapshot, coverage, css-coverage"),
     ),
     duration: int = typer.Option(
         3000, "--duration", "-d", help="Duration in ms (for trace/profile)"
@@ -188,13 +196,16 @@ def perf(
     heap-snapshot, coverage, css-coverage.
     """
     valid_metrics = {
-        "metrics", "trace", "profile",
-        "heap-snapshot", "coverage", "css-coverage",
+        "metrics",
+        "trace",
+        "profile",
+        "heap-snapshot",
+        "coverage",
+        "css-coverage",
     }
     if metric not in valid_metrics:
         typer.echo(
-            f"Error: invalid metric '{metric}'. "
-            f"Valid: {', '.join(sorted(valid_metrics))}",
+            f"Error: invalid metric '{metric}'. Valid: {', '.join(sorted(valid_metrics))}",
             err=True,
         )
         raise typer.Exit(1)
@@ -209,6 +220,7 @@ def perf(
     Output.write_formatted(result, format, output)
     if output:
         typer.echo(f"Performance data saved to {output}")
+
 
 def _print_perf_summary(metrics: Any) -> None:
     """Print a human-readable summary of key performance metrics.
@@ -241,6 +253,7 @@ def _print_perf_summary(metrics: Any) -> None:
             else:
                 typer.echo(f"  {label:8s} {value}")
     typer.echo("-" * 40)
+
 
 async def _perf(url: str, metric: str, duration: int) -> Any:
     """Async helper for performance metrics capture.
@@ -320,7 +333,11 @@ def cwv(
         )
         action = CoreWebVitalsAction(params)
         backend = _get_backend()
-        return await action.execute(backend)
+        await backend.launch(_browser_options())
+        try:
+            return await action.execute(backend)
+        finally:
+            await _close_backend(backend)
 
     result = _run_async(_cwv())
     if result is None:
@@ -355,4 +372,3 @@ def cwv(
     Output.write_formatted(result, format, output)
     if output and output != "-":
         typer.echo(f"Results saved to {output}")
-

@@ -18,9 +18,7 @@ def _make_cdp_backend() -> Any:
     backend = CDPBackend()
     backend._session = MagicMock()
     backend._session.runtime = MagicMock()
-    backend._session.runtime.evaluate = AsyncMock(
-        return_value={"result": {"value": None}}
-    )
+    backend._session.runtime.evaluate = AsyncMock(return_value={"result": {"value": None}})
     backend._session.page = MagicMock()
     backend._session.page.capture_screenshot = AsyncMock(
         return_value={"data": base64.b64encode(b"fake_png").decode()}
@@ -42,9 +40,7 @@ def _make_bidi_backend() -> Any:
     backend._client.browsing = MagicMock()
     screenshot_result = MagicMock()
     screenshot_result.data = base64.b64encode(b"fake_png").decode()
-    backend._client.browsing.screenshot = AsyncMock(
-        return_value=screenshot_result
-    )
+    backend._client.browsing.screenshot = AsyncMock(return_value=screenshot_result)
     return backend
 
 
@@ -57,13 +53,9 @@ class TestAnnotatedScreenshotCDP:
         backend = _make_cdp_backend()
         label_map = {"e1": "button", "e2": "#email"}
         backend._session.runtime.evaluate = AsyncMock(
-            return_value={
-                "result": {"value": json.dumps(label_map)}
-            }
+            return_value={"result": {"value": json.dumps(label_map)}}
         )
-        image_bytes, labels = asyncio.run(
-            backend.annotated_screenshot(["button", "#email"])
-        )
+        image_bytes, labels = asyncio.run(backend.annotated_screenshot(["button", "#email"]))
         assert isinstance(image_bytes, bytes)
         assert len(image_bytes) > 0
         assert labels == label_map
@@ -74,9 +66,7 @@ class TestAnnotatedScreenshotCDP:
         backend._session.runtime.evaluate = AsyncMock(
             return_value={"result": {"value": json.dumps({})}}
         )
-        image_bytes, labels = asyncio.run(
-            backend.annotated_screenshot([".nonexistent"])
-        )
+        image_bytes, labels = asyncio.run(backend.annotated_screenshot([".nonexistent"]))
         assert isinstance(image_bytes, bytes)
         assert labels == {}
 
@@ -103,12 +93,8 @@ class TestAnnotatedScreenshotBiDi:
         label_map = {"e1": "button", "e2": "#email"}
         result_mock = MagicMock()
         result_mock.value = json.dumps(label_map)
-        backend._client.script.evaluate = AsyncMock(
-            return_value=result_mock
-        )
-        image_bytes, labels = asyncio.run(
-            backend.annotated_screenshot(["button", "#email"])
-        )
+        backend._client.script.evaluate = AsyncMock(return_value=result_mock)
+        image_bytes, labels = asyncio.run(backend.annotated_screenshot(["button", "#email"]))
         assert isinstance(image_bytes, bytes)
         assert len(image_bytes) > 0
         assert labels == label_map
@@ -118,12 +104,8 @@ class TestAnnotatedScreenshotBiDi:
         backend = _make_bidi_backend()
         result_mock = MagicMock()
         result_mock.value = json.dumps({})
-        backend._client.script.evaluate = AsyncMock(
-            return_value=result_mock
-        )
-        image_bytes, labels = asyncio.run(
-            backend.annotated_screenshot([".nonexistent"])
-        )
+        backend._client.script.evaluate = AsyncMock(return_value=result_mock)
+        image_bytes, labels = asyncio.run(backend.annotated_screenshot([".nonexistent"]))
         assert isinstance(image_bytes, bytes)
         assert labels == {}
 
@@ -132,9 +114,7 @@ class TestAnnotatedScreenshotBiDi:
         backend = _make_bidi_backend()
         result_mock = MagicMock()
         result_mock.value = json.dumps({"e1": "button"})
-        backend._client.script.evaluate = AsyncMock(
-            return_value=result_mock
-        )
+        backend._client.script.evaluate = AsyncMock(return_value=result_mock)
         asyncio.run(backend.annotated_screenshot(["button"]))
         evaluate_calls = backend._client.script.evaluate.call_args_list
         assert len(evaluate_calls) == 2

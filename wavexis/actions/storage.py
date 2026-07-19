@@ -29,9 +29,7 @@ class StorageAction(BaseAction[StorageParams, Any]):
         if action == "get":
             if not self.params.key:
                 raise ValueError("key is required for get action")
-            return await backend.storage_get(
-                self.params.key, self.params.storage_type
-            )
+            return await backend.storage_get(self.params.key, self.params.storage_type)
 
         if action == "set":
             if not self.params.key or self.params.value is None:
@@ -72,24 +70,16 @@ class StorageAction(BaseAction[StorageParams, Any]):
 
         if action == "cache-delete-entry":
             if not self.params.cache_id or not self.params.request_url:
-                raise ValueError(
-                    "cache_id and request_url are required for cache-delete-entry"
-                )
-            await backend.cache_storage_delete_entry(
-                self.params.cache_id, self.params.request_url
-            )
+                raise ValueError("cache_id and request_url are required for cache-delete-entry")
+            await backend.cache_storage_delete_entry(self.params.cache_id, self.params.request_url)
             return None
 
         if action == "cache-request-names":
-            return await backend.cache_storage_request_cache_names(
-                self.params.origin
-            )
+            return await backend.cache_storage_request_cache_names(self.params.origin)
 
         if action == "cache-cached-response":
             if not self.params.cache_id or not self.params.request_url:
-                raise ValueError(
-                    "cache_id and request_url are required for cache-cached-response"
-                )
+                raise ValueError("cache_id and request_url are required for cache-cached-response")
             return await backend.cache_storage_request_cached_response(
                 self.params.cache_id,
                 self.params.request_url,
@@ -110,18 +100,12 @@ class StorageAction(BaseAction[StorageParams, Any]):
 
         if action == "indexeddb-get":
             if not self.params.database or not self.params.store:
-                raise ValueError(
-                    "database and store are required for indexeddb-get action"
-                )
-            return await backend.indexeddb_get_data(
-                self.params.database, self.params.store
-            )
+                raise ValueError("database and store are required for indexeddb-get action")
+            return await backend.indexeddb_get_data(self.params.database, self.params.store)
 
         if action == "indexeddb-clear":
             if not self.params.database or not self.params.store:
-                raise ValueError(
-                    "database and store are required for indexeddb-clear action"
-                )
+                raise ValueError("database and store are required for indexeddb-clear action")
             await backend.indexeddb_clear(self.params.database, self.params.store)
             return None
 
@@ -135,9 +119,7 @@ class StorageAction(BaseAction[StorageParams, Any]):
 
         if action == "delete-bucket":
             if not self.params.storage_key or not self.params.bucket_name:
-                raise ValueError(
-                    "storage_key and bucket_name are required for delete-bucket"
-                )
+                raise ValueError("storage_key and bucket_name are required for delete-bucket")
             await backend.storage_delete_storage_bucket(
                 self.params.storage_key, self.params.bucket_name
             )
@@ -149,9 +131,7 @@ class StorageAction(BaseAction[StorageParams, Any]):
         if action == "shared-storage-metadata":
             if not self.params.owner_origin:
                 raise ValueError("owner_origin is required for shared-storage-metadata")
-            return await backend.storage_get_shared_storage_metadata(
-                self.params.owner_origin
-            )
+            return await backend.storage_get_shared_storage_metadata(self.params.owner_origin)
 
         if action == "get-storage-key":
             if not self.params.frame_id:
@@ -165,12 +145,8 @@ class StorageAction(BaseAction[StorageParams, Any]):
 
         if action == "reset-shared-storage-budget":
             if not self.params.owner_origin:
-                raise ValueError(
-                    "owner_origin is required for reset-shared-storage-budget"
-                )
-            await backend.storage_reset_shared_storage_budget(
-                self.params.owner_origin
-            )
+                raise ValueError("owner_origin is required for reset-shared-storage-budget")
+            await backend.storage_reset_shared_storage_budget(self.params.owner_origin)
             return None
 
         if action == "run-bounce-tracking":
@@ -210,9 +186,7 @@ class StorageAction(BaseAction[StorageParams, Any]):
 
         if action == "set-bucket-tracking":
             if not self.params.storage_key or not self.params.bucket_name:
-                raise ValueError(
-                    "storage_key and bucket_name are required for set-bucket-tracking"
-                )
+                raise ValueError("storage_key and bucket_name are required for set-bucket-tracking")
             await backend.storage_set_storage_bucket_tracking(
                 self.params.storage_key,
                 self.params.bucket_name,
@@ -229,9 +203,7 @@ class StorageAction(BaseAction[StorageParams, Any]):
         if action == "track-cache-key":
             if not self.params.storage_key:
                 raise ValueError("storage_key is required for track-cache-key")
-            await backend.storage_track_cache_storage_for_storage_key(
-                self.params.storage_key
-            )
+            await backend.storage_track_cache_storage_for_storage_key(self.params.storage_key)
             return None
 
         if action == "track-idb-origin":
@@ -243,9 +215,7 @@ class StorageAction(BaseAction[StorageParams, Any]):
         if action == "track-idb-key":
             if not self.params.storage_key:
                 raise ValueError("storage_key is required for track-idb-key")
-            await backend.storage_track_indexed_db_for_storage_key(
-                self.params.storage_key
-            )
+            await backend.storage_track_indexed_db_for_storage_key(self.params.storage_key)
             return None
 
         if action == "untrack-cache-origin":
@@ -257,9 +227,7 @@ class StorageAction(BaseAction[StorageParams, Any]):
         if action == "untrack-cache-key":
             if not self.params.storage_key:
                 raise ValueError("storage_key is required for untrack-cache-key")
-            await backend.storage_untrack_cache_storage_for_storage_key(
-                self.params.storage_key
-            )
+            await backend.storage_untrack_cache_storage_for_storage_key(self.params.storage_key)
             return None
 
         if action == "untrack-idb-origin":
@@ -271,9 +239,7 @@ class StorageAction(BaseAction[StorageParams, Any]):
         if action == "untrack-idb-key":
             if not self.params.storage_key:
                 raise ValueError("storage_key is required for untrack-idb-key")
-            await backend.storage_untrack_indexed_db_for_storage_key(
-                self.params.storage_key
-            )
+            await backend.storage_untrack_indexed_db_for_storage_key(self.params.storage_key)
             return None
 
         raise ValueError(f"Unknown storage action: {action}")

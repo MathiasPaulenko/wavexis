@@ -28,9 +28,7 @@ class NavigationBackend(ABC):
         """Evaluate a JavaScript expression and return the result."""
 
     @abstractmethod
-    async def raw(
-        self, method: str, params: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    async def raw(self, method: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         """Send a raw protocol command (escape hatch)."""
 
     @abstractmethod
@@ -78,8 +76,7 @@ class NavigationBackend(ABC):
             A backend-like object with its own session for the new tab.
         """
         raise NotImplementedError(
-            "new_tab_handle is not supported by this backend. "
-            "Use --mode processes for concurrency."
+            "new_tab_handle is not supported by this backend. Use --mode processes for concurrency."
         )
 
     @abstractmethod
@@ -107,9 +104,7 @@ class NavigationBackend(ABC):
         """Get the current window bounds (width, height, x, y)."""
 
     @abstractmethod
-    async def set_window_bounds(
-        self, width: int, height: int, x: int = 0, y: int = 0
-    ) -> None:
+    async def set_window_bounds(self, width: int, height: int, x: int = 0, y: int = 0) -> None:
         """Set the window bounds."""
 
     @abstractmethod

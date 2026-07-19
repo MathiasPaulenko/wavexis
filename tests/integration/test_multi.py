@@ -15,6 +15,7 @@ from wavexis.multi import execute_actions, parse_yaml
 @pytest.mark.integration
 class TestMultiIntegration:
     """Test suite for multiintegration."""
+
     def test_parse_valid_config(self, tmp_path: Path) -> None:
         """Test parse valid config."""
         config = tmp_path / "shots.yml"

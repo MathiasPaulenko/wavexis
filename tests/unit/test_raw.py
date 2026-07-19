@@ -12,18 +12,17 @@ from wavexis.backend.base import AbstractBackend
 @pytest.mark.unit
 class TestRawCommand:
     """Test suite for rawcommand."""
+
     def _make_backend(self) -> MagicMock:
         """Create a mock backend for testing.
 
-            Returns:
-                A MagicMock backend instance.
-            """
+        Returns:
+            A MagicMock backend instance.
+        """
         backend = MagicMock(spec=AbstractBackend)
         backend.launch = AsyncMock()
         backend.close = AsyncMock()
-        backend.raw = AsyncMock(
-            return_value={"result": {"value": 42}}
-        )
+        backend.raw = AsyncMock(return_value={"result": {"value": 42}})
         return backend
 
     async def test_raw_basic(self) -> None:
@@ -65,6 +64,7 @@ class TestRawCommand:
 @pytest.mark.unit
 class TestRawJSONValidation:
     """Test suite for rawjsonvalidation."""
+
     def test_valid_json_params(self) -> None:
         """Test valid json params."""
         import json

@@ -75,9 +75,7 @@ class TestSmartCardEmulationAction:
     async def test_report_plain(self) -> None:
         """Test report-plain action."""
         backend = self._make_backend()
-        params = SmartCardEmulationParams(
-            action="report-plain", request_id="req2", result_code=0
-        )
+        params = SmartCardEmulationParams(action="report-plain", request_id="req2", result_code=0)
         await SmartCardEmulationAction(params).execute(backend)
         backend.smart_card_report_plain_result.assert_called_once_with("req2", 0)
 
@@ -91,9 +89,7 @@ class TestSmartCardEmulationAction:
             connection_id="conn1",
         )
         await SmartCardEmulationAction(params).execute(backend)
-        backend.smart_card_report_connect_result.assert_called_once_with(
-            "req3", 0, "conn1"
-        )
+        backend.smart_card_report_connect_result.assert_called_once_with("req3", 0, "conn1")
 
     async def test_report_data(self) -> None:
         """Test report-data action."""
@@ -105,16 +101,12 @@ class TestSmartCardEmulationAction:
             data="deadbeef",
         )
         await SmartCardEmulationAction(params).execute(backend)
-        backend.smart_card_report_data_result.assert_called_once_with(
-            "req4", 0, "deadbeef"
-        )
+        backend.smart_card_report_data_result.assert_called_once_with("req4", 0, "deadbeef")
 
     async def test_report_status(self) -> None:
         """Test report-status action."""
         backend = self._make_backend()
-        params = SmartCardEmulationParams(
-            action="report-status", request_id="req5", status="ready"
-        )
+        params = SmartCardEmulationParams(action="report-status", request_id="req5", status="ready")
         await SmartCardEmulationAction(params).execute(backend)
         backend.smart_card_report_status_result.assert_called_once_with("req5", "ready")
 
@@ -125,9 +117,7 @@ class TestSmartCardEmulationAction:
             action="report-begin-transaction", request_id="req6", result_code=0
         )
         await SmartCardEmulationAction(params).execute(backend)
-        backend.smart_card_report_begin_transaction_result.assert_called_once_with(
-            "req6", 0
-        )
+        backend.smart_card_report_begin_transaction_result.assert_called_once_with("req6", 0)
 
     async def test_report_establish_context(self) -> None:
         """Test report-establish-context action."""
@@ -150,9 +140,7 @@ class TestSmartCardEmulationAction:
             action="report-release-context", request_id="req8", result_code=0
         )
         await SmartCardEmulationAction(params).execute(backend)
-        backend.smart_card_report_release_context_result.assert_called_once_with(
-            "req8", 0
-        )
+        backend.smart_card_report_release_context_result.assert_called_once_with("req8", 0)
 
     async def test_report_list_readers(self) -> None:
         """Test report-list-readers action."""
@@ -165,9 +153,7 @@ class TestSmartCardEmulationAction:
             readers=readers,
         )
         await SmartCardEmulationAction(params).execute(backend)
-        backend.smart_card_report_list_readers_result.assert_called_once_with(
-            "req9", 0, readers
-        )
+        backend.smart_card_report_list_readers_result.assert_called_once_with("req9", 0, readers)
 
     async def test_report_get_status_change(self) -> None:
         """Test report-get-status-change action."""
@@ -194,9 +180,7 @@ class TestSmartCardEmulationAction:
     async def test_lifecycle(self) -> None:
         """Test the action lifecycle (navigate, execute, close)."""
         backend = self._make_backend()
-        params = SmartCardEmulationParams(
-            url="https://example.com", action="enable"
-        )
+        params = SmartCardEmulationParams(url="https://example.com", action="enable")
         await SmartCardEmulationAction(params).execute(backend)
         backend.navigate.assert_called_once()
         backend.smart_card_enable.assert_called_once()

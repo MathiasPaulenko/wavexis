@@ -17,9 +17,7 @@ def _make_cdp_backend() -> Any:
     backend = CDPBackend()
     backend._session = MagicMock()
     backend._session.runtime = MagicMock()
-    backend._session.runtime.evaluate = AsyncMock(
-        return_value={"result": {"value": None}}
-    )
+    backend._session.runtime.evaluate = AsyncMock(return_value={"result": {"value": None}})
     backend._session.runtime.enable = AsyncMock()
     backend._session.send = AsyncMock(return_value={})
     backend._session.network = MagicMock()
@@ -56,9 +54,7 @@ class TestGetRequestBodyCDP:
     def test_returns_body(self) -> None:
         """Test that get_request_body returns the post data."""
         backend = _make_cdp_backend()
-        backend._session.send = AsyncMock(
-            return_value={"postData": '{"key": "value"}'}
-        )
+        backend._session.send = AsyncMock(return_value={"postData": '{"key": "value"}'})
         result = asyncio.run(backend.get_request_body("req-123"))
         assert result == '{"key": "value"}'
 
@@ -77,9 +73,7 @@ class TestGetResponseBodyCDP:
     def test_returns_body(self) -> None:
         """Test that get_response_body returns the body."""
         backend = _make_cdp_backend()
-        backend._session.send = AsyncMock(
-            return_value={"body": "<html>response</html>"}
-        )
+        backend._session.send = AsyncMock(return_value={"body": "<html>response</html>"})
         result = asyncio.run(backend.get_response_body("req-123"))
         assert result == "<html>response</html>"
 
@@ -98,18 +92,14 @@ class TestGetRequestBodyBiDi:
     def test_returns_body(self) -> None:
         """Test that get_request_body returns the post data."""
         backend = _make_bidi_backend()
-        backend._client.cdp.send_command = AsyncMock(
-            return_value={"postData": '{"key": "value"}'}
-        )
+        backend._client.cdp.send_command = AsyncMock(return_value={"postData": '{"key": "value"}'})
         result = asyncio.run(backend.get_request_body("req-123"))
         assert result == '{"key": "value"}'
 
     def test_returns_none_on_error(self) -> None:
         """Test that get_request_body returns None on error."""
         backend = _make_bidi_backend()
-        backend._client.cdp.send_command = AsyncMock(
-            side_effect=Exception("fail")
-        )
+        backend._client.cdp.send_command = AsyncMock(side_effect=Exception("fail"))
         result = asyncio.run(backend.get_request_body("req-123"))
         assert result is None
 
@@ -163,9 +153,7 @@ class TestReplayHarCDP:
                         "request": {
                             "url": "https://api.example.com/data",
                             "method": "GET",
-                            "headers": [
-                                {"name": "Accept", "value": "application/json"}
-                            ],
+                            "headers": [{"name": "Accept", "value": "application/json"}],
                         }
                     }
                 ]
@@ -259,9 +247,7 @@ class TestAxeAuditCDP:
     def test_returns_error_on_failure(self) -> None:
         """Test that axe_audit returns error dict on failure."""
         backend = _make_cdp_backend()
-        backend._session.runtime.evaluate = AsyncMock(
-            return_value={"result": {"value": None}}
-        )
+        backend._session.runtime.evaluate = AsyncMock(return_value={"result": {"value": None}})
         result = asyncio.run(backend.axe_audit())
         assert "error" in result
 
@@ -274,9 +260,7 @@ class TestSubscribeEventsCDP:
         """Test that subscribe_events returns a subscription ID."""
         backend = _make_cdp_backend()
         backend._session.on = MagicMock()
-        sub_id = asyncio.run(
-            backend.subscribe_events(["console"], lambda e: None)
-        )
+        sub_id = asyncio.run(backend.subscribe_events(["console"], lambda e: None))
         assert sub_id.startswith("sub-")
 
     def test_unsubscribe_removes_handlers(self) -> None:
@@ -284,9 +268,7 @@ class TestSubscribeEventsCDP:
         backend = _make_cdp_backend()
         backend._session.on = MagicMock()
         backend._session.off = MagicMock()
-        sub_id = asyncio.run(
-            backend.subscribe_events(["console"], lambda e: None)
-        )
+        sub_id = asyncio.run(backend.subscribe_events(["console"], lambda e: None))
         asyncio.run(backend.unsubscribe_events(sub_id))
         backend._session.off.assert_called()
 
@@ -337,16 +319,12 @@ class TestSubscribeEventsBiDi:
     def test_subscribe_returns_id(self) -> None:
         """Test that subscribe_events returns a subscription ID."""
         backend = _make_bidi_backend()
-        sub_id = asyncio.run(
-            backend.subscribe_events(["console"], lambda e: None)
-        )
+        sub_id = asyncio.run(backend.subscribe_events(["console"], lambda e: None))
         assert sub_id.startswith("sub-")
 
     def test_unsubscribe_removes_handlers(self) -> None:
         """Test that unsubscribe_events removes handlers."""
         backend = _make_bidi_backend()
-        sub_id = asyncio.run(
-            backend.subscribe_events(["console"], lambda e: None)
-        )
+        sub_id = asyncio.run(backend.subscribe_events(["console"], lambda e: None))
         asyncio.run(backend.unsubscribe_events(sub_id))
         backend._client.off.assert_called()

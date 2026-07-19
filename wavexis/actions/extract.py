@@ -33,9 +33,7 @@ class ExtractParams:
 class ExtractAction(BaseAction[ExtractParams, list[dict[str, Any]]]):
     """Action for extracting structured data from a page using a CSS selector schema."""
 
-    async def execute(
-        self, backend: AbstractBackend
-    ) -> list[dict[str, Any]]:
+    async def execute(self, backend: AbstractBackend) -> list[dict[str, Any]]:
         """Execute the extraction on the backend.
 
         Args:

@@ -7,6 +7,7 @@ from typing import Annotated
 import typer
 
 from wavexis.cli._shared import (
+    _browser_options,
     _close_backend,
     _get_backend,
     _run_async,
@@ -17,6 +18,7 @@ from wavexis.config import InputParams, WaitStrategy
 input_app = typer.Typer(help="Input commands (click, type, fill, select, hover, key, drag, tap)")
 app.add_typer(input_app, name="input")
 
+
 @input_app.command("click")
 def input_click(
     url: str = typer.Argument(..., help="URL to navigate to"),
@@ -25,9 +27,9 @@ def input_click(
     click_count: int = typer.Option(1, "--count", help="Number of clicks"),
 ) -> None:
     """Click an element on a web page."""
-    _run_async(_input_action(
-        url, "click", selector=selector, button=button, click_count=click_count
-    ))
+    _run_async(
+        _input_action(url, "click", selector=selector, button=button, click_count=click_count)
+    )
     typer.echo(f"Clicked '{selector}' on {url}")
 
 
@@ -50,6 +52,7 @@ def input_double_click(
     _run_async(_input_action(url, "double_click", selector=selector))
     typer.echo(f"Double-clicked '{selector}' on {url}")
 
+
 @input_app.command("type")
 def input_type(
     url: str = typer.Argument(..., help="URL to navigate to"),
@@ -61,6 +64,7 @@ def input_type(
     _run_async(_input_action(url, "type", selector=selector, text=text, delay=delay))
     typer.echo(f"Typed text into '{selector}' on {url}")
 
+
 @input_app.command("fill")
 def input_fill(
     url: str = typer.Argument(..., help="URL to navigate to"),
@@ -70,6 +74,7 @@ def input_fill(
     """Fill an input element with a value."""
     _run_async(_input_action(url, "fill", selector=selector, value=value))
     typer.echo(f"Filled '{selector}' with value on {url}")
+
 
 @input_app.command("select")
 def input_select(
@@ -81,6 +86,7 @@ def input_select(
     _run_async(_input_action(url, "select", selector=selector, value=value))
     typer.echo(f"Selected '{value}' in '{selector}' on {url}")
 
+
 @input_app.command("hover")
 def input_hover(
     url: str = typer.Argument(..., help="URL to navigate to"),
@@ -90,6 +96,7 @@ def input_hover(
     _run_async(_input_action(url, "hover", selector=selector))
     typer.echo(f"Hovered over '{selector}' on {url}")
 
+
 @input_app.command("key")
 def input_key(
     url: str = typer.Argument(..., help="URL to navigate to"),
@@ -98,6 +105,7 @@ def input_key(
     """Press a keyboard key on a web page."""
     _run_async(_input_action(url, "key", key=key))
     typer.echo(f"Pressed key '{key}' on {url}")
+
 
 @input_app.command("drag")
 def input_drag(
@@ -109,6 +117,7 @@ def input_drag(
     _run_async(_input_action(url, "drag", source=source, target=target))
     typer.echo(f"Dragged '{source}' to '{target}' on {url}")
 
+
 @input_app.command("tap")
 def input_tap(
     url: str = typer.Argument(..., help="URL to navigate to"),
@@ -117,6 +126,7 @@ def input_tap(
     """Tap an element on a web page (touch emulation)."""
     _run_async(_input_action(url, "tap", selector=selector))
     typer.echo(f"Tapped '{selector}' on {url}")
+
 
 @input_app.command("scroll")
 def input_scroll(
@@ -134,6 +144,7 @@ def input_scroll(
     else:
         typer.echo(f"Scrolled by ({x}, {y}) on {url}")
 
+
 @input_app.command("upload")
 def input_upload(
     url: str = typer.Argument(..., help="URL to navigate to"),
@@ -143,6 +154,7 @@ def input_upload(
     """Upload files to a file input element on a web page."""
     _run_async(_input_action(url, "upload", selector=selector, files=files))
     typer.echo(f"Uploaded {len(files)} file(s) to '{selector}' on {url}")
+
 
 async def _input_action(
     url: str,
@@ -164,25 +176,25 @@ async def _input_action(
     from wavexis.actions.input import InputAction
 
     backend = _get_backend()
-    params = InputParams(
-        url=url,
-        action=action,
-        selector=selector,
-        text=text,
-        value=value,
-        key=key,
-        button=button,
-        click_count=click_count,
-        delay=delay,
-        source=source,
-        target=target,
-        scroll_x=scroll_x,
-        scroll_y=scroll_y,
-        files=files,
-        wait=WaitStrategy(strategy="load"),
-    )
     try:
+        await backend.launch(_browser_options())
+        params = InputParams(
+            url=url,
+            action=action,
+            selector=selector,
+            text=text,
+            value=value,
+            key=key,
+            button=button,
+            click_count=click_count,
+            delay=delay,
+            source=source,
+            target=target,
+            scroll_x=scroll_x,
+            scroll_y=scroll_y,
+            files=files,
+            wait=WaitStrategy(strategy="load"),
+        )
         await InputAction(params).execute(backend)
     finally:
         await _close_backend(backend)
-

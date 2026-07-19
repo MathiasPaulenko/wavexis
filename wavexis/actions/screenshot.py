@@ -30,8 +30,6 @@ class ScreenshotAction(BaseAction[ScreenshotParams, bytes]):
             await backend.eval(params.js, await_promise=True)
 
         if params.selector:
-            return await backend.screenshot_selector(
-                params.selector, params.format, params.quality
-            )
+            return await backend.screenshot_selector(params.selector, params.format, params.quality)
 
         return await backend.screenshot(params)

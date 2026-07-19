@@ -126,8 +126,13 @@ class TestCoreWebVitals:
 
         action = CoreWebVitalsAction(CoreWebVitalsParams())
         metrics = {
-            "lcp_ms": 1000, "cls": 0.05, "inp_ms": 100,
-            "fcp_ms": 500, "ttfb_ms": 200, "tbt_ms": 50, "load_ms": 1000,
+            "lcp_ms": 1000,
+            "cls": 0.05,
+            "inp_ms": 100,
+            "fcp_ms": 500,
+            "ttfb_ms": 200,
+            "tbt_ms": 50,
+            "load_ms": 1000,
         }
         score = action._compute_score(metrics, dom_size=500)
         assert score == 100
@@ -138,8 +143,13 @@ class TestCoreWebVitals:
 
         action = CoreWebVitalsAction(CoreWebVitalsParams())
         metrics = {
-            "lcp_ms": 5000, "cls": 0.3, "inp_ms": 600,
-            "fcp_ms": 3500, "ttfb_ms": 2000, "tbt_ms": 700, "load_ms": 6000,
+            "lcp_ms": 5000,
+            "cls": 0.3,
+            "inp_ms": 600,
+            "fcp_ms": 3500,
+            "ttfb_ms": 2000,
+            "tbt_ms": 700,
+            "load_ms": 6000,
         }
         score = action._compute_score(metrics, dom_size=3500)
         assert score <= 10

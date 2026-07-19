@@ -41,9 +41,7 @@ class TestSubstituteVariables:
         assert result == "https://example.com"
 
     def test_var_in_string(self) -> None:
-        result = _substitute_variables(
-            "Navigate to {{url}} now", {"url": "https://example.com"}
-        )
+        result = _substitute_variables("Navigate to {{url}} now", {"url": "https://example.com"})
         assert result == "Navigate to https://example.com now"
 
     def test_env_var(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -71,9 +69,7 @@ class TestSubstituteVariables:
         assert result == {"url": "https://example.com", "selector": "#btn"}
 
     def test_var_in_list(self) -> None:
-        result = _substitute_variables(
-            ["{{url}}", "static"], {"url": "https://example.com"}
-        )
+        result = _substitute_variables(["{{url}}", "static"], {"url": "https://example.com"})
         assert result == ["https://example.com", "static"]
 
     def test_no_vars(self) -> None:
@@ -114,13 +110,9 @@ actions:
         actions = parse_yaml(config)
         assert actions[0]["screenshot"]["url"] == "https://example.com"
         assert actions[1]["eval"]["url"] == "https://example.com"
-        assert actions[1]["eval"]["expression"] == (
-            "document.querySelector('#main').textContent"
-        )
+        assert actions[1]["eval"]["expression"] == ("document.querySelector('#main').textContent")
 
-    def test_env_var_substitution(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_env_var_substitution(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("TARGET_URL", "https://env.example.com")
         config = tmp_path / "config.yml"
         config.write_text(
@@ -170,9 +162,7 @@ class TestWaitDispatch:
     async def test_wait_action_dispatched(self) -> None:
         backend = MagicMock()
         backend.wait_for = AsyncMock(return_value=None)
-        actions = [
-            {"wait": {"strategy": "selector", "selector": "#loaded", "timeout": 5000}}
-        ]
+        actions = [{"wait": {"strategy": "selector", "selector": "#loaded", "timeout": 5000}}]
         await execute_actions(actions, backend)
         backend.wait_for.assert_called_once()
         ws_arg = backend.wait_for.call_args[0][0]
@@ -203,9 +193,7 @@ class TestEmulationDispatch:
     async def test_emulation_viewport(self) -> None:
         backend = MagicMock()
         backend.set_viewport = AsyncMock(return_value=None)
-        actions = [
-            {"emulation": {"action": "viewport", "width": 1920, "height": 1080}}
-        ]
+        actions = [{"emulation": {"action": "viewport", "width": 1920, "height": 1080}}]
         await execute_actions(actions, backend)
         backend.set_viewport.assert_called_once_with(1920, 1080, 1.0)
 

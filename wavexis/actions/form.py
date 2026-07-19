@@ -33,9 +33,7 @@ class FormParams:
 class FormAction(BaseAction[FormParams, dict[str, Any]]):
     """Action for filling form fields and optionally submitting."""
 
-    async def execute(
-        self, backend: AbstractBackend
-    ) -> dict[str, Any]:
+    async def execute(self, backend: AbstractBackend) -> dict[str, Any]:
         """Execute the form fill on the backend.
 
         Args:

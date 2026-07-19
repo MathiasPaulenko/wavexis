@@ -10,5 +10,7 @@ class DigitalCredentialsBackend(ABC):
     """Digital credentials virtual wallet operations."""
 
     @abstractmethod
-    async def digital_credentials_set_virtual_wallet_behavior(self, behavior: dict[str, Any]) -> None:
+    async def digital_credentials_set_virtual_wallet_behavior(
+        self, behavior: dict[str, Any]
+    ) -> None:
         """Set the virtual wallet behavior for digital credentials."""

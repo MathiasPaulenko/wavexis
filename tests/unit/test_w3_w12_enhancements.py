@@ -80,9 +80,7 @@ class TestRequestBodyCapture:
 
     def test_bidi_get_request_body(self) -> None:
         backend = _make_bidi_backend()
-        backend._client.cdp.send_command = AsyncMock(
-            return_value={"postData": "data=value"}
-        )
+        backend._client.cdp.send_command = AsyncMock(return_value={"postData": "data=value"})
         result = asyncio.run(backend.get_request_body("req-1"))
         assert result == "data=value"
 
@@ -126,9 +124,7 @@ class TestHARReplay:
 
     def test_cdp_replay_har_replays_entries(self) -> None:
         backend = _make_cdp_backend()
-        backend._session.runtime.evaluate = AsyncMock(
-            return_value={"result": {"value": 200}}
-        )
+        backend._session.runtime.evaluate = AsyncMock(return_value={"result": {"value": 200}})
         har_data = {
             "log": {
                 "entries": [
@@ -163,9 +159,7 @@ class TestHARReplay:
 
     def test_cdp_replay_har_with_url_filter(self) -> None:
         backend = _make_cdp_backend()
-        backend._session.runtime.evaluate = AsyncMock(
-            return_value={"result": {"value": 200}}
-        )
+        backend._session.runtime.evaluate = AsyncMock(return_value={"result": {"value": 200}})
         har_data = {
             "log": {
                 "entries": [
@@ -251,9 +245,7 @@ class TestAxeAudit:
     def test_cdp_axe_audit_returns_dict(self) -> None:
         backend = _make_cdp_backend()
         expected = {"violations": [], "passes": [], "incomplete": [], "inapplicable": []}
-        backend._session.runtime.evaluate = AsyncMock(
-            return_value={"result": {"value": expected}}
-        )
+        backend._session.runtime.evaluate = AsyncMock(return_value={"result": {"value": expected}})
         result = asyncio.run(backend.axe_audit())
         assert result == expected
 
@@ -268,9 +260,7 @@ class TestAxeAudit:
 
     def test_cdp_axe_audit_error_on_invalid_result(self) -> None:
         backend = _make_cdp_backend()
-        backend._session.runtime.evaluate = AsyncMock(
-            return_value={"result": {"value": None}}
-        )
+        backend._session.runtime.evaluate = AsyncMock(return_value={"result": {"value": None}})
         result = asyncio.run(backend.axe_audit())
         assert "error" in result
 
@@ -287,9 +277,7 @@ class TestSubscribeEvents:
         backend._session.network.enable = AsyncMock()
         backend._session.runtime.enable = AsyncMock()
         callback = MagicMock()
-        sub_id = asyncio.run(
-            backend.subscribe_events(["console", "network_request"], callback)
-        )
+        sub_id = asyncio.run(backend.subscribe_events(["console", "network_request"], callback))
         assert sub_id.startswith("sub-")
 
     def test_cdp_unsubscribe_removes_handlers(self) -> None:
@@ -298,18 +286,14 @@ class TestSubscribeEvents:
         backend._session.runtime.enable = AsyncMock()
         backend._session.off = MagicMock()
         callback = MagicMock()
-        sub_id = asyncio.run(
-            backend.subscribe_events(["console"], callback)
-        )
+        sub_id = asyncio.run(backend.subscribe_events(["console"], callback))
         asyncio.run(backend.unsubscribe_events(sub_id))
         assert backend._session.off.call_count >= 1
 
     def test_bidi_subscribe_returns_id(self) -> None:
         backend = _make_bidi_backend()
         callback = MagicMock()
-        sub_id = asyncio.run(
-            backend.subscribe_events(["network_response", "dialog"], callback)
-        )
+        sub_id = asyncio.run(backend.subscribe_events(["network_response", "dialog"], callback))
         assert sub_id.startswith("sub-")
 
 
@@ -347,16 +331,12 @@ class TestVisualDiff:
         img.save(buf, format="PNG")
         img_bytes = buf.getvalue()
 
-        with tempfile.NamedTemporaryFile(
-            suffix=".png", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
             f.write(img_bytes)
             baseline_path = f.name
 
         try:
-            action = VisualDiffAction(
-                VisualDiffParams(baseline_path=baseline_path)
-            )
+            action = VisualDiffAction(VisualDiffParams(baseline_path=baseline_path))
             result = action._compare(img_bytes, img_bytes)
             assert result["diff_count"] == 0
             assert result["diff_percentage"] == 0.0
@@ -381,16 +361,12 @@ class TestVisualDiff:
         buf2 = io.BytesIO()
         img2.save(buf2, format="PNG")
 
-        with tempfile.NamedTemporaryFile(
-            suffix=".png", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
             f.write(buf1.getvalue())
             baseline_path = f.name
 
         try:
-            action = VisualDiffAction(
-                VisualDiffParams(baseline_path=baseline_path, threshold=5)
-            )
+            action = VisualDiffAction(VisualDiffParams(baseline_path=baseline_path, threshold=5))
             result = action._compare(buf1.getvalue(), buf2.getvalue())
             assert result["diff_count"] > 0
             assert result["diff_percentage"] > 0.0

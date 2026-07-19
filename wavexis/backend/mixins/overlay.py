@@ -10,9 +10,7 @@ class OverlayBackend(ABC):
     """Visual highlight and debug overlay operations."""
 
     @abstractmethod
-    async def overlay_highlight(
-        self, selector: str, color: str = "rgba(255,0,0,0.5)"
-    ) -> None:
+    async def overlay_highlight(self, selector: str, color: str = "rgba(255,0,0,0.5)") -> None:
         """Highlight an element with a colored overlay.
 
         Args:
@@ -33,9 +31,7 @@ class OverlayBackend(ABC):
         """Disable the overlay domain."""
 
     @abstractmethod
-    async def overlay_highlight_node(
-        self, node_id: int, color: str = "rgba(255,0,0,0.5)"
-    ) -> None:
+    async def overlay_highlight_node(self, node_id: int, color: str = "rgba(255,0,0,0.5)") -> None:
         """Highlight a DOM node by node ID."""
 
     @abstractmethod
@@ -46,15 +42,12 @@ class OverlayBackend(ABC):
 
     @abstractmethod
     async def overlay_highlight_rect(
-        self, x: float, y: float, width: float, height: float,
-        color: str = "rgba(255,0,0,0.5)"
+        self, x: float, y: float, width: float, height: float, color: str = "rgba(255,0,0,0.5)"
     ) -> None:
         """Highlight a rectangular region on the page."""
 
     @abstractmethod
-    async def overlay_set_inspect_mode(
-        self, mode: str = "searchForNode"
-    ) -> None:
+    async def overlay_set_inspect_mode(self, mode: str = "searchForNode") -> None:
         """Set the inspect mode for element selection.
 
         Args:
@@ -79,9 +72,7 @@ class OverlayBackend(ABC):
         """Show or hide ad highlights overlay."""
 
     @abstractmethod
-    async def overlay_get_grid_highlight_objects_for_test(
-        self, node_id: int
-    ) -> dict[str, Any]:
+    async def overlay_get_grid_highlight_objects_for_test(self, node_id: int) -> dict[str, Any]:
         """Get grid highlight objects for testing."""
 
     @abstractmethod
@@ -105,21 +96,15 @@ class OverlayBackend(ABC):
         """Hide any highlight overlay."""
 
     @abstractmethod
-    async def overlay_highlight_source_order(
-        self, source_order_config: dict[str, Any]
-    ) -> None:
+    async def overlay_highlight_source_order(self, source_order_config: dict[str, Any]) -> None:
         """Highlight the source order of a node."""
 
     @abstractmethod
-    async def overlay_set_paused_in_debugger_message(
-        self, message: str = ""
-    ) -> None:
+    async def overlay_set_paused_in_debugger_message(self, message: str = "") -> None:
         """Set the message displayed when paused in the debugger."""
 
     @abstractmethod
-    async def overlay_set_show_container_query_overlays(
-        self, show: bool
-    ) -> None:
+    async def overlay_set_show_container_query_overlays(self, show: bool) -> None:
         """Show or hide container query overlays."""
 
     @abstractmethod
@@ -137,15 +122,11 @@ class OverlayBackend(ABC):
         """Show grid overlays for the given configurations."""
 
     @abstractmethod
-    async def overlay_set_show_hinge(
-        self, hinge_config: dict[str, Any] | None = None
-    ) -> None:
+    async def overlay_set_show_hinge(self, hinge_config: dict[str, Any] | None = None) -> None:
         """Show or hide the hinge overlay."""
 
     @abstractmethod
-    async def overlay_set_show_inspected_element_anchor(
-        self, show: bool
-    ) -> None:
+    async def overlay_set_show_inspected_element_anchor(self, show: bool) -> None:
         """Show or hide the inspected element anchor."""
 
     @abstractmethod
@@ -155,31 +136,21 @@ class OverlayBackend(ABC):
         """Show isolated elements with the given highlight configurations."""
 
     @abstractmethod
-    async def overlay_set_show_layout_shift_regions(
-        self, show: bool
-    ) -> None:
+    async def overlay_set_show_layout_shift_regions(self, show: bool) -> None:
         """Show or hide layout shift regions."""
 
     @abstractmethod
-    async def overlay_set_show_scroll_bottleneck_rects(
-        self, show: bool
-    ) -> None:
+    async def overlay_set_show_scroll_bottleneck_rects(self, show: bool) -> None:
         """Show or hide scroll bottleneck rects."""
 
     @abstractmethod
-    async def overlay_set_show_scroll_snap_overlays(
-        self, show: bool
-    ) -> None:
+    async def overlay_set_show_scroll_snap_overlays(self, show: bool) -> None:
         """Show or hide scroll snap overlays."""
 
     @abstractmethod
-    async def overlay_set_show_viewport_size_on_resize(
-        self, show: bool
-    ) -> None:
+    async def overlay_set_show_viewport_size_on_resize(self, show: bool) -> None:
         """Show or hide viewport size on resize."""
 
     @abstractmethod
-    async def overlay_set_show_window_controls_overlay(
-        self, show: bool
-    ) -> None:
+    async def overlay_set_show_window_controls_overlay(self, show: bool) -> None:
         """Show or hide window controls overlay."""

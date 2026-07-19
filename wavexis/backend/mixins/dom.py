@@ -43,15 +43,11 @@ class DOMBackend(ABC):
         """Focus an element matching a CSS selector."""
 
     @abstractmethod
-    async def dom_scroll(
-        self, selector: str | None = None, x: int = 0, y: int = 0
-    ) -> None:
+    async def dom_scroll(self, selector: str | None = None, x: int = 0, y: int = 0) -> None:
         """Scroll to an element or by offset."""
 
     @abstractmethod
-    async def suggest_locator(
-        self, selector: str, all: bool = False
-    ) -> list[str] | str:
+    async def suggest_locator(self, selector: str, all: bool = False) -> list[str] | str:
         """Suggest the best CSS selector for an element.
 
         Analyzes the element and generates optimal selectors in priority order:
@@ -66,9 +62,7 @@ class DOMBackend(ABC):
         """
 
     @abstractmethod
-    async def find_by_text(
-        self, query: str, all: bool = False
-    ) -> list[str] | str:
+    async def find_by_text(self, query: str, all: bool = False) -> list[str] | str:
         """Find elements by natural language text query.
 
         Searches all visible elements by text content, aria-label,
@@ -86,9 +80,7 @@ class DOMBackend(ABC):
         """
 
     @abstractmethod
-    async def nl_click(
-        self, query: str, auto_wait: bool = True
-    ) -> None:
+    async def nl_click(self, query: str, auto_wait: bool = True) -> None:
         """Click an element found by natural language text query.
 
         Args:
@@ -97,9 +89,7 @@ class DOMBackend(ABC):
         """
 
     @abstractmethod
-    async def nl_fill(
-        self, query: str, value: str, auto_wait: bool = True
-    ) -> None:
+    async def nl_fill(self, query: str, value: str, auto_wait: bool = True) -> None:
         """Fill an input element found by natural language text query.
 
         Args:
@@ -253,7 +243,9 @@ class DOMBackend(ABC):
         """Collect class names from the subtree of a node by ID."""
 
     @abstractmethod
-    async def dom_copy_to(self, node_id: int, target_node_id: int, insert_before_node_id: int | None = None) -> None:
+    async def dom_copy_to(
+        self, node_id: int, target_node_id: int, insert_before_node_id: int | None = None
+    ) -> None:
         """Copy a node to a target node, optionally before another node."""
 
     @abstractmethod
@@ -285,7 +277,9 @@ class DOMBackend(ABC):
         """Get an attribute value from a node by ID."""
 
     @abstractmethod
-    async def dom_get_container_for_node(self, node_id: int, container_name: str | None = None) -> dict[str, Any]:
+    async def dom_get_container_for_node(
+        self, node_id: int, container_name: str | None = None
+    ) -> dict[str, Any]:
         """Get the container for a node by ID."""
 
     @abstractmethod
@@ -309,11 +303,15 @@ class DOMBackend(ABC):
         """Get stack traces for a node by ID."""
 
     @abstractmethod
-    async def dom_get_nodes_for_subtree_by_style(self, node_id: int, computed_styles: list[str], pierce: bool = False) -> list[dict[str, Any]]:
+    async def dom_get_nodes_for_subtree_by_style(
+        self, node_id: int, computed_styles: list[str], pierce: bool = False
+    ) -> list[dict[str, Any]]:
         """Get nodes in a subtree matching the given computed styles."""
 
     @abstractmethod
-    async def dom_get_querying_descendants_for_container(self, node_id: int) -> list[dict[str, Any]]:
+    async def dom_get_querying_descendants_for_container(
+        self, node_id: int
+    ) -> list[dict[str, Any]]:
         """Get querying descendants for a container node by ID."""
 
     @abstractmethod
@@ -333,7 +331,9 @@ class DOMBackend(ABC):
         """Highlight a node by ID with the given highlight config."""
 
     @abstractmethod
-    async def dom_highlight_rect(self, x: int, y: int, width: int, height: int, highlight_config: dict[str, Any]) -> None:
+    async def dom_highlight_rect(
+        self, x: int, y: int, width: int, height: int, highlight_config: dict[str, Any]
+    ) -> None:
         """Highlight a rect with the given highlight config."""
 
     @abstractmethod
@@ -341,7 +341,9 @@ class DOMBackend(ABC):
         """Mark an undoable state in the DOM."""
 
     @abstractmethod
-    async def dom_move_to(self, node_id: int, target_node_id: int, insert_before_node_id: int | None = None) -> None:
+    async def dom_move_to(
+        self, node_id: int, target_node_id: int, insert_before_node_id: int | None = None
+    ) -> None:
         """Move a node to a target node, optionally before another node."""
 
     @abstractmethod
@@ -349,7 +351,9 @@ class DOMBackend(ABC):
         """Push a node by path to frontend."""
 
     @abstractmethod
-    async def dom_push_nodes_by_backend_ids_to_frontend(self, backend_node_ids: list[int]) -> dict[str, Any]:
+    async def dom_push_nodes_by_backend_ids_to_frontend(
+        self, backend_node_ids: list[int]
+    ) -> dict[str, Any]:
         """Push nodes by backend IDs to frontend."""
 
     @abstractmethod

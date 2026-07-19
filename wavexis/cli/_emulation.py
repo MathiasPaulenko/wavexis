@@ -21,6 +21,7 @@ emulation_app = typer.Typer(
 )
 app.add_typer(emulation_app, name="emulation")
 
+
 @app.command()
 def devices() -> None:
     """List available device presets."""
@@ -30,6 +31,7 @@ def devices() -> None:
             f"(scale={preset['device_scale_factor']}, "
             f"mobile={preset['mobile']}, touch={preset['touch']})"
         )
+
 
 @emulation_app.command("device")
 def emulation_device(
@@ -45,6 +47,7 @@ def emulation_device(
     Output.write_bytes(image_bytes, output)
     typer.echo(f"Screenshot saved to {output}")
 
+
 async def _emulation_device(url: str, device: str) -> bytes:
     """Async helper for device emulation + screenshot."""
     backend = _get_backend()
@@ -58,6 +61,7 @@ async def _emulation_device(url: str, device: str) -> bytes:
         return bytes(await backend.screenshot(params))
     finally:
         await _close_backend(backend)
+
 
 @emulation_app.command("viewport")
 def emulation_viewport(
@@ -74,6 +78,7 @@ def emulation_viewport(
     Output.write_bytes(image_bytes, output)
     typer.echo(f"Screenshot saved to {output}")
 
+
 async def _emulation_viewport(url: str, width: int, height: int) -> bytes:
     """Async helper for viewport emulation + screenshot."""
     backend = _get_backend()
@@ -87,6 +92,7 @@ async def _emulation_viewport(url: str, width: int, height: int) -> bytes:
         return bytes(await backend.screenshot(params))
     finally:
         await _close_backend(backend)
+
 
 @emulation_app.command("geolocation")
 def emulation_geolocation(
@@ -103,6 +109,7 @@ def emulation_geolocation(
     Output.write_bytes(image_bytes, output)
     typer.echo(f"Screenshot saved to {output}")
 
+
 async def _emulation_geolocation(url: str, lat: float, lon: float) -> bytes:
     """Async helper for geolocation override + screenshot."""
     backend = _get_backend()
@@ -116,6 +123,7 @@ async def _emulation_geolocation(url: str, lat: float, lon: float) -> bytes:
         return bytes(await backend.screenshot(params))
     finally:
         await _close_backend(backend)
+
 
 @emulation_app.command("timezone")
 def emulation_timezone(
@@ -131,6 +139,7 @@ def emulation_timezone(
     Output.write_bytes(image_bytes, output)
     typer.echo(f"Screenshot saved to {output}")
 
+
 async def _emulation_timezone(url: str, tz: str) -> bytes:
     """Async helper for timezone override + screenshot."""
     backend = _get_backend()
@@ -145,6 +154,7 @@ async def _emulation_timezone(url: str, tz: str) -> bytes:
     finally:
         await _close_backend(backend)
 
+
 @emulation_app.command("dark_mode")
 def emulation_dark_mode(
     url: str = typer.Argument(..., help="URL to navigate to"),
@@ -157,6 +167,7 @@ def emulation_dark_mode(
 
     Output.write_bytes(image_bytes, output)
     typer.echo(f"Screenshot saved to {output}")
+
 
 async def _emulation_dark_mode(url: str) -> bytes:
     """Async helper for dark mode + screenshot."""
@@ -195,7 +206,14 @@ def emulation_clear_media(
 @emulation_app.command("vision-deficiency")
 def emulation_vision_deficiency(
     url: str = typer.Argument(..., help="URL to navigate to"),
-    deficiency: str = typer.Option(..., "--type", help="Deficiency type (none, achromatopsia, blurredVision, deuteranopia, protanopia, tritanopia)"),
+    deficiency: str = typer.Option(
+        ...,
+        "--type",
+        help=(
+            "Deficiency type "
+            "(none, achromatopsia, blurredVision, deuteranopia, protanopia, tritanopia)"
+        ),
+    ),
 ) -> None:
     """Set emulated vision deficiency."""
     _run_async(_emulation_simple(url, "vision_deficiency", deficiency=deficiency))
@@ -206,10 +224,16 @@ def emulation_vision_deficiency(
 def emulation_idle_override(
     url: str = typer.Argument(..., help="URL to navigate to"),
     user_active: bool = typer.Option(True, "--user-active/--no-user-active", help="Is user active"),
-    screen_active: bool = typer.Option(True, "--screen-active/--no-screen-active", help="Is screen active"),
+    screen_active: bool = typer.Option(
+        True, "--screen-active/--no-screen-active", help="Is screen active"
+    ),
 ) -> None:
     """Override idle state to prevent screen sleep/lock."""
-    _run_async(_emulation_simple(url, "idle_override", user_active=user_active, screen_active=screen_active))
+    _run_async(
+        _emulation_simple(
+            url, "idle_override", user_active=user_active, screen_active=screen_active
+        )
+    )
     _echo("Idle override set")
 
 

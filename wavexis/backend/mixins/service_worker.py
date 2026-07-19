@@ -42,9 +42,7 @@ class ServiceWorkerBackend(ABC):
         """Disable the ServiceWorker domain."""
 
     @abstractmethod
-    async def sw_deliver_push_message(
-        self, origin: str, registration_id: str, data: str
-    ) -> None:
+    async def sw_deliver_push_message(self, origin: str, registration_id: str, data: str) -> None:
         """Deliver a push message to a service worker.
 
         Args:

@@ -25,9 +25,7 @@ class TestCacheEntry:
 
     def test_expired(self) -> None:
         """Entry past TTL is expired."""
-        entry = CacheEntry(
-            value="test", timestamp=time.time() - 20, ttl=10.0
-        )
+        entry = CacheEntry(value="test", timestamp=time.time() - 20, ttl=10.0)
         assert entry.is_expired()
 
     def test_expired_with_explicit_now(self) -> None:

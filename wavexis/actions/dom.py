@@ -38,9 +38,7 @@ class DOMAction(BaseAction[DOMParams, Any]):
 
         if params.action == "attr":
             if params.value is not None and params.attribute:
-                await backend.dom_set_attr(
-                    params.selector, params.attribute, params.value
-                )
+                await backend.dom_set_attr(params.selector, params.attribute, params.value)
                 return None
             if params.attribute:
                 return await backend.dom_get_attr(params.selector, params.attribute)
@@ -67,4 +65,4 @@ class DOMAction(BaseAction[DOMParams, Any]):
             )
             return None
 
-        return None
+        raise ValueError(f"Unknown DOM action: {params.action}")

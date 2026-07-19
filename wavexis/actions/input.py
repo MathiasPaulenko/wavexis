@@ -40,21 +40,15 @@ class InputAction(BaseAction[InputParams, Any]):
                 delay=self.params.delay,
             )
         elif action == "fill":
-            await backend.fill(
-                self.params.selector, self.params.value or ""
-            )
+            await backend.fill(self.params.selector, self.params.value or "")
         elif action == "select":
-            await backend.select_option(
-                self.params.selector, self.params.value or ""
-            )
+            await backend.select_option(self.params.selector, self.params.value or "")
         elif action == "hover":
             await backend.hover(self.params.selector)
         elif action == "key":
             await backend.key_press(self.params.key or "Enter")
         elif action == "drag":
-            await backend.drag(
-                self.params.source or "", self.params.target or ""
-            )
+            await backend.drag(self.params.source or "", self.params.target or "")
         elif action == "tap":
             await backend.tap(self.params.selector)
         elif action == "scroll":
@@ -64,9 +58,7 @@ class InputAction(BaseAction[InputParams, Any]):
                 y=self.params.scroll_y,
             )
         elif action == "upload":
-            await backend.set_files(
-                self.params.selector, self.params.files or []
-            )
+            await backend.set_files(self.params.selector, self.params.files or [])
         else:
             raise ValueError(f"Unknown input action: {action}")
         return None

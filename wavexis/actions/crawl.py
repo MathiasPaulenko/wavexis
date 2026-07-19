@@ -38,9 +38,7 @@ class CrawlParams:
 class CrawlAction(BaseAction[CrawlParams, list[dict[str, Any]]]):
     """Action for crawling a website and collecting page data."""
 
-    async def execute(
-        self, backend: AbstractBackend
-    ) -> list[dict[str, Any]]:
+    async def execute(self, backend: AbstractBackend) -> list[dict[str, Any]]:
         """Execute the crawl on the backend.
 
         Args:
@@ -53,7 +51,12 @@ class CrawlAction(BaseAction[CrawlParams, list[dict[str, Any]]]):
         visited: set[str] = set()
         queue: list[tuple[str, int]] = [(self.params.start_url, 0)]
         origin = urlparse(self.params.start_url).netloc
-        pattern = re.compile(self.params.url_pattern) if self.params.url_pattern else None
+        pattern = None
+        if self.params.url_pattern:
+            try:
+                pattern = re.compile(self.params.url_pattern)
+            except re.error as e:
+                raise WavexisError(f"Invalid url_pattern regex: {e}") from e
 
         while queue and len(results) < self.params.max_pages:
             url, depth = queue.pop(0)
@@ -70,9 +73,7 @@ class CrawlAction(BaseAction[CrawlParams, list[dict[str, Any]]]):
             title = ""
             links: list[str] = []
             with contextlib.suppress(WavexisError):
-                title = await backend.eval(
-                    "document.title", await_promise=False
-                )
+                title = await backend.eval("document.title", await_promise=False)
             with contextlib.suppress(WavexisError):
                 raw_links = await backend.eval(
                     "Array.from(document.querySelectorAll('a[href]')).map(a => a.href)",

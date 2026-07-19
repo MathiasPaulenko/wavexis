@@ -10,19 +10,36 @@ class FetchBackend(ABC):
     """Fetch domain operations for request interception."""
 
     @abstractmethod
-    async def fetch_continue_request(self, request_id: str, url: str | None = None, method: str | None = None, post_data: str | None = None, headers: list[dict[str, Any]] | None = None) -> None:
+    async def fetch_continue_request(
+        self,
+        request_id: str,
+        url: str | None = None,
+        method: str | None = None,
+        post_data: str | None = None,
+        headers: list[dict[str, Any]] | None = None,
+    ) -> None:
         """Continue a paused request with optional modifications."""
 
     @abstractmethod
-    async def fetch_continue_request_with_auth(self, request_id: str, auth_challenge_response: dict[str, Any]) -> None:
+    async def fetch_continue_request_with_auth(
+        self, request_id: str, auth_challenge_response: dict[str, Any]
+    ) -> None:
         """Continue a paused request with authentication."""
 
     @abstractmethod
-    async def fetch_continue_response(self, request_id: str, response_code: int = 200, response_headers: list[dict[str, Any]] | None = None, binary_response_headers: str | None = None) -> None:
+    async def fetch_continue_response(
+        self,
+        request_id: str,
+        response_code: int = 200,
+        response_headers: list[dict[str, Any]] | None = None,
+        binary_response_headers: str | None = None,
+    ) -> None:
         """Continue a paused response."""
 
     @abstractmethod
-    async def fetch_continue_with_auth(self, request_id: str, auth_challenge_response: dict[str, Any]) -> None:
+    async def fetch_continue_with_auth(
+        self, request_id: str, auth_challenge_response: dict[str, Any]
+    ) -> None:
         """Continue a paused request with auth challenge response."""
 
     @abstractmethod
@@ -30,7 +47,9 @@ class FetchBackend(ABC):
         """Disable the Fetch domain."""
 
     @abstractmethod
-    async def fetch_enable(self, patterns: list[dict[str, Any]] | None = None, handle_auth_requests: bool = False) -> None:
+    async def fetch_enable(
+        self, patterns: list[dict[str, Any]] | None = None, handle_auth_requests: bool = False
+    ) -> None:
         """Enable the Fetch domain with optional patterns."""
 
     @abstractmethod
@@ -38,7 +57,13 @@ class FetchBackend(ABC):
         """Fail a paused request with an error."""
 
     @abstractmethod
-    async def fetch_fulfill_request(self, request_id: str, response_code: int = 200, response_headers: list[dict[str, Any]] | None = None, body: str | None = None) -> None:
+    async def fetch_fulfill_request(
+        self,
+        request_id: str,
+        response_code: int = 200,
+        response_headers: list[dict[str, Any]] | None = None,
+        body: str | None = None,
+    ) -> None:
         """Fulfill a paused request with a response."""
 
     @abstractmethod

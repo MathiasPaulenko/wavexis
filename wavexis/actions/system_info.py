@@ -34,11 +34,7 @@ class SystemInfoAction(BaseAction[SystemInfoParams, Any]):
 
         if action == "get-feature-state":
             if not self.params.feature_name:
-                raise ValueError(
-                    "feature_name is required for get-feature-state action"
-                )
-            return await backend.system_info_get_feature_state(
-                self.params.feature_name
-            )
+                raise ValueError("feature_name is required for get-feature-state action")
+            return await backend.system_info_get_feature_state(self.params.feature_name)
 
         raise ValueError(f"Unknown SystemInfo action: {action}")

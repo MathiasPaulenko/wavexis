@@ -11,12 +11,13 @@ from wavexis.backend.base import AbstractBackend
 @pytest.mark.unit
 class TestDebugAction:
     """Test suite for debugaction."""
+
     def _make_backend(self) -> MagicMock:
         """Create a mock backend for testing.
 
-            Returns:
-                A MagicMock backend instance.
-            """
+        Returns:
+            A MagicMock backend instance.
+        """
         backend = MagicMock(spec=AbstractBackend)
         backend.launch = AsyncMock()
         backend.close = AsyncMock()
@@ -44,9 +45,7 @@ class TestDebugAction:
             line=42,
         )
         result = await DebugAction(params).execute(backend)
-        backend.debug_set_breakpoint.assert_called_once_with(
-            "https://example.com/app.js", 42, None
-        )
+        backend.debug_set_breakpoint.assert_called_once_with("https://example.com/app.js", 42, None)
         assert result == "bp-1"
 
     async def test_breakpoint_with_condition(self) -> None:
@@ -127,9 +126,7 @@ class TestDebugAction:
     async def test_listeners_action(self) -> None:
         """Test listeners action."""
         backend = self._make_backend()
-        params = DebugActionParams(
-            url="https://example.com", action="listeners", selector="#btn"
-        )
+        params = DebugActionParams(url="https://example.com", action="listeners", selector="#btn")
         result = await DebugAction(params).execute(backend)
         backend.debug_get_listeners.assert_called_once_with("#btn")
         assert isinstance(result, list)
@@ -138,9 +135,7 @@ class TestDebugAction:
     async def test_breakpoint_missing_script_url_raises(self) -> None:
         """Test that breakpoint missing script url raises raises an appropriate error."""
         backend = self._make_backend()
-        params = DebugActionParams(
-            url="https://example.com", action="breakpoint", line=42
-        )
+        params = DebugActionParams(url="https://example.com", action="breakpoint", line=42)
         with pytest.raises(ValueError, match="script_url and line are required"):
             await DebugAction(params).execute(backend)
 
@@ -148,7 +143,8 @@ class TestDebugAction:
         """Test that breakpoint missing line raises raises an appropriate error."""
         backend = self._make_backend()
         params = DebugActionParams(
-            url="https://example.com", action="breakpoint",
+            url="https://example.com",
+            action="breakpoint",
             script_url="https://example.com/app.js",
         )
         with pytest.raises(ValueError, match="script_url and line are required"):

@@ -12,12 +12,13 @@ from wavexis.config import StorageParams
 @pytest.mark.unit
 class TestStorageAction:
     """Test suite for storageaction."""
+
     def _make_backend(self) -> MagicMock:
         """Create a mock backend for testing.
 
-            Returns:
-                A MagicMock backend instance.
-            """
+        Returns:
+            A MagicMock backend instance.
+        """
         backend = MagicMock(spec=AbstractBackend)
         backend.launch = AsyncMock()
         backend.close = AsyncMock()
@@ -31,9 +32,13 @@ class TestStorageAction:
         backend.cache_storage_delete = AsyncMock()
         backend.cache_storage_delete_cache = AsyncMock()
         backend.cache_storage_delete_entry = AsyncMock()
-        backend.cache_storage_request_cache_names = AsyncMock(return_value=[{"cacheId": "c1", "cacheName": "cache1"}])
+        backend.cache_storage_request_cache_names = AsyncMock(
+            return_value=[{"cacheId": "c1", "cacheName": "cache1"}]
+        )
         backend.cache_storage_request_cached_response = AsyncMock(return_value={"body": "resp"})
-        backend.cache_storage_request_entries = AsyncMock(return_value=[{"url": "https://example.com"}])
+        backend.cache_storage_request_entries = AsyncMock(
+            return_value=[{"url": "https://example.com"}]
+        )
         backend.indexeddb_list = AsyncMock(return_value=[{"name": "db1"}])
         backend.indexeddb_get_data = AsyncMock(return_value=[{"key": "1"}])
         backend.indexeddb_clear = AsyncMock()
@@ -72,9 +77,7 @@ class TestStorageAction:
     async def test_set_action(self) -> None:
         """Test set action."""
         backend = self._make_backend()
-        params = StorageParams(
-            url="https://example.com", action="set", key="k", value="v"
-        )
+        params = StorageParams(url="https://example.com", action="set", key="k", value="v")
         result = await StorageAction(params).execute(backend)
         assert result is None
         backend.storage_set.assert_called_once_with("k", "v", "local")
@@ -256,7 +259,8 @@ class TestStorageAction:
         backend = self._make_backend()
         params = StorageParams(
             action="set-protected-audience-k-anonymity",
-            storage_key="sk1", hashed_mac_key="hmk1",
+            storage_key="sk1",
+            hashed_mac_key="hmk1",
         )
         await StorageAction(params).execute(backend)
         backend.storage_set_protected_audience_k_anonymity.assert_called_once_with("sk1", "hmk1")
@@ -271,7 +275,9 @@ class TestStorageAction:
     async def test_set_bucket_tracking(self) -> None:
         """Test set-bucket-tracking action."""
         backend = self._make_backend()
-        params = StorageParams(action="set-bucket-tracking", storage_key="sk1", bucket_name="b1", enable=True)
+        params = StorageParams(
+            action="set-bucket-tracking", storage_key="sk1", bucket_name="b1", enable=True
+        )
         await StorageAction(params).execute(backend)
         backend.storage_set_storage_bucket_tracking.assert_called_once_with("sk1", "b1", True)
 
@@ -355,7 +361,9 @@ class TestStorageAction:
     async def test_cache_delete_entry(self) -> None:
         """Test cache-delete-entry action."""
         backend = self._make_backend()
-        params = StorageParams(action="cache-delete-entry", cache_id="c1", request_url="https://x.com")
+        params = StorageParams(
+            action="cache-delete-entry", cache_id="c1", request_url="https://x.com"
+        )
         await StorageAction(params).execute(backend)
         backend.cache_storage_delete_entry.assert_called_once_with("c1", "https://x.com")
 
@@ -377,10 +385,14 @@ class TestStorageAction:
     async def test_cache_cached_response(self) -> None:
         """Test cache-cached-response action."""
         backend = self._make_backend()
-        params = StorageParams(action="cache-cached-response", cache_id="c1", request_url="https://x.com")
+        params = StorageParams(
+            action="cache-cached-response", cache_id="c1", request_url="https://x.com"
+        )
         result = await StorageAction(params).execute(backend)
         assert result == {"body": "resp"}
-        backend.cache_storage_request_cached_response.assert_called_once_with("c1", "https://x.com", None)
+        backend.cache_storage_request_cached_response.assert_called_once_with(
+            "c1", "https://x.com", None
+        )
 
     async def test_cache_cached_response_missing_fields_raises(self) -> None:
         """Test that cache-cached-response without cache_id/request_url raises."""
@@ -392,7 +404,9 @@ class TestStorageAction:
     async def test_cache_request_entries(self) -> None:
         """Test cache-request-entries action."""
         backend = self._make_backend()
-        params = StorageParams(action="cache-request-entries", cache_id="c1", skip_count=5, page_size=50)
+        params = StorageParams(
+            action="cache-request-entries", cache_id="c1", skip_count=5, page_size=50
+        )
         result = await StorageAction(params).execute(backend)
         assert result == [{"url": "https://example.com"}]
         backend.cache_storage_request_entries.assert_called_once_with("c1", 5, 50)

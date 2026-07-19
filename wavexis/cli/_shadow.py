@@ -21,22 +21,17 @@ from wavexis.config import WaitStrategy
 
 @app.command()
 def shadow(
-    action: str = typer.Argument(
-        ..., help="Shadow DOM action: click, fill, eval"
-    ),
+    action: str = typer.Argument(..., help="Shadow DOM action: click, fill, eval"),
     url: str = typer.Argument(..., help="URL to navigate to"),
     selectors: str = typer.Option(
         ...,
         "--selectors",
         "-s",
         help=(
-            "Comma-separated CSS selectors piercing shadow boundaries "
-            "(e.g. 'my-component,button')"
+            "Comma-separated CSS selectors piercing shadow boundaries (e.g. 'my-component,button')"
         ),
     ),
-    value: str = typer.Option(
-        "", "--value", "-v", help="Value to fill (for fill)"
-    ),
+    value: str = typer.Option("", "--value", "-v", help="Value to fill (for fill)"),
     expression: str = typer.Option(
         "", "--expression", "-e", help="JavaScript expression (for eval)"
     ),
@@ -46,9 +41,7 @@ def shadow(
     no_wait: bool = typer.Option(
         False, "--no-wait", help="Skip auto-waiting for element visibility"
     ),
-    output: str | None = typer.Option(
-        None, "--output", "-o", help="Output file path (for eval)"
-    ),
+    output: str | None = typer.Option(None, "--output", "-o", help="Output file path (for eval)"),
     format: str = typer.Option(
         "json", "--format", "-f", help="Output format: json, csv, yaml (for eval)"
     ),
@@ -77,9 +70,7 @@ def shadow(
         if not expression:
             typer.echo("Error: --expression required for eval", err=True)
             raise typer.Exit(1)
-        result = _run_async(
-            _shadow_eval(url, selector_list, expression, await_promise)
-        )
+        result = _run_async(_shadow_eval(url, selector_list, expression, await_promise))
         if result is None:
             return
         Output.write_formatted(result, format, output)
@@ -94,9 +85,7 @@ def shadow(
         raise typer.Exit(1)
 
 
-async def _shadow_click(
-    url: str, selectors: list[str], auto_wait: bool
-) -> None:
+async def _shadow_click(url: str, selectors: list[str], auto_wait: bool) -> None:
     """Async helper for shadow click."""
     backend = _get_backend()
     try:
@@ -123,9 +112,7 @@ async def _shadow_fill(
         await _close_backend(backend)
 
 
-async def _shadow_eval(
-    url: str, selectors: list[str], expression: str, await_promise: bool
-) -> Any:
+async def _shadow_eval(url: str, selectors: list[str], expression: str, await_promise: bool) -> Any:
     """Async helper for shadow eval."""
     backend = _get_backend()
     try:

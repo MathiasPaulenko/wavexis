@@ -12,12 +12,13 @@ from wavexis.config import InputParams
 @pytest.mark.unit
 class TestInputAction:
     """Test suite for inputaction."""
+
     def _make_backend(self) -> MagicMock:
         """Create a mock backend for testing.
 
-            Returns:
-                A MagicMock backend instance.
-            """
+        Returns:
+            A MagicMock backend instance.
+        """
         backend = MagicMock(spec=AbstractBackend)
         backend.launch = AsyncMock()
         backend.close = AsyncMock()
@@ -44,8 +45,11 @@ class TestInputAction:
         """Test type action."""
         backend = self._make_backend()
         params = InputParams(
-            url="https://example.com", selector="#input",
-            action="type", text="hello", delay=10,
+            url="https://example.com",
+            selector="#input",
+            action="type",
+            text="hello",
+            delay=10,
         )
         await InputAction(params).execute(backend)
         backend.type_text.assert_called_once_with("#input", "hello", delay=10)
@@ -54,8 +58,10 @@ class TestInputAction:
         """Test fill action."""
         backend = self._make_backend()
         params = InputParams(
-            url="https://example.com", selector="#input",
-            action="fill", value="test",
+            url="https://example.com",
+            selector="#input",
+            action="fill",
+            value="test",
         )
         await InputAction(params).execute(backend)
         backend.fill.assert_called_once_with("#input", "test")
@@ -64,8 +70,10 @@ class TestInputAction:
         """Test select action."""
         backend = self._make_backend()
         params = InputParams(
-            url="https://example.com", selector="select",
-            action="select", value="opt1",
+            url="https://example.com",
+            selector="select",
+            action="select",
+            value="opt1",
         )
         await InputAction(params).execute(backend)
         backend.select_option.assert_called_once_with("select", "opt1")

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from wavexis.actions.base import BaseAction
 from wavexis.backend.base import AbstractBackend
-from wavexis.config import BrowserOptions, WaitStrategy
+from wavexis.config import WaitStrategy
 
 
 class DownloadAction(BaseAction[str, bytes]):

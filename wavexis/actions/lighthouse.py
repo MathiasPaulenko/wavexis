@@ -42,9 +42,7 @@ class LighthouseAction(BaseAction[LighthouseParams, dict[str, Any]]):
     via CDP/BiDi and computes scores.
     """
 
-    async def execute(
-        self, backend: AbstractBackend
-    ) -> dict[str, Any]:
+    async def execute(self, backend: AbstractBackend) -> dict[str, Any]:
         """Execute the audit on the backend.
 
         Args:
@@ -67,30 +65,20 @@ class LighthouseAction(BaseAction[LighthouseParams, dict[str, Any]]):
         }
 
         if "performance" in cats:
-            result["categories"]["performance"] = (
-                await self._audit_performance(backend)
-            )
+            result["categories"]["performance"] = await self._audit_performance(backend)
 
         if "accessibility" in cats:
-            result["categories"]["accessibility"] = (
-                await self._audit_accessibility(backend)
-            )
+            result["categories"]["accessibility"] = await self._audit_accessibility(backend)
 
         if "seo" in cats:
-            result["categories"]["seo"] = (
-                await self._audit_seo(backend)
-            )
+            result["categories"]["seo"] = await self._audit_seo(backend)
 
         if "best-practices" in cats:
-            result["categories"]["best-practices"] = (
-                await self._audit_best_practices(backend)
-            )
+            result["categories"]["best-practices"] = await self._audit_best_practices(backend)
 
         return result
 
-    async def _audit_performance(
-        self, backend: AbstractBackend
-    ) -> dict[str, Any]:
+    async def _audit_performance(self, backend: AbstractBackend) -> dict[str, Any]:
         """Collect performance metrics and compute a score."""
         metrics = await backend.perf_metrics()
         js = """
@@ -207,9 +195,7 @@ class LighthouseAction(BaseAction[LighthouseParams, dict[str, Any]]):
 
         return result
 
-    async def _audit_accessibility(
-        self, backend: AbstractBackend
-    ) -> dict[str, Any]:
+    async def _audit_accessibility(self, backend: AbstractBackend) -> dict[str, Any]:
         """Check common accessibility issues."""
         js = """
             (() => {
@@ -324,9 +310,7 @@ class LighthouseAction(BaseAction[LighthouseParams, dict[str, Any]]):
 
         return {"score": score, **seo}
 
-    async def _audit_best_practices(
-        self, backend: AbstractBackend
-    ) -> dict[str, Any]:
+    async def _audit_best_practices(self, backend: AbstractBackend) -> dict[str, Any]:
         """Check best practices (HTTPS, console errors, deprecated APIs)."""
         js = """
             (() => {
@@ -373,9 +357,7 @@ class LighthouseAction(BaseAction[LighthouseParams, dict[str, Any]]):
         }
 
     @staticmethod
-    def _check_budgets(
-        metrics: dict[str, Any], budgets: dict[str, float]
-    ) -> dict[str, Any]:
+    def _check_budgets(metrics: dict[str, Any], budgets: dict[str, float]) -> dict[str, Any]:
         """Check metrics against performance budgets.
 
         Args:
@@ -395,12 +377,14 @@ class LighthouseAction(BaseAction[LighthouseParams, dict[str, Any]]):
             passed = actual <= threshold
             if not passed:
                 all_pass = False
-            results.append({
-                "metric": key,
-                "actual": actual,
-                "budget": threshold,
-                "pass": passed,
-            })
+            results.append(
+                {
+                    "metric": key,
+                    "actual": actual,
+                    "budget": threshold,
+                    "pass": passed,
+                }
+            )
 
         return {
             "pass": all_pass,

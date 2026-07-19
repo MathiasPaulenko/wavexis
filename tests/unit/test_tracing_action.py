@@ -18,9 +18,7 @@ class TestTracing:
         backend.close = AsyncMock()
         backend.tracing_start = AsyncMock()
         backend.tracing_end = AsyncMock()
-        backend.tracing_get_categories = AsyncMock(
-            return_value=["disabled-by-default", "devtools"]
-        )
+        backend.tracing_get_categories = AsyncMock(return_value=["disabled-by-default", "devtools"])
         backend.tracing_record_clock_sync_marker = AsyncMock()
         backend.tracing_request_memory_dump = AsyncMock(
             return_value={"success": True, "dumpGuid": "dump-1"}

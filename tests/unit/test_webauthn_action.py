@@ -12,24 +12,21 @@ from wavexis.actions.webauthn import WebAuthnAction, WebAuthnParams
 @pytest.mark.unit
 class TestWebAuthnAction:
     """Test suite for webauthnaction."""
+
     def _make_backend(self) -> MagicMock:
         """Create a mock backend for testing.
 
-            Returns:
-                A MagicMock backend instance.
-            """
+        Returns:
+            A MagicMock backend instance.
+        """
         backend = MagicMock()
         backend.launch = AsyncMock()
         backend.navigate = AsyncMock()
         backend.close = AsyncMock()
-        backend.webauthn_add_virtual_authenticator = AsyncMock(
-            return_value="auth-id-123"
-        )
+        backend.webauthn_add_virtual_authenticator = AsyncMock(return_value="auth-id-123")
         backend.webauthn_remove_authenticator = AsyncMock()
         backend.webauthn_add_credential = AsyncMock()
-        backend.webauthn_get_credentials = AsyncMock(
-            return_value=[{"credentialId": "cred1"}]
-        )
+        backend.webauthn_get_credentials = AsyncMock(return_value=[{"credentialId": "cred1"}])
         backend.webauthn_enable = AsyncMock()
         backend.webauthn_disable = AsyncMock()
         backend.webauthn_get_credential = AsyncMock(
@@ -54,9 +51,7 @@ class TestWebAuthnAction:
         )
         result = await WebAuthnAction(params).execute(backend)
         assert result == "auth-id-123"
-        backend.webauthn_add_virtual_authenticator.assert_called_once_with(
-            "ctap2", "usb"
-        )
+        backend.webauthn_add_virtual_authenticator.assert_called_once_with("ctap2", "usb")
 
     async def test_remove_authenticator(self) -> None:
         """Test remove authenticator."""
@@ -171,7 +166,9 @@ class TestWebAuthnAction:
     async def test_get_credential(self) -> None:
         """Test get-credential action."""
         backend = self._make_backend()
-        params = WebAuthnParams(action="get-credential", authenticator_id="auth-1", credential_id="cred-1")
+        params = WebAuthnParams(
+            action="get-credential", authenticator_id="auth-1", credential_id="cred-1"
+        )
         result = await WebAuthnAction(params).execute(backend)
         assert result["credentialId"] == "cred1"
         backend.webauthn_get_credential.assert_called_once_with("auth-1", "cred-1")
@@ -186,7 +183,9 @@ class TestWebAuthnAction:
     async def test_remove_credential(self) -> None:
         """Test remove-credential action."""
         backend = self._make_backend()
-        params = WebAuthnParams(action="remove-credential", authenticator_id="auth-1", credential_id="cred-1")
+        params = WebAuthnParams(
+            action="remove-credential", authenticator_id="auth-1", credential_id="cred-1"
+        )
         result = await WebAuthnAction(params).execute(backend)
         assert result is None
         backend.webauthn_remove_credential.assert_called_once_with("auth-1", "cred-1")
@@ -202,7 +201,9 @@ class TestWebAuthnAction:
     async def test_set_user_verified(self) -> None:
         """Test set-user-verified action."""
         backend = self._make_backend()
-        params = WebAuthnParams(action="set-user-verified", authenticator_id="auth-1", is_user_verified=True)
+        params = WebAuthnParams(
+            action="set-user-verified", authenticator_id="auth-1", is_user_verified=True
+        )
         result = await WebAuthnAction(params).execute(backend)
         assert result is None
         backend.webauthn_set_user_verified.assert_called_once_with("auth-1", True)
@@ -210,7 +211,9 @@ class TestWebAuthnAction:
     async def test_set_automatic_presence_simulation(self) -> None:
         """Test set-automatic-presence-simulation action."""
         backend = self._make_backend()
-        params = WebAuthnParams(action="set-automatic-presence-simulation", authenticator_id="auth-1", enabled=True)
+        params = WebAuthnParams(
+            action="set-automatic-presence-simulation", authenticator_id="auth-1", enabled=True
+        )
         result = await WebAuthnAction(params).execute(backend)
         assert result is None
         backend.webauthn_set_automatic_presence_simulation.assert_called_once_with("auth-1", True)
@@ -218,15 +221,26 @@ class TestWebAuthnAction:
     async def test_set_credential_properties(self) -> None:
         """Test set-credential-properties action."""
         backend = self._make_backend()
-        params = WebAuthnParams(action="set-credential-properties", authenticator_id="auth-1", credential_id="cred-1", backup_state=True)
+        params = WebAuthnParams(
+            action="set-credential-properties",
+            authenticator_id="auth-1",
+            credential_id="cred-1",
+            backup_state=True,
+        )
         result = await WebAuthnAction(params).execute(backend)
         assert result is None
-        backend.webauthn_set_credential_properties.assert_called_once_with("auth-1", "cred-1", True, False)
+        backend.webauthn_set_credential_properties.assert_called_once_with(
+            "auth-1", "cred-1", True, False
+        )
 
     async def test_set_response_override_bits(self) -> None:
         """Test set-response-override-bits action."""
         backend = self._make_backend()
-        params = WebAuthnParams(action="set-response-override-bits", authenticator_id="auth-1", is_bogus_signature=True)
+        params = WebAuthnParams(
+            action="set-response-override-bits", authenticator_id="auth-1", is_bogus_signature=True
+        )
         result = await WebAuthnAction(params).execute(backend)
         assert result is None
-        backend.webauthn_set_response_override_bits.assert_called_once_with("auth-1", True, False, False)
+        backend.webauthn_set_response_override_bits.assert_called_once_with(
+            "auth-1", True, False, False
+        )

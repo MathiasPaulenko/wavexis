@@ -10,9 +10,7 @@ class DebugBackend(ABC):
     """JavaScript debugger operations."""
 
     @abstractmethod
-    async def debug_set_breakpoint(
-        self, url: str, line: int, condition: str | None = None
-    ) -> str:
+    async def debug_set_breakpoint(self, url: str, line: int, condition: str | None = None) -> str:
         """Set a breakpoint by URL and line number.
 
         Args:
@@ -117,9 +115,7 @@ class DebugBackend(ABC):
         """Edit the source code of a live script."""
 
     @abstractmethod
-    async def debug_continue_to_location(
-        self, url: str, line: int, column: int = 0
-    ) -> None:
+    async def debug_continue_to_location(self, url: str, line: int, column: int = 0) -> None:
         """Continue execution until a specific location is reached."""
 
     @abstractmethod
@@ -143,24 +139,12 @@ class DebugBackend(ABC):
         """Get the next chunk of a WASM disassembly."""
 
     @abstractmethod
-    async def debug_pause(self) -> None:
-        """Pause JavaScript execution."""
-
-    @abstractmethod
     async def debug_pause_on_async_call(self, operation: str) -> None:
         """Pause on an async call operation."""
 
     @abstractmethod
-    async def debug_remove_breakpoint(self, breakpoint_id: str) -> None:
-        """Remove a breakpoint by ID."""
-
-    @abstractmethod
     async def debug_restart_frame(self, call_frame_id: str) -> None:
         """Restart a call frame by ID."""
-
-    @abstractmethod
-    async def debug_resume(self) -> None:
-        """Resume JavaScript execution."""
 
     @abstractmethod
     async def debug_set_async_call_stack_depth(self, depth: int) -> None:
@@ -175,19 +159,27 @@ class DebugBackend(ABC):
         """Set blackbox patterns for script URLs."""
 
     @abstractmethod
-    async def debug_set_blackboxed_ranges(self, script_id: str, positions: list[dict[str, Any]]) -> None:
+    async def debug_set_blackboxed_ranges(
+        self, script_id: str, positions: list[dict[str, Any]]
+    ) -> None:
         """Set blackboxed ranges for a script."""
 
     @abstractmethod
-    async def debug_set_breakpoint_raw(self, location: dict[str, Any], condition: str | None = None) -> dict[str, Any]:
+    async def debug_set_breakpoint_raw(
+        self, location: dict[str, Any], condition: str | None = None
+    ) -> dict[str, Any]:
         """Set a breakpoint at a raw location in a script."""
 
     @abstractmethod
-    async def debug_set_breakpoint_by_url(self, url: str, line_number: int, column_number: int = 0, condition: str | None = None) -> dict[str, Any]:
+    async def debug_set_breakpoint_by_url(
+        self, url: str, line_number: int, column_number: int = 0, condition: str | None = None
+    ) -> dict[str, Any]:
         """Set a breakpoint by URL and line number."""
 
     @abstractmethod
-    async def debug_set_breakpoint_on_function_call(self, object_id: str, condition: str | None = None) -> dict[str, Any]:
+    async def debug_set_breakpoint_on_function_call(
+        self, object_id: str, condition: str | None = None
+    ) -> dict[str, Any]:
         """Set a breakpoint on a function call by object ID."""
 
     @abstractmethod
@@ -199,5 +191,7 @@ class DebugBackend(ABC):
         """Set the return value of the current call frame."""
 
     @abstractmethod
-    async def debug_set_variable_value(self, call_frame_id: str, scope_number: int, variable_name: str, new_value: dict[str, Any]) -> None:
+    async def debug_set_variable_value(
+        self, call_frame_id: str, scope_number: int, variable_name: str, new_value: dict[str, Any]
+    ) -> None:
         """Set a variable value in a scope of a call frame."""

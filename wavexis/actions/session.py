@@ -93,9 +93,7 @@ class SessionLoadAction(BaseAction[Path, None]):
         Args:
             backend: The browser backend with an active session.
         """
-        data = SessionData.from_json(
-            self.params.read_text(encoding="utf-8")
-        )
+        data = SessionData.from_json(self.params.read_text(encoding="utf-8"))
 
         for cookie in data.cookies:
             cp = CookieParams(

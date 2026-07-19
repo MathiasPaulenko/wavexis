@@ -35,9 +35,7 @@ class WebSocketParams:
 class WebSocketInterceptAction(BaseAction[WebSocketParams, dict[str, Any]]):
     """Action for intercepting WebSocket frames on a page."""
 
-    async def execute(
-        self, backend: AbstractBackend
-    ) -> dict[str, Any]:
+    async def execute(self, backend: AbstractBackend) -> dict[str, Any]:
         """Execute WebSocket interception on the backend.
 
         Args:

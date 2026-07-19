@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
 
 class EventBreakpointsBackend(ABC):
     """Event breakpoint operations."""
 
     @abstractmethod
-    async def event_breakpoints_clear_instrumentation_breakpoint(self, instrumentation_name: str) -> None:
+    async def event_breakpoints_clear_instrumentation_breakpoint(
+        self, instrumentation_name: str
+    ) -> None:
         """Clear an instrumentation breakpoint for events."""
 
     @abstractmethod
@@ -18,9 +19,13 @@ class EventBreakpointsBackend(ABC):
         """Disable the EventBreakpoints domain."""
 
     @abstractmethod
-    async def event_breakpoints_remove_instrumentation_breakpoint(self, instrumentation_name: str) -> None:
+    async def event_breakpoints_remove_instrumentation_breakpoint(
+        self, instrumentation_name: str
+    ) -> None:
         """Remove an instrumentation breakpoint for events."""
 
     @abstractmethod
-    async def event_breakpoints_set_instrumentation_breakpoint(self, instrumentation_name: str) -> None:
+    async def event_breakpoints_set_instrumentation_breakpoint(
+        self, instrumentation_name: str
+    ) -> None:
         """Set an instrumentation breakpoint for events."""

@@ -18,22 +18,14 @@ from wavexis.config import WaitStrategy
 
 @app.command()
 def nl(
-    action: str = typer.Argument(
-        ..., help="Natural language action: click, fill, find"
-    ),
+    action: str = typer.Argument(..., help="Natural language action: click, fill, find"),
     url: str = typer.Argument(..., help="URL to navigate to"),
-    query: str = typer.Argument(
-        ..., help='Natural language query (e.g. "the login button")'
-    ),
-    value: str = typer.Option(
-        "", "--value", "-v", help="Value to fill (for fill)"
-    ),
+    query: str = typer.Argument(..., help='Natural language query (e.g. "the login button")'),
+    value: str = typer.Option("", "--value", "-v", help="Value to fill (for fill)"),
     no_wait: bool = typer.Option(
         False, "--no-wait", help="Skip auto-waiting for element visibility"
     ),
-    all: bool = typer.Option(
-        False, "--all", help="Return all matches (for find)"
-    ),
+    all: bool = typer.Option(False, "--all", help="Return all matches (for find)"),
 ) -> None:
     """Interact with elements using natural language text queries.
 
@@ -60,8 +52,7 @@ def nl(
 
     else:
         typer.echo(
-            f"Error: unknown nl action '{action}'. "
-            "Use click, fill, or find.",
+            f"Error: unknown nl action '{action}'. Use click, fill, or find.",
             err=True,
         )
         raise typer.Exit(1)
@@ -78,9 +69,7 @@ async def _nl_click(url: str, query: str, auto_wait: bool) -> None:
         await _close_backend(backend)
 
 
-async def _nl_fill(
-    url: str, query: str, value: str, auto_wait: bool
-) -> None:
+async def _nl_fill(url: str, query: str, value: str, auto_wait: bool) -> None:
     """Async helper for natural language fill."""
     backend = _get_backend()
     try:

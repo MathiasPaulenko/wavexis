@@ -22,15 +22,11 @@ from wavexis.config import WaitStrategy
 
 @app.command()
 def session(
-    action: str = typer.Argument(
-        ..., help="Session action: save, load, list, delete"
-    ),
+    action: str = typer.Argument(..., help="Session action: save, load, list, delete"),
     url: str = typer.Argument(
         "", help="URL to navigate to (for save) or load before navigating (for load)"
     ),
-    output: str = typer.Option(
-        "session.json", "--output", "-o", help="Session file path"
-    ),
+    output: str = typer.Option("session.json", "--output", "-o", help="Session file path"),
     name: str = typer.Option(
         "", "--name", "-n", help="Named session (stored in ~/.wavexis/sessions/)"
     ),
@@ -138,18 +134,18 @@ def session(
 def extract(
     url: str = typer.Argument(..., help="URL to extract data from"),
     schema: str = typer.Option(
-        ..., "--schema", "-s",
+        ...,
+        "--schema",
+        "-s",
         help=(
-            'JSON schema mapping field names to CSS selectors, '
+            "JSON schema mapping field names to CSS selectors, "
             'e.g. \'{"title":"h1","price":".price"}\''
-        )
+        ),
     ),
     selector: str = typer.Option(
         "", "--selector", help="CSS selector to scope extraction (repeats per match)"
     ),
-    output: str | None = typer.Option(
-        None, "--output", "-o", help="Output file path (.json)"
-    ),
+    output: str | None = typer.Option(None, "--output", "-o", help="Output file path (.json)"),
     format: str = typer.Option("json", "--format", "-f", help="Output format (json)"),
 ) -> None:
     """Extract structured data from a web page using a CSS selector schema.
@@ -170,14 +166,18 @@ def extract(
 
     async def _extract() -> list[dict[str, Any]]:
         backend = _get_backend()
-        params = ExtractParams(
-            url=url,
-            schema=schema_dict,
-            selector=selector or None,
-            wait=WaitStrategy(strategy="load"),
-        )
-        action = ExtractAction(params)
-        return await action.execute(backend)
+        await backend.launch(_browser_options())
+        try:
+            params = ExtractParams(
+                url=url,
+                schema=schema_dict,
+                selector=selector or None,
+                wait=WaitStrategy(strategy="load"),
+            )
+            action = ExtractAction(params)
+            return await action.execute(backend)
+        finally:
+            await _close_backend(backend)
 
     results = _run_async(_extract())
     if results is None:
@@ -194,18 +194,18 @@ def extract(
 def form(
     url: str = typer.Argument(..., help="URL to navigate to"),
     data: str = typer.Option(
-        ..., "--data", "-d",
+        ...,
+        "--data",
+        "-d",
         help=(
-            'JSON mapping CSS selectors to values, '
+            "JSON mapping CSS selectors to values, "
             'e.g. \'{"#name":"Mathias","#email":"test@test.com"}\''
-        )
+        ),
     ),
     submit: str = typer.Option(
         "", "--submit", help="CSS selector for submit button to click after filling"
     ),
-    output: str | None = typer.Option(
-        None, "--output", "-o", help="Output file path (.json)"
-    ),
+    output: str | None = typer.Option(None, "--output", "-o", help="Output file path (.json)"),
     format: str = typer.Option("json", "--format", "-f", help="Output format (json)"),
 ) -> None:
     """Auto-fill form fields from JSON data and optionally submit.
@@ -225,14 +225,18 @@ def form(
 
     async def _form() -> dict[str, Any]:
         backend = _get_backend()
-        params = FormParams(
-            url=url,
-            fields=fields,
-            submit=submit or None,
-            wait=WaitStrategy(strategy="load"),
-        )
-        action = FormAction(params)
-        return await action.execute(backend)
+        await backend.launch(_browser_options())
+        try:
+            params = FormParams(
+                url=url,
+                fields=fields,
+                submit=submit or None,
+                wait=WaitStrategy(strategy="load"),
+            )
+            action = FormAction(params)
+            return await action.execute(backend)
+        finally:
+            await _close_backend(backend)
 
     result = _run_async(_form())
     if result is None:

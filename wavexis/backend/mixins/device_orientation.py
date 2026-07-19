@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
 
 class DeviceOrientationBackend(ABC):
@@ -14,5 +13,7 @@ class DeviceOrientationBackend(ABC):
         """Clear device orientation override."""
 
     @abstractmethod
-    async def device_orientation_set_override(self, alpha: float, beta: float, gamma: float) -> None:
+    async def device_orientation_set_override(
+        self, alpha: float, beta: float, gamma: float
+    ) -> None:
         """Set device orientation override."""

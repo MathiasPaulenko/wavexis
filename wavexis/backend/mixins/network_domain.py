@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-
 from typing import Any
 
 
@@ -28,7 +27,8 @@ class NetworkDomainBackend:
 
     @abstractmethod
     async def network_emulate_network_conditions_by_rule(
-        self, download_throughput: float = 0,
+        self,
+        download_throughput: float = 0,
         upload_throughput: float = 0,
         offline: bool = False,
         latency: float = 0,

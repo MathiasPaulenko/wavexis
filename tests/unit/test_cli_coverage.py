@@ -302,11 +302,7 @@ class TestCLIWorkflowCommands:
 
     def test_multi_dry_run(self, tmp_path: Path) -> None:
         yaml_file = tmp_path / "test.yaml"
-        yaml_file.write_text(
-            "actions:\n"
-            "  - screenshot:\n"
-            "      url: https://example.com\n"
-        )
+        yaml_file.write_text("actions:\n  - screenshot:\n      url: https://example.com\n")
         result = runner.invoke(app, ["multi", str(yaml_file), "--dry-run"])
         assert result.exit_code == 0
 

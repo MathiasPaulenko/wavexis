@@ -21,9 +21,7 @@ def browser_opts() -> BrowserOptions:
     return BrowserOptions(headless=True)
 
 
-async def test_animation_list(
-    backend: CDPBackend, browser_opts: BrowserOptions
-) -> None:
+async def test_animation_list(backend: CDPBackend, browser_opts: BrowserOptions) -> None:
     """Test animation list."""
     params = AnimationParams(
         url="https://example.com",

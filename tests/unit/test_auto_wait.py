@@ -21,9 +21,7 @@ class TestAutoWait:
         backend = CDPBackend()
         backend._session = MagicMock()
         backend._session.runtime = MagicMock()
-        backend._session.runtime.evaluate = AsyncMock(
-            return_value={"result": {"value": True}}
-        )
+        backend._session.runtime.evaluate = AsyncMock(return_value={"result": {"value": True}})
         asyncio.run(backend._wait_for_element("#btn", timeout_ms=100))
         assert backend._session.runtime.evaluate.call_count >= 1
 
@@ -34,9 +32,7 @@ class TestAutoWait:
         backend = CDPBackend()
         backend._session = MagicMock()
         backend._session.runtime = MagicMock()
-        backend._session.runtime.evaluate = AsyncMock(
-            return_value={"result": {"value": False}}
-        )
+        backend._session.runtime.evaluate = AsyncMock(return_value={"result": {"value": False}})
         with pytest.raises(WaitTimeoutError):
             asyncio.run(backend._wait_for_element("#missing", timeout_ms=50))
 
