@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import logging
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -10,6 +11,8 @@ from wavexis.actions.base import BaseAction
 from wavexis.backend.base import AbstractBackend
 from wavexis.config import BrowserOptions, WaitStrategy
 from wavexis.exceptions import WavexisError
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -140,9 +143,10 @@ class LighthouseAction(BaseAction[LighthouseParams, dict[str, Any]]):
             cwv_result = await backend.eval(cwv_js, await_promise=True)
             if isinstance(cwv_result, dict):
                 cwv = cwv_result
-        except Exception as exc:
-            if isinstance(exc, WavexisError):
-                raise
+        except WavexisError:
+            raise
+        except Exception as exc:  # noqa: BLE001 - tolerate JS evaluation failures
+            logger.debug("Lighthouse CWV observer JS failed: %s", exc)
 
         lcp = cwv.get("lcp", 0)
         cls = cwv.get("cls", 0)

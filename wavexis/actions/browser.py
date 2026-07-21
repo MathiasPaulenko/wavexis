@@ -12,9 +12,9 @@ from wavexis.exceptions import ActionError
 class BrowserAction(BaseAction[str, Any]):
     """Action for browser management operations.
 
-    Supports contexts (new/list/close), window bounds (get/set), and version.
-    The params string specifies the action: "new_context", "list_contexts",
-    "close_context", "get_window", "set_window", or "version".
+    Supports contexts (new/list) and version info. The params string
+    specifies the action: "new_context", "list_contexts", or "version".
+    "close_context", "get_window", and "set_window" raise NotImplementedError.
     """
 
     async def execute(self, backend: AbstractBackend) -> Any:

@@ -51,9 +51,18 @@ class VisualDiffAction(BaseAction[VisualDiffParams, dict[str, Any]]):
 
         Returns:
             Dict with diff_count, diff_percentage, total_pixels, and diff_base64.
+
+        Raises:
+            ActionError: If baseline_path is missing or threshold is out of range.
+            FileNotFoundError: If the baseline image file does not exist.
         """
         if not self.params.baseline_path:
             raise ActionError("baseline_path is required for visual diff")
+
+        if not 0 <= self.params.threshold <= 255:
+            raise ActionError(
+                f"threshold must be between 0 and 255, got {self.params.threshold}"
+            )
 
         baseline_path = validate_path(self.params.baseline_path)
         if not await asyncio.to_thread(baseline_path.exists):

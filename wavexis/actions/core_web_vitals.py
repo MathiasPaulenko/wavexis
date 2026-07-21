@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -10,6 +11,8 @@ from wavexis.actions.base import BaseAction
 from wavexis.backend.base import AbstractBackend
 from wavexis.config import BrowserOptions, WaitStrategy
 from wavexis.exceptions import WavexisError
+
+logger = logging.getLogger(__name__)
 
 THRESHOLDS: dict[str, dict[str, float]] = {
     "lcp_ms": {"good": 2500, "poor": 4000},
@@ -126,9 +129,10 @@ class CoreWebVitalsAction(BaseAction[CoreWebVitalsParams, dict[str, Any]]):
             cwv_result = await backend.eval(cwv_js, await_promise=True)
             if isinstance(cwv_result, dict):
                 cwv = cwv_result
-        except Exception as exc:
-            if isinstance(exc, WavexisError):
-                raise
+        except WavexisError:
+            raise
+        except Exception as exc:  # noqa: BLE001 - tolerate JS evaluation failures
+            logger.debug("Core Web Vitals observer JS failed: %s", exc)
 
         timing_js = """
             (() => {
@@ -149,9 +153,10 @@ class CoreWebVitalsAction(BaseAction[CoreWebVitalsParams, dict[str, Any]]):
             timing_result = await backend.eval(timing_js, await_promise=False)
             if isinstance(timing_result, dict):
                 timing = timing_result
-        except Exception as exc:
-            if isinstance(exc, WavexisError):
-                raise
+        except WavexisError:
+            raise
+        except Exception as exc:  # noqa: BLE001 - tolerate JS evaluation failures
+            logger.debug("Core Web Vitals timing JS failed: %s", exc)
 
         lcp = cwv.get("lcp", 0)
         cls = cwv.get("cls", 0)

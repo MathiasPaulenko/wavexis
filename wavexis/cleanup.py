@@ -11,6 +11,7 @@ import contextlib
 import logging
 import signal
 import sys
+import threading
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -65,14 +66,19 @@ def _cleanup_sync() -> None:
     import asyncio
 
     async def _close_all() -> None:
-        for backend in _registered_backends:
+        for backend in list(_registered_backends):
             with contextlib.suppress(Exception):
                 await backend.close()
 
     try:
         loop = asyncio.get_running_loop()
-        with contextlib.suppress(Exception):
-            asyncio.run_coroutine_threadsafe(_close_all(), loop).result()
+        if hasattr(loop, "_thread_id") and loop._thread_id == threading.current_thread().ident:
+            asyncio.ensure_future(_close_all())
+        else:
+            future = asyncio.run_coroutine_threadsafe(_close_all(), loop)
+            future.result(timeout=5)
+    except TimeoutError:
+        pass
     except RuntimeError:
         # No running loop, use asyncio.run()
         with contextlib.suppress(Exception):

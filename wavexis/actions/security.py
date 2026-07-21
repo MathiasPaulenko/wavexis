@@ -25,7 +25,7 @@ class SecurityAction(BaseAction[str, Any]):
 
         Args:
             params: Security parameters.
-            action: Security action ("state" or "ignore-cert-errors").
+            action: Security action ("state" or "ignore_cert").
             ignore: Whether to ignore certificate errors.
             url: URL to navigate to before the action.
             wait: Wait strategy after navigation.

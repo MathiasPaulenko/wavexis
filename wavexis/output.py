@@ -40,7 +40,7 @@ def validate_path(path: str | Path) -> Path:
 try:
     import yaml as _yaml
 except ImportError:
-    _yaml = None
+    _yaml = None  # type: ignore[assignment]
 
 try:
     from rich.console import Console
@@ -123,9 +123,11 @@ class Output:
             return
 
         fieldnames: list[str] = []
+        seen: set[str] = set()
         for row in data:
             for key in row:
-                if key not in fieldnames:
+                if key not in seen:
+                    seen.add(key)
                     fieldnames.append(key)
 
         if path and path != "-":
@@ -154,7 +156,9 @@ class Output:
         """
         if _yaml is None:
             raise ImportError("PyYAML is required for YAML output. Run: pip install pyyaml")
-        text = _yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True)
+        text = _yaml.dump(
+            data, default_flow_style=False, sort_keys=False, allow_unicode=True
+        )
         if path and path != "-":
             Output.write_text(text, path)
         else:

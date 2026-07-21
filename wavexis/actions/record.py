@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 from typing import Any
 
@@ -73,16 +74,20 @@ def events_to_yaml(events: list[dict[str, Any]], initial_url: str) -> str:
         etype = event.get("type")
 
         if etype == "click":
-            actions.append({"click": {"selector": event["selector"]}})
+            selector = event.get("selector", "")
+            if selector:
+                actions.append({"click": {"selector": selector}})
 
         elif etype == "input":
             tag = event.get("tag", "input")
+            selector = event.get("selector", "")
+            value = event.get("value", "")
             if tag == "select":
                 actions.append(
                     {
                         "select": {
-                            "selector": event["selector"],
-                            "value": event["value"],
+                            "selector": selector,
+                            "value": value,
                         }
                     }
                 )
@@ -90,21 +95,24 @@ def events_to_yaml(events: list[dict[str, Any]], initial_url: str) -> str:
                 actions.append(
                     {
                         "type": {
-                            "selector": event["selector"],
-                            "text": event["value"],
+                            "selector": selector,
+                            "text": value,
                         }
                     }
                 )
 
         elif etype == "keypress":
             key = event.get("key", "")
-            if key == "Enter":
-                actions.append({"click": {"selector": event["selector"]}})
+            selector = event.get("selector", "")
+            if key == "Enter" and selector:
+                actions.append({"click": {"selector": selector}})
             else:
                 actions.append({"keypress": {"key": key}})
 
         elif etype == "navigate":
-            actions.append({"navigate": {"url": event["url"]}})
+            url = event.get("url", "")
+            if url:
+                actions.append({"navigate": {"url": url}})
 
     config = {"actions": actions}
     return str(yaml.dump(config, default_flow_style=False, sort_keys=False, allow_unicode=True))
@@ -134,23 +142,22 @@ async def record_session(
     await backend.eval(_RECORD_SCRIPT, await_promise=False)
 
     events: list[dict[str, Any]] = []
-    interrupted = False
-    try:
+    with contextlib.suppress(KeyboardInterrupt):
         await asyncio.sleep(duration)
-    except KeyboardInterrupt:
-        interrupted = True
 
-    if not interrupted:
-        try:
-            raw = await backend.eval(
-                "JSON.stringify(window.__wavexis_record_events || [])",
-                await_promise=True,
-            )
-            if isinstance(raw, str):
-                events = json.loads(raw)
-            elif isinstance(raw, list):
-                events = raw
-        except (json.JSONDecodeError, TypeError, WavexisError):
-            pass
+    # Always attempt to collect recorded events, even when interrupted —
+    # interrupting the recording is the primary way users stop it early,
+    # and discarding events on Ctrl+C would lose the entire session.
+    try:
+        raw = await backend.eval(
+            "JSON.stringify(window.__wavexis_record_events || [])",
+            await_promise=True,
+        )
+        if isinstance(raw, str):
+            events = json.loads(raw)
+        elif isinstance(raw, list):
+            events = raw
+    except (json.JSONDecodeError, TypeError, WavexisError):
+        pass
 
     return events_to_yaml(events, url)

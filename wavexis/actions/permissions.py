@@ -25,7 +25,7 @@ class PermissionsAction(BaseAction[str, None]):
 
         Args:
             params: Permissions parameters.
-            action: Permission action ("grant", "deny", "reset", or "query").
+            action: Permission action ("grant" or "reset").
             permission: Permission name (e.g. "geolocation", "notifications").
             url: URL to navigate to before the action.
             wait: Wait strategy after navigation.

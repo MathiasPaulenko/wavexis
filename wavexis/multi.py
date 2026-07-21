@@ -37,7 +37,7 @@ def _substitute_variables(value: Any, variables: dict[str, str]) -> Any:
                 env_key = expr[4:]
                 return os.environ.get(env_key, match.group(0))
             if expr in variables:
-                return variables[expr]
+                return str(variables[expr])
             return match.group(0)
 
         return re.sub(r"\{\{(.+?)\}\}", replacer, value)
@@ -135,6 +135,8 @@ async def execute_actions(
 
         failures: list[str] = []
         for i, result in enumerate(gathered):
+            if isinstance(result, BaseException) and not isinstance(result, Exception):
+                raise result
             if isinstance(result, Exception):
                 action_type = next(iter(actions[i]))
                 failures.append(f"actions[{i}] ({action_type}): {result}")
@@ -305,6 +307,155 @@ def _type_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
     )
 
 
+def _fill_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
+    from wavexis.actions.input import InputAction
+    from wavexis.config import InputParams, WaitStrategy
+
+    return InputAction(
+        InputParams(
+            url=params.get("url", ""),
+            action="fill",
+            selector=params.get("selector", ""),
+            value=params.get("value", ""),
+            wait=WaitStrategy(strategy="load"),
+        )
+    )
+
+
+def _select_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
+    from wavexis.actions.input import InputAction
+    from wavexis.config import InputParams, WaitStrategy
+
+    return InputAction(
+        InputParams(
+            url=params.get("url", ""),
+            action="select",
+            selector=params.get("selector", ""),
+            value=params.get("value", ""),
+            wait=WaitStrategy(strategy="load"),
+        )
+    )
+
+
+def _hover_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
+    from wavexis.actions.input import InputAction
+    from wavexis.config import InputParams, WaitStrategy
+
+    return InputAction(
+        InputParams(
+            url=params.get("url", ""),
+            action="hover",
+            selector=params.get("selector", ""),
+            wait=WaitStrategy(strategy="load"),
+        )
+    )
+
+
+def _keypress_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
+    from wavexis.actions.input import InputAction
+    from wavexis.config import InputParams, WaitStrategy
+
+    return InputAction(
+        InputParams(
+            url=params.get("url", ""),
+            action="key",
+            key=params.get("key", "Enter"),
+            wait=WaitStrategy(strategy="load"),
+        )
+    )
+
+
+def _right_click_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
+    from wavexis.actions.input import InputAction
+    from wavexis.config import InputParams, WaitStrategy
+
+    return InputAction(
+        InputParams(
+            url=params.get("url", ""),
+            action="right_click",
+            selector=params.get("selector", ""),
+            wait=WaitStrategy(strategy="load"),
+        )
+    )
+
+
+def _double_click_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
+    from wavexis.actions.input import InputAction
+    from wavexis.config import InputParams, WaitStrategy
+
+    return InputAction(
+        InputParams(
+            url=params.get("url", ""),
+            action="double_click",
+            selector=params.get("selector", ""),
+            wait=WaitStrategy(strategy="load"),
+        )
+    )
+
+
+def _drag_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
+    from wavexis.actions.input import InputAction
+    from wavexis.config import InputParams, WaitStrategy
+
+    return InputAction(
+        InputParams(
+            url=params.get("url", ""),
+            action="drag",
+            source=params.get("source", ""),
+            target=params.get("target", ""),
+            wait=WaitStrategy(strategy="load"),
+        )
+    )
+
+
+def _tap_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
+    from wavexis.actions.input import InputAction
+    from wavexis.config import InputParams, WaitStrategy
+
+    return InputAction(
+        InputParams(
+            url=params.get("url", ""),
+            action="tap",
+            selector=params.get("selector", ""),
+            wait=WaitStrategy(strategy="load"),
+        )
+    )
+
+
+def _scroll_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
+    from wavexis.actions.input import InputAction
+    from wavexis.config import InputParams, WaitStrategy
+
+    return InputAction(
+        InputParams(
+            url=params.get("url", ""),
+            action="scroll",
+            selector=params.get("selector", ""),
+            scroll_x=int(params.get("x", 0)),
+            scroll_y=int(params.get("y", 0)),
+            wait=WaitStrategy(strategy="load"),
+        )
+    )
+
+
+def _upload_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
+    from wavexis.actions.input import InputAction
+    from wavexis.config import InputParams, WaitStrategy
+
+    files = params.get("files", [])
+    if isinstance(files, str):
+        files = [files]
+    return InputAction(
+        InputParams(
+            url=params.get("url", ""),
+            action="upload",
+            selector=params.get("selector", ""),
+            files=files,
+            wait=WaitStrategy(strategy="load"),
+        )
+    )
+
+
 def _cookies_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
     from wavexis.actions.cookies import CookieAction
     from wavexis.config import CookieActionParams, CookieParams, WaitStrategy
@@ -360,6 +511,27 @@ def _wait_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
     )
 
 
+def _har_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
+    from wavexis.actions.har import HARAction
+    from wavexis.config import HarParams, WaitStrategy
+
+    return HARAction(
+        HarParams(
+            url=params.get("url", ""),
+            wait=WaitStrategy(
+                strategy=params.get("wait", {}).get("strategy", "load")
+                if isinstance(params.get("wait"), dict)
+                else "load",
+                timeout=params.get("wait", {}).get("timeout", 30000)
+                if isinstance(params.get("wait"), dict)
+                else 30000,
+            ),
+            filter=params.get("filter"),
+            timeout=params.get("timeout", 5000),
+        )
+    )
+
+
 def _emulation_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
     from wavexis.actions.emulation import EmulationAction
     from wavexis.config import EmulationParams, WaitStrategy
@@ -391,9 +563,20 @@ _ACTION_REGISTRY: dict[str, ActionFactory] = {
     "navigate": _navigate_factory,
     "click": _click_factory,
     "type": _type_factory,
+    "fill": _fill_factory,
+    "select": _select_factory,
+    "hover": _hover_factory,
+    "keypress": _keypress_factory,
+    "right_click": _right_click_factory,
+    "double_click": _double_click_factory,
+    "drag": _drag_factory,
+    "tap": _tap_factory,
+    "scroll": _scroll_factory,
+    "upload": _upload_factory,
     "cookies": _cookies_factory,
     "headers": _headers_factory,
     "wait": _wait_factory,
+    "har": _har_factory,
     "emulation": _emulation_factory,
 }
 

@@ -46,15 +46,40 @@ class SessionData:
 
     @classmethod
     def from_json(cls, data: str) -> SessionData:
-        """Deserialize session data from JSON string."""
+        """Deserialize session data from JSON string.
+
+        Args:
+            data: JSON string produced by ``to_json`` or compatible format.
+
+        Returns:
+            Parsed SessionData instance.
+
+        Raises:
+            WavexisError: If the JSON is not an object or has invalid field types.
+        """
         obj = json.loads(data)
         if not isinstance(obj, dict):
             raise WavexisError("Session data must be a JSON object")
+
+        cookies = obj.get("cookies", [])
+        local_storage = obj.get("local_storage", {})
+        session_storage = obj.get("session_storage", {})
+        url = obj.get("url", "")
+
+        if not isinstance(cookies, list):
+            raise WavexisError("Session field 'cookies' must be a list")
+        if not isinstance(local_storage, dict):
+            raise WavexisError("Session field 'local_storage' must be an object")
+        if not isinstance(session_storage, dict):
+            raise WavexisError("Session field 'session_storage' must be an object")
+        if not isinstance(url, str):
+            raise WavexisError("Session field 'url' must be a string")
+
         return cls(
-            cookies=obj.get("cookies", []),
-            local_storage=obj.get("local_storage", {}),
-            session_storage=obj.get("session_storage", {}),
-            url=obj.get("url", ""),
+            cookies=cookies,
+            local_storage=local_storage,
+            session_storage=session_storage,
+            url=url,
         )
 
 

@@ -668,6 +668,7 @@ class DebugParams:
             "pause", "resume", "listeners".
         breakpoint_id: Breakpoint ID for remove_breakpoint.
         selector: CSS selector for listeners action.
+        script_url: URL of the script for breakpoint (distinct from page url).
         wait: Wait strategy after navigation.
         browser: Browser launch options.
     """
@@ -679,6 +680,7 @@ class DebugParams:
     action: str = "breakpoint"
     breakpoint_id: str | None = None
     selector: str | None = None
+    script_url: str | None = None
     wait: WaitStrategy = field(default_factory=WaitStrategy)
     browser: BrowserOptions = field(default_factory=BrowserOptions)
 

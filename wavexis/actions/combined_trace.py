@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -55,8 +56,6 @@ class CombinedTraceAction(BaseAction[CombinedTraceParams, dict[str, Any]]):
         Returns:
             Dict with trace data (trace_events, screenshots, network, console).
         """
-        import asyncio
-
         if self.params.url:
             await backend.navigate(self.params.url, self.params.wait)
 

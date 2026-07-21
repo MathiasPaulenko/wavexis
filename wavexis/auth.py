@@ -114,7 +114,7 @@ def load_headers(path: str | Path) -> dict[str, str]:
         FileNotFoundError: If the file does not exist.
         json.JSONDecodeError: If the file is not valid JSON.
     """
-    data: dict[str, str] = json.loads(validate_path(path).read_text(encoding="utf-8"))
+    data: Any = json.loads(validate_path(path).read_text(encoding="utf-8"))
     if isinstance(data, dict):
         if "headers" in data and isinstance(data["headers"], dict):
             return data["headers"]

@@ -8,6 +8,7 @@ from pathlib import Path
 from wavexis.actions.base import BaseAction
 from wavexis.backend.base import AbstractBackend
 from wavexis.config import ScreencastParams
+from wavexis.output import validate_path
 
 
 class ScreencastAction(BaseAction[ScreencastParams, list[str]]):
@@ -36,12 +37,13 @@ class ScreencastAction(BaseAction[ScreencastParams, list[str]]):
             await backend.navigate(self.params.url, self.params.wait)
         frames = await backend.screencast(self.params)
 
-        await asyncio.to_thread(lambda: Path(self._output_dir).mkdir(parents=True, exist_ok=True))
+        output_path = validate_path(self._output_dir)
+        await asyncio.to_thread(lambda: output_path.mkdir(parents=True, exist_ok=True))
         saved: list[str] = []
         for i, frame in enumerate(frames):
             ext = "png" if self.params.format == "png" else "jpg"
             fname = f"frame_{i:05d}.{ext}"
-            fpath = str(Path(self._output_dir) / fname)
+            fpath = str(output_path / fname)
             await asyncio.to_thread(Path(fpath).write_bytes, frame)
             saved.append(fpath)
         return saved

@@ -25,7 +25,7 @@ class AccessibilityAction(BaseAction[Any, Any]):
 
         Args:
             params: Action parameters.
-            action: Accessibility action type ("tree" or "node").
+            action: Accessibility action type ("tree", "node", or "ancestors").
             node_id: Node ID for node-specific actions.
             url: URL to navigate to before the action.
             wait: Wait strategy after navigation.

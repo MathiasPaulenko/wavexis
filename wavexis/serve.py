@@ -47,6 +47,7 @@ __all__ = [
     "serve",
     "set_allowed_base_dir",
     "set_ws_max_connections",
+    "set_ws_max_messages_per_minute",
 ]
 
 
@@ -88,7 +89,7 @@ def _safe_params(cls: type, data: dict[str, Any]) -> Any:
     """
     if not isinstance(data, dict):
         raise ValueError("JSON body must be an object")
-    hints = typing.get_type_hints(cls)
+    hints = _get_type_hints(cls)
     valid = {f.name for f in dataclasses.fields(cls)}
     filtered: dict[str, Any] = {}
     for k, v in data.items():
@@ -101,6 +102,21 @@ def _safe_params(cls: type, data: dict[str, Any]) -> Any:
                 continue
         filtered[k] = v
     return cls(**filtered)
+
+
+# Type hints are immutable at runtime but expensive to compute (forward
+# refs, generics). Cache them per-class to avoid recomputing on every
+# HTTP request.
+_TYPE_HINTS_CACHE: dict[type, dict[str, Any]] = {}
+
+
+def _get_type_hints(cls: type) -> dict[str, Any]:
+    """Return cached type hints for a dataclass class."""
+    hints = _TYPE_HINTS_CACHE.get(cls)
+    if hints is None:
+        hints = typing.get_type_hints(cls)
+        _TYPE_HINTS_CACHE[cls] = hints
+    return hints
 
 
 async def _get_json_body(request: Any) -> dict[str, Any]:
@@ -392,7 +408,7 @@ class BackendPool:
 
     def __init__(self, max_concurrent: int = 5) -> None:
         self._semaphore = asyncio.Semaphore(max_concurrent)
-        self._pool: asyncio.Queue[AbstractBackend] = asyncio.Queue()
+        self._pool: asyncio.Queue[AbstractBackend] = asyncio.Queue(maxsize=max_concurrent)
         self._created: int = 0
         self._lock = asyncio.Lock()
 
@@ -422,17 +438,47 @@ class BackendPool:
             if not self._pool.empty():
                 return self._pool.get_nowait()
             self._created += 1
-        return await get_manager().select_with_fallback(preferred)
+        try:
+            return await get_manager().select_with_fallback(preferred)
+        except Exception:
+            # Creation failed — release the slot we reserved so the pool
+            # doesn't slowly fill with phantom backends.
+            async with self._lock:
+                self._created -= 1
+            raise
 
     async def return_backend(self, backend: AbstractBackend) -> None:
         """Return a backend to the pool for reuse.
 
+        The backend is returned without closing it so it can be reused
+        by subsequent requests. Backends are closed only by ``close_all``
+        during shutdown or when the pool is full.
+
         Args:
             backend: The backend instance to return.
         """
+        # If the pool is full, close the backend instead of queueing it.
+        if self._pool.full():
+            with contextlib.suppress(Exception):
+                await backend.close()
+            async with self._lock:
+                self._created -= 1
+            return
+        await self._pool.put(backend)
+
+    async def discard_backend(self, backend: AbstractBackend) -> None:
+        """Close a broken backend and remove it from the pool's bookkeeping.
+
+        Use this when a backend failed to launch or is in an unknown state
+        and must not be reused.
+
+        Args:
+            backend: The backend instance to discard.
+        """
         with contextlib.suppress(Exception):
             await backend.close()
-        await self._pool.put(backend)
+        async with self._lock:
+            self._created -= 1
 
     async def close_all(self) -> None:
         """Close all pooled backends and clear the pool."""
@@ -483,9 +529,12 @@ async def _run_action(request: Any, action: Any) -> Any:
     web = _import_aiohttp()
     pool = _get_pool(request)
     await pool.acquire()
+    backend: AbstractBackend | None = None
+    launched = False
     try:
         backend = await pool.get_backend(request.app.get("backend_name"))
         await backend.launch(BrowserOptions())
+        launched = True
         return await action.execute(backend)
     except WavexisError as exc:
         raise web.HTTPInternalServerError(
@@ -499,8 +548,13 @@ async def _run_action(request: Any, action: Any) -> Any:
             content_type="application/json",
         ) from exc
     finally:
-        if "backend" in locals():
-            await pool.return_backend(backend)
+        if backend is not None:
+            if launched:
+                await pool.return_backend(backend)
+            else:
+                # Launch failed — close the broken backend instead of
+                # returning it to the pool for reuse.
+                await pool.discard_backend(backend)
         pool.release()
 
 
@@ -539,9 +593,11 @@ def with_backend(
             pool = _get_pool(request)
             await pool.acquire()
             backend: AbstractBackend | None = None
+            launched = False
             try:
                 backend = await pool.get_backend(request.app.get("backend_name"))
                 await backend.launch(opts)
+                launched = True
                 return await handler(request, backend)
             except WavexisError as exc:
                 return web.json_response(
@@ -556,7 +612,10 @@ def with_backend(
                 )
             finally:
                 if backend is not None:
-                    await pool.return_backend(backend)
+                    if launched:
+                        await pool.return_backend(backend)
+                    else:
+                        await pool.discard_backend(backend)
                 pool.release()
 
         return wrapper
@@ -959,15 +1018,28 @@ async def _stream_console(
     backend: AbstractBackend,
     interval: float,
 ) -> None:
-    """Poll console messages and stream new ones."""
+    """Poll console messages and stream new ones.
+
+    Deduplicates messages using a bounded set (capped at 1000 entries) to
+    avoid unbounded memory growth on long-running streams.
+    """
+    from collections import deque
+
+    max_seen = 1000
     seen: set[str] = set()
+    seen_order: deque[str] = deque(maxlen=max_seen)
     while True:
         try:
             messages = await backend.capture_console()
             for msg in messages:
                 key = json.dumps(msg, sort_keys=True)
                 if key not in seen:
+                    # deque evicts from the left when full on append, so
+                    # capture the soon-to-be-evicted key before appending.
+                    if len(seen_order) == max_seen:
+                        seen.discard(seen_order[0])
                     seen.add(key)
+                    seen_order.append(key)
                     await ws.send_json(
                         {
                             "type": "console",
@@ -1130,6 +1202,16 @@ def set_ws_max_connections(max_conn: int) -> None:
     _ws_max_connections = max_conn
 
 
+def set_ws_max_messages_per_minute(max_messages: int) -> None:
+    """Set the maximum number of WebSocket messages per minute per connection.
+
+    Args:
+        max_messages: Maximum messages per minute allowed per WebSocket connection.
+    """
+    global _ws_max_messages_per_minute
+    _ws_max_messages_per_minute = max_messages
+
+
 async def handle_websocket(request: Any) -> Any:
     """Handle GET /ws — WebSocket endpoint for real-time streaming.
 
@@ -1159,6 +1241,8 @@ async def handle_websocket(request: Any) -> Any:
     ws = web.WebSocketResponse()
     tasks: list[asyncio.Task[None]] = []
     backend: AbstractBackend | None = None
+    backend_launched = False
+    subscription_id: str | None = None
     try:
         await ws.prepare(request)
         try:
@@ -1202,7 +1286,8 @@ async def handle_websocket(request: Any) -> Any:
 
         try:
             backend = await _get_backend(request)
-        except Exception:
+        except Exception as exc:
+            logger.warning("Failed to acquire backend for WebSocket: %s", exc)
             pool = _get_pool(request)
             pool.release()
             await ws.send_json(
@@ -1216,6 +1301,7 @@ async def handle_websocket(request: Any) -> Any:
             return ws
         try:
             await backend.launch(BrowserOptions())
+            backend_launched = True
             await backend.navigate(url, WaitStrategy(strategy="load"))
 
             await ws.send_json(
@@ -1272,7 +1358,7 @@ async def handle_websocket(request: Any) -> Any:
                         }
                     )
 
-                await backend.subscribe_events(subscribe_types, _on_event)
+                subscription_id = await backend.subscribe_events(subscribe_types, _on_event)
 
             ws_bucket = TokenBucket(capacity=_ws_max_messages_per_minute, refill_period=60.0)
 
@@ -1363,8 +1449,16 @@ async def handle_websocket(request: Any) -> Any:
             for task in tasks:
                 task.cancel()
             await asyncio.gather(*tasks, return_exceptions=True)
+            if subscription_id is not None and backend is not None:
+                with contextlib.suppress(Exception):
+                    await backend.unsubscribe_events(subscription_id)
             if backend is not None:
-                await _release_backend(request, backend)
+                pool = _get_pool(request)
+                if backend_launched:
+                    await pool.return_backend(backend)
+                else:
+                    await pool.discard_backend(backend)
+                pool.release()
             await ws.close()
     finally:
         async with _ws_lock:

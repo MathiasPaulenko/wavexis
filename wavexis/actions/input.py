@@ -66,7 +66,7 @@ class InputAction(BaseAction[InputParams, Any]):
         elif action == "drag":
             if not self.params.source or not self.params.target:
                 raise ActionError("source and target are required for drag action")
-            await backend.drag(self.params.source or "", self.params.target or "")
+            await backend.drag(self.params.source, self.params.target)
         elif action == "tap":
             if not self.params.selector:
                 raise ActionError("selector is required for tap action")

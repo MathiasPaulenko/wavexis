@@ -128,6 +128,7 @@ def debug_action_from_config(params: DebugParams) -> DebugAction:
         action=params.action,
         breakpoint_id=params.breakpoint_id,
         selector=params.selector,
+        script_url=params.script_url,
         wait=params.wait,
         browser=params.browser,
     )

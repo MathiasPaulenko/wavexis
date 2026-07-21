@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import contextlib
+import logging
 import re
+from collections import deque
 from dataclasses import dataclass, field
 from typing import Any
 from urllib.parse import urljoin, urlparse
@@ -12,6 +14,8 @@ from wavexis.actions.base import BaseAction
 from wavexis.backend.base import AbstractBackend
 from wavexis.config import WaitStrategy
 from wavexis.exceptions import ActionError, WavexisError
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -52,7 +56,7 @@ class CrawlAction(BaseAction[CrawlParams, list[dict[str, Any]]]):
 
         results: list[dict[str, Any]] = []
         visited: set[str] = set()
-        queue: list[tuple[str, int]] = [(self.params.start_url, 0)]
+        queue: deque[tuple[str, int]] = deque([(self.params.start_url, 0)])
         origin = urlparse(self.params.start_url).netloc
         pattern = None
         if self.params.url_pattern:
@@ -62,7 +66,7 @@ class CrawlAction(BaseAction[CrawlParams, list[dict[str, Any]]]):
                 raise WavexisError(f"Invalid url_pattern regex: {e}") from e
 
         while queue and len(results) < self.params.max_pages:
-            url, depth = queue.pop(0)
+            url, depth = queue.popleft()
             normalized = url.rstrip("/")
             if normalized in visited or depth > self.params.max_depth:
                 continue
@@ -70,7 +74,8 @@ class CrawlAction(BaseAction[CrawlParams, list[dict[str, Any]]]):
 
             try:
                 await backend.navigate(url, self.params.wait)
-            except WavexisError:
+            except WavexisError as exc:
+                logger.warning("Crawl skipped unreachable URL %s: %s", url, exc)
                 continue
 
             title = ""

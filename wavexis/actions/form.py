@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -9,6 +10,8 @@ from wavexis.actions.base import BaseAction
 from wavexis.backend.base import AbstractBackend
 from wavexis.config import BrowserOptions, WaitStrategy
 from wavexis.exceptions import WavexisError
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -50,16 +53,16 @@ class FormAction(BaseAction[FormParams, dict[str, Any]]):
             try:
                 await backend.fill(selector, value)
                 filled += 1
-            except WavexisError:
-                pass
+            except WavexisError as exc:
+                logger.warning("Failed to fill field '%s': %s", selector, exc)
 
         submitted = False
         if self.params.submit:
             try:
                 await backend.click(self.params.submit)
                 submitted = True
-            except WavexisError:
-                pass
+            except WavexisError as exc:
+                logger.warning("Failed to click submit selector '%s': %s", self.params.submit, exc)
 
         return {
             "url": self.params.url,
