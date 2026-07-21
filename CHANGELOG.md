@@ -2,6 +2,16 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.16.3 — 2026-07-21
+
+### CI / Tooling
+
+- **Ruff lint clean** — Sorted import blocks, removed unused variables/imports, replaced `try/except/pass` with `contextlib.suppress`, wrapped long lines, and moved a blocking file-open to `asyncio.to_thread` to satisfy ASYNC230.
+- **Mypy strict clean** — Added `cdpwave.*` and `bidiwave.*` to `ignore_missing_imports` (the libraries ship without `py.typed` markers), guarded `connect_to_page` against `None` target id, and annotated the `intercept_download` return as `bytes`.
+- **BiDi integration test skips cleanly** when ChromeDriver is not available (now catches `WavexisError` in addition to `OSError`/`ConnectionError`/`RuntimeError`, since Bug #34 changed `BiDiBackend.launch()` to raise `WavexisError`).
+
+No functional changes; this is a CI-fix release on top of v2.16.2.
+
 ## v2.16.2 — 2026-07-21
 
 ### Bug Fixes
