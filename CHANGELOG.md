@@ -2,6 +2,31 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.16.0 — 2026-07-21
+
+### Bug Fixes
+
+- **`record_session` discards events on Ctrl+C** — The primary way to stop a recording early is keyboard interrupt, but the `interrupted` flag skipped event collection entirely, losing all recorded interactions. Events are now always collected. Regression test added.
+- **`_substitute_variables` TypeError on non-string vars** — YAML `vars:` with non-string values (e.g. `count: 5`, `flag: true`) caused `re.sub` to raise `TypeError` because the replacer returned a non-string. Values are now coerced via `str()`. Regression tests added.
+- **`webaudio_get_contexts` only returned one context** — Used `wait_for_event` which returns only the first `contextCreated` event. Pages with multiple audio contexts only reported one. Switched to `collect_events` to gather all contexts. Fixed in both CDP and BiDi backends.
+- **`intercept_download` race condition (CDP)** — Used a fixed `asyncio.sleep(2)` then checked for files, which could miss downloads that took longer or return incomplete files. Replaced with polling loop (250ms intervals, configurable timeout) that waits for the file to appear and stabilize.
+- **`intercept_download` non-portable hardcoded path (BiDi)** — Hardcoded `/tmp/wavexis-downloads` failed on Windows. Now uses `tempfile.gettempdir()` for cross-platform compatibility.
+- **`_stream_console` unbounded memory growth** — The WebSocket console stream's deduplication `seen` set grew unbounded for long-running streams. Bounded to 1000 entries using a `deque(maxlen=1000)` for O(1) eviction.
+
+### Performance
+
+- **CSV column discovery O(n²)→O(n)** — `Output.write_csv` used `if key not in fieldnames` (linear scan per key). Replaced with a `seen` set for O(1) lookup.
+
+### Packaging
+
+- **Added `py.typed` marker** — The package now ships a PEP 561 `py.typed` marker so downstream users benefit from the project's strict type hints.
+- **Pillow version cap updated** — `Pillow>=10.0,<11.0` was too restrictive (Pillow 12.x is stable and installed in the dev environment). Updated to `>=10.0,<13.0`.
+- **Python 3.14 classifier added** — The codebase works on Python 3.14 but the classifier was missing.
+
+### Testing
+
+- **2249 unit tests passing** — Added 5 new regression tests covering non-string variable substitution, env variable substitution, undefined variable preservation, record-session interrupt event collection, and WebSocket message rate limiting.
+
 ## v2.14.0 — 2026-07-19
 
 ### Bug Fixes

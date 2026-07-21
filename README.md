@@ -76,7 +76,7 @@ wavexis eval https://example.com -e "document.title"
 wavexis scrape https://example.com --selector "article"
 
 # Emulate a device
-wavexis device https://example.com --preset iphone-15 -o shot.png
+wavexis emulation device https://example.com --device iphone-15 -o shot.png
 ```
 
 ## REPL
@@ -267,35 +267,31 @@ wavexis modify https://example.com -p "*/api/*" --wait 10
 
 ## Auth
 
-Store and use browser credentials for authenticated scraping:
+Apply an auth context (cookies, headers, basic auth) from a JSON file and navigate to a URL:
 
 ```bash
-# Save credentials
-wavexis auth save mysite --user admin --pass secret123
+# Apply auth context and print page title
+wavexis auth context.json https://example.com/login
 
-# Use saved credentials
-wavexis auth use mysite --url https://example.com/login
-
-# List saved profiles
-wavexis auth list
-
-# Delete a profile
-wavexis auth delete mysite
+# Apply auth context and save a screenshot
+wavexis auth context.json https://example.com/login --screenshot -o authed.png
 ```
+
+The auth context JSON file supports `cookies`, `headers`, `username`, and `password` fields. See `wavexis auth --help` for details.
 
 ## Record & Replay
 
-Record a browser session and replay it later:
+Record a browsing session to YAML and replay it later:
 
 ```bash
-# Record a session
-wavexis record start https://example.com -o session.json
+# Generate a YAML session from action types (non-interactive)
+wavexis record https://example.com -o session.yml --actions "screenshot,eval"
+
+# Record real interactions in a visible browser window
+wavexis record https://example.com --interactive --duration 60 -o session.yml
 
 # Replay a recorded session
-wavexis record replay session.json
-
-# List recorded sessions
-wavexis record list
+wavexis replay session.yml
 ```
 
 ## Serve mode
@@ -503,7 +499,7 @@ Both backends implement **all** 743 methods across 60 CDP domains and 12 BiDi mo
 
 ## Commands
 
-wavexis provides 117 CLI commands organized into categories:
+wavexis provides 130+ top-level CLI commands plus 480+ sub-commands organized into categories:
 
 | Category | Commands |
 |----------|----------|
@@ -513,15 +509,15 @@ wavexis provides 117 CLI commands organized into categories:
 | Cookies | `cookies` (get/set/delete/clear) |
 | Network | `headers`, `user-agent`, `block`, `throttle`, `cache`, `intercept`, `mock` |
 | Browser | `open`, `close`, `version` |
-| Emulation | `device`, `viewport`, `geolocation`, `timezone`, `dark-mode` |
+| Emulation | `emulation device`, `emulation viewport`, `emulation geolocation`, `emulation timezone`, `emulation dark-mode`, `emulation media`, `emulation vision-deficiency`, `emulation idle-override`, `emulation disable-js`, `emulation visible-size`, `devices` |
 | Input | `click`, `type`, `fill`, `select`, `hover`, `key`, `drag`, `tap` |
-| CSS | `css-styles`, `css-computed`, `css-rules` |
-| Debug | `debug-break`, `debug-step`, `debug-pause`, `debug-resume` |
-| Performance | `perf` (metrics, trace, profile, coverage, heap-snapshot, css-coverage), `cwv` (Core Web Vitals scoring) |
-| Storage | `storage` (get/set/clear/list), `indexeddb` |
-| Advanced | `sw`, `animation`, `record`, `replay`, `webauthn`, `cast`, `bluetooth`, `extension-install`, `extension-uninstall`, `extension-list` |
+| CSS | `css get-styles`, `css get-computed`, `css get-rules` |
+| Debug | `debug break`, `debug step`, `debug pause`, `debug resume` |
+| Performance | `perf metrics`, `perf trace`, `perf profile`, `perf coverage`, `perf heap-snapshot`, `perf css-coverage`, `cwv` (Core Web Vitals scoring) |
+| Storage | `storage get`, `storage set`, `storage clear`, `storage list`, `indexeddb` |
+| Advanced | `sw`, `animation`, `record`, `replay`, `webauthn`, `cast`, `bluetooth`, `extension-install`, `extension-uninstall`, `extension-list`, `lighthouse`, `a11y`, `download`, `dialog`, `permissions`, `security` |
 | Preferences | `pref-get`, `pref-set` |
-| Auth | `auth save`, `auth use`, `auth list`, `auth delete` |
+| Auth | `auth` (apply auth context from JSON file) |
 | Serve | `serve` (HTTP API server) |
 | Interactive | `repl` (live browser REPL), `init` (config wizard) |
 | Network inspection | `inspect`, `modify`, `modify-response`, `har-replay` |

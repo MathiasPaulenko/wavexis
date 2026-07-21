@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "wavexis"
-version = "2.15.0"
+version = "2.16.0"
 description = "Browser automation CLI — wraps cdpwave and bidiwave, no Node.js, no Chromium download"
 readme = "README.md"
 license = { text = "MIT" }
@@ -19,6 +19,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Internet :: WWW/HTTP :: Browsers",
     "Topic :: Software Development :: Testing",
 ]
@@ -32,7 +33,7 @@ cdp = ["cdpwave>=3.2.1,<4.0"]
 bidi = ["bidiwave>=1.8.1,<2.0"]
 rich = ["rich>=13.0,<14.0"]
 serve = ["aiohttp>=3.9,<4.0"]
-image = ["Pillow>=10.0,<11.0"]
+image = ["Pillow>=10.0,<13.0"]
 dev = [
     "pytest>=8.0,<9.0",
     "pytest-asyncio>=0.23,<1.0",
@@ -85,11 +86,15 @@ extend-immutable-calls = ["typer.Option", "typer.Argument"]
 
 [tool.mypy]
 strict = true
-python_version = "3.11"
+python_version = "3.12"
 mypy_path = "stubs"
 
 [[tool.mypy.overrides]]
 module = "PIL.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "numpy.*"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
