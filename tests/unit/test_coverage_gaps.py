@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
+from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -297,6 +299,14 @@ class TestMainModule:
 
             main_mod.main()
             mock_main.assert_called_once()
+
+    def test_cli_main_invokes_app(self) -> None:
+        """wavexis.cli.main() should invoke the typer app."""
+        with patch("wavexis.cli.app") as mock_app:
+            from wavexis.cli import main
+
+            main()
+            mock_app.assert_called_once()
 
 
 @pytest.mark.unit
@@ -608,3 +618,31 @@ class TestRecordAction:
 
         result = await record_session(backend, "https://example.com", duration=0)
         assert "navigate" in result
+
+    async def test_record_session_collects_events_after_interrupt(self) -> None:
+        """Regression: Ctrl+C must not discard recorded events."""
+        from wavexis.actions.record import record_session
+
+        backend = MockBackend()
+        backend.launch = AsyncMock()
+        backend.navigate = AsyncMock()
+        backend.close = AsyncMock()
+
+        # Simulate KeyboardInterrupt during sleep, then return events.
+        recorded = json.dumps(
+            [{"type": "click", "selector": "#btn", "x": 1, "y": 2}]
+        )
+
+        async def fake_eval(expr: str, await_promise: bool = False) -> Any:
+            if "__wavexis_record_events" in expr:
+                return recorded
+            return ""
+
+        backend.eval = AsyncMock(side_effect=fake_eval)
+
+        with patch("wavexis.actions.record.asyncio.sleep", side_effect=KeyboardInterrupt):
+            result = await record_session(backend, "https://example.com", duration=60)
+
+        # The click event must be present even though sleep was interrupted.
+        assert "#btn" in result
+        assert "click" in result

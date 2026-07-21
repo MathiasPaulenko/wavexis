@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 import yaml
 
+from wavexis.actions.record import events_to_yaml
 from wavexis.backend.base import AbstractBackend
 from wavexis.exceptions import WavexisError
 from wavexis.record import Recorder, record_to_yaml, replay_from_yaml
@@ -39,6 +40,57 @@ class TestRecorder:
         assert len(recorder.actions) == 2
         assert "screenshot" in recorder.actions[0]
         assert "eval" in recorder.actions[1]
+
+    def test_getattr_skips_lifecycle_methods(self) -> None:
+        """Lifecycle methods (launch, close) should not be recorded."""
+        backend = MagicMock(spec=AbstractBackend)
+        recorder = Recorder(backend)
+        # Accessing launch should return the original attribute without recording
+        _ = recorder.launch
+        assert recorder.actions == []
+        _ = recorder.close
+        assert recorder.actions == []
+
+    def test_getattr_skips_internal_methods(self) -> None:
+        """Internal methods (_get_origin, _get_session, _send) should not be recorded."""
+        backend = MagicMock()
+        recorder = Recorder(backend)
+        _ = recorder._get_origin
+        _ = recorder._get_session
+        _ = recorder._send
+        assert recorder.actions == []
+
+    def test_getattr_records_callable_methods(self) -> None:
+        """Callable methods should be wrapped to record calls."""
+        backend = MagicMock(spec=AbstractBackend)
+        backend.screenshot = MagicMock(return_value=b"png")
+        recorder = Recorder(backend)
+        result = recorder.screenshot(url="https://example.com")
+        assert result == b"png"
+        assert len(recorder.actions) == 1
+        assert "screenshot" in recorder.actions[0]
+        assert recorder.actions[0]["screenshot"]["url"] == "https://example.com"
+
+    def test_getattr_records_args(self) -> None:
+        """Positional args should be recorded in _args list, kwargs as keys."""
+        backend = MagicMock(spec=AbstractBackend)
+        backend.eval = MagicMock(return_value="title")
+        recorder = Recorder(backend)
+        result = recorder.eval("document.title", await_promise=False)
+        assert result == "title"
+        assert len(recorder.actions) == 1
+        assert "eval" in recorder.actions[0]
+        assert recorder.actions[0]["eval"]["_args"] == ["document.title"]
+        assert recorder.actions[0]["eval"]["await_promise"] is False
+
+    def test_getattr_returns_non_callable_attributes(self) -> None:
+        """Non-callable attributes should be returned directly without recording."""
+        backend = MagicMock(spec=AbstractBackend)
+        backend.some_property = "value"
+        recorder = Recorder(backend)
+        result = recorder.some_property
+        assert result == "value"
+        assert recorder.actions == []
 
 
 @pytest.mark.unit
@@ -106,3 +158,87 @@ class TestReplayFromYaml:
         backend = MagicMock(spec=AbstractBackend)
         results = await replay_from_yaml(path, backend)
         assert results == []
+
+
+@pytest.mark.unit
+class TestEventsToYaml:
+    """Test suite for events_to_yaml conversion."""
+
+    def test_click_event(self) -> None:
+        """Test click event conversion."""
+        events = [{"type": "click", "selector": "#button"}]
+        yaml_str = events_to_yaml(events, "https://example.com")
+        data = yaml.safe_load(yaml_str)
+        assert data["actions"][0] == {"navigate": {"url": "https://example.com"}}
+        assert data["actions"][1] == {"click": {"selector": "#button"}}
+
+    def test_input_event_input_tag(self) -> None:
+        """Test input event with input tag converts to type action."""
+        events = [{"type": "input", "selector": "#field", "value": "hello", "tag": "input"}]
+        yaml_str = events_to_yaml(events, "https://example.com")
+        data = yaml.safe_load(yaml_str)
+        assert data["actions"][1] == {"type": {"selector": "#field", "text": "hello"}}
+
+    def test_input_event_select_tag(self) -> None:
+        """Test input event with select tag converts to select action."""
+        events = [{"type": "input", "selector": "#sel", "value": "opt1", "tag": "select"}]
+        yaml_str = events_to_yaml(events, "https://example.com")
+        data = yaml.safe_load(yaml_str)
+        assert data["actions"][1] == {"select": {"selector": "#sel", "value": "opt1"}}
+
+    def test_keypress_enter_with_selector(self) -> None:
+        """Test Enter keypress with selector converts to click."""
+        events = [{"type": "keypress", "selector": "#submit", "key": "Enter"}]
+        yaml_str = events_to_yaml(events, "https://example.com")
+        data = yaml.safe_load(yaml_str)
+        assert data["actions"][1] == {"click": {"selector": "#submit"}}
+
+    def test_keypress_non_enter(self) -> None:
+        """Test non-Enter keypress converts to keypress action."""
+        events = [{"type": "keypress", "selector": "#field", "key": "Tab"}]
+        yaml_str = events_to_yaml(events, "https://example.com")
+        data = yaml.safe_load(yaml_str)
+        assert data["actions"][1] == {"keypress": {"key": "Tab"}}
+
+    def test_navigate_event(self) -> None:
+        """Test navigate event conversion."""
+        events = [{"type": "navigate", "url": "https://example.com/page2"}]
+        yaml_str = events_to_yaml(events, "https://example.com")
+        data = yaml.safe_load(yaml_str)
+        assert data["actions"][1] == {"navigate": {"url": "https://example.com/page2"}}
+
+    def test_empty_events(self) -> None:
+        """Test empty events list still includes initial navigate."""
+        yaml_str = events_to_yaml([], "https://example.com")
+        data = yaml.safe_load(yaml_str)
+        assert len(data["actions"]) == 1
+        assert data["actions"][0] == {"navigate": {"url": "https://example.com"}}
+
+    def test_event_missing_selector_does_not_raise(self) -> None:
+        """Events with missing selector should be skipped, not raise KeyError."""
+        events = [{"type": "click"}]
+        yaml_str = events_to_yaml(events, "https://example.com")
+        data = yaml.safe_load(yaml_str)
+        # Only the initial navigate action should be present
+        assert len(data["actions"]) == 1
+
+    def test_event_missing_value_uses_empty_default(self) -> None:
+        """Input events with missing value should use empty string."""
+        events = [{"type": "input", "selector": "#field", "tag": "input"}]
+        yaml_str = events_to_yaml(events, "https://example.com")
+        data = yaml.safe_load(yaml_str)
+        assert data["actions"][1] == {"type": {"selector": "#field", "text": ""}}
+
+    def test_navigate_event_missing_url_skipped(self) -> None:
+        """Navigate events with missing url should be skipped."""
+        events = [{"type": "navigate"}]
+        yaml_str = events_to_yaml(events, "https://example.com")
+        data = yaml.safe_load(yaml_str)
+        assert len(data["actions"]) == 1
+
+    def test_unknown_event_type_skipped(self) -> None:
+        """Unknown event types should be skipped silently."""
+        events = [{"type": "scroll", "x": 100, "y": 200}]
+        yaml_str = events_to_yaml(events, "https://example.com")
+        data = yaml.safe_load(yaml_str)
+        assert len(data["actions"]) == 1

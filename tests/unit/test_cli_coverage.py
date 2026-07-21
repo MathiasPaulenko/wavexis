@@ -104,6 +104,52 @@ class TestCLISessionCommands:
             result = runner.invoke(app, ["session", "list"])
             assert result.exit_code == 0
 
+    def test_session_list_with_existing_sessions(self, tmp_path: Path) -> None:
+        """session list should print existing session names."""
+        sessions_dir = tmp_path / ".wavexis" / "sessions"
+        sessions_dir.mkdir(parents=True)
+        (sessions_dir / "test1.json").write_text("{}")
+        (sessions_dir / "test2.json").write_text("{}")
+        with patch("pathlib.Path.home", return_value=tmp_path):
+            result = runner.invoke(app, ["session", "list"])
+            assert result.exit_code == 0
+            assert "test1" in result.output
+            assert "test2" in result.output
+
+    def test_session_save_invalid_name(self, tmp_path: Path) -> None:
+        """session save with a path traversal name should be rejected."""
+        with patch("pathlib.Path.home", return_value=tmp_path):
+            result = runner.invoke(app, ["session", "save", "--name", "../escape"])
+            assert result.exit_code == 1
+
+    def test_session_save_dot_name(self, tmp_path: Path) -> None:
+        """session save with '.' as name should be rejected."""
+        with patch("pathlib.Path.home", return_value=tmp_path):
+            result = runner.invoke(app, ["session", "save", "--name", "."])
+            assert result.exit_code == 1
+
+    def test_session_save_double_dot_name(self, tmp_path: Path) -> None:
+        """session save with '..' as name should be rejected."""
+        with patch("pathlib.Path.home", return_value=tmp_path):
+            result = runner.invoke(app, ["session", "save", "--name", ".."])
+            assert result.exit_code == 1
+
+    def test_session_unknown_action(self, tmp_path: Path) -> None:
+        """session with an unknown action should error out."""
+        with patch("pathlib.Path.home", return_value=tmp_path):
+            result = runner.invoke(app, ["session", "unknown"])
+            assert result.exit_code != 0
+
+    def test_session_delete_help(self) -> None:
+        """session delete --help should work."""
+        result = runner.invoke(app, ["session", "delete", "--help"])
+        assert result.exit_code == 0
+
+    def test_session_load_help(self) -> None:
+        """session load --help should work."""
+        result = runner.invoke(app, ["session", "load", "--help"])
+        assert result.exit_code == 0
+
 
 @pytest.mark.unit
 class TestCLINavigationCommands:
@@ -392,6 +438,26 @@ class TestCLIAdvancedCommands:
         result = runner.invoke(app, ["axe", "--help"])
         assert result.exit_code == 0
 
+    def test_a11y_help(self) -> None:
+        """a11y --help should work."""
+        result = runner.invoke(app, ["a11y", "--help"])
+        assert result.exit_code == 0
+
+    def test_security_help(self) -> None:
+        """security --help should work."""
+        result = runner.invoke(app, ["security", "--help"])
+        assert result.exit_code == 0
+
+    def test_permissions_help(self) -> None:
+        """permissions --help should work."""
+        result = runner.invoke(app, ["permissions", "--help"])
+        assert result.exit_code == 0
+
+    def test_emulation_help(self) -> None:
+        """emulation --help should work."""
+        result = runner.invoke(app, ["emulation", "--help"])
+        assert result.exit_code == 0
+
     def test_crawl_help(self) -> None:
         result = runner.invoke(app, ["crawl", "--help"])
         assert result.exit_code == 0
@@ -574,3 +640,99 @@ class TestCLISharedFunctions:
         _ctx.set(ctx)
         with patch("pathlib.Path.home", return_value=tmp_path):
             _load_global_config()
+
+    def test_load_global_config_all_keys(self, tmp_path: Path) -> None:
+        """All supported config keys should be loaded into the context."""
+        from wavexis.cli._shared import CLIContext, _ctx, _load_global_config
+
+        config_dir = tmp_path / ".wavexis"
+        config_dir.mkdir()
+        config_file = config_dir / "config.yml"
+        config_file.write_text(
+            "backend: cdp\n"
+            "headless: false\n"
+            "timeout: 60000\n"
+            "proxy: http://proxy\n"
+            "user_data_dir: /tmp/profile\n"
+            "browser_url: http://localhost:9222\n"
+            "remote_url: http://remote:8080\n"
+            "stealth: true\n"
+        )
+
+        ctx = CLIContext()
+        _ctx.set(ctx)
+        with patch("pathlib.Path.home", return_value=tmp_path):
+            _load_global_config()
+
+        assert ctx.preferred_backend == "cdp"
+        assert ctx.headless is False
+        assert ctx.timeout == 60000
+        assert ctx.proxy == "http://proxy"
+        assert ctx.user_data_dir == "/tmp/profile"
+        assert ctx.browser_url == "http://localhost:9222"
+        assert ctx.remote_url == "http://remote:8080"
+        assert ctx.stealth is True
+
+    def test_load_global_config_non_dict_yaml(self, tmp_path: Path) -> None:
+        """A YAML file containing a non-dict value should be ignored."""
+        from wavexis.cli._shared import CLIContext, _ctx, _load_global_config
+
+        config_dir = tmp_path / ".wavexis"
+        config_dir.mkdir()
+        config_file = config_dir / "config.yml"
+        config_file.write_text("- just\n- a\n- list\n")
+
+        ctx = CLIContext()
+        _ctx.set(ctx)
+        with patch("pathlib.Path.home", return_value=tmp_path):
+            _load_global_config()
+        # Should not crash, and no fields should be set
+        assert ctx.preferred_backend is None
+
+    def test_load_global_config_pyyaml_missing(self, tmp_path: Path) -> None:
+        """Missing PyYAML should be handled gracefully with a verbose warning."""
+        from wavexis.cli._shared import CLIContext, _ctx, _load_global_config
+
+        config_dir = tmp_path / ".wavexis"
+        config_dir.mkdir()
+        config_file = config_dir / "config.yml"
+        config_file.write_text("backend: cdp\n")
+
+        ctx = CLIContext(verbose=True)
+        _ctx.set(ctx)
+        import builtins
+
+        real_import = builtins.__import__
+
+        def fake_import(name, *args, **kwargs):
+            if name == "yaml":
+                raise ImportError("no yaml")
+            return real_import(name, *args, **kwargs)
+
+        with patch("pathlib.Path.home", return_value=tmp_path), patch(
+            "builtins.__import__", side_effect=fake_import
+        ):
+            _load_global_config()
+
+    def test_run_coro_handles_wavexis_error(self) -> None:
+        """_run_async should handle WavexisError by raising typer.Exit."""
+        import typer
+
+        from wavexis.cli._shared import _run_async
+        from wavexis.exceptions import WavexisError
+
+        async def fail() -> None:
+            raise WavexisError("boom")
+
+        with pytest.raises(typer.Exit):
+            _run_async(fail())
+
+    def test_run_coro_returns_value(self) -> None:
+        """_run_async should return the coroutine's result on success."""
+        from wavexis.cli._shared import _run_async
+
+        async def succeed() -> str:
+            return "ok"
+
+        result = _run_async(succeed())
+        assert result == "ok"

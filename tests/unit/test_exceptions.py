@@ -7,6 +7,7 @@ from wavexis.exceptions import (
     ElementNotFoundError,
     MultiConfigError,
     NavigationError,
+    SessionNotInitializedError,
     WaitTimeoutError,
     WavexisError,
 )
@@ -25,6 +26,7 @@ class TestExceptions:
             ElementNotFoundError,
             ActionError,
             MultiConfigError,
+            SessionNotInitializedError,
         ]:
             assert issubclass(exc_cls, WavexisError)
 
@@ -60,3 +62,27 @@ class TestExceptions:
         exc = MultiConfigError("steps", "missing url")
         assert "steps" in str(exc)
         assert "missing url" in str(exc)
+
+    def test_session_not_initialized_default_message(self):
+        """Test session not initialized default message."""
+        exc = SessionNotInitializedError()
+        assert "launch()" in str(exc)
+        assert "Hint" in str(exc)
+
+    def test_session_not_initialized_custom_message(self):
+        """Test session not initialized custom message."""
+        exc = SessionNotInitializedError("custom reason")
+        assert "custom reason" in str(exc)
+
+    def test_backend_not_supported_error(self):
+        """Test backend not supported error."""
+        exc = BackendNotSupportedError("some_method", "my_backend")
+        assert "some_method" in str(exc)
+        assert "my_backend" in str(exc)
+
+    def test_action_error_is_value_error(self):
+        """Test that ActionError is also a ValueError."""
+        assert issubclass(ActionError, ValueError)
+        exc = ActionError("bad action")
+        assert isinstance(exc, ValueError)
+        assert "bad action" in str(exc)

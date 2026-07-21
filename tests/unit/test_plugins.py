@@ -204,3 +204,137 @@ class TestActionPlugin:
         action = plugin.factory({"url": "https://example.com"})
         assert isinstance(action, DummyAction)
         assert action.params == {"url": "https://example.com"}
+
+
+@pytest.mark.unit
+class TestDiscoverEntryPoints:
+    """Test suite for _discover_entry_points."""
+
+    def teardown_method(self) -> None:
+        """Clean up after each test method."""
+        reset_registry()
+
+    def test_discover_handles_oserror(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test that OSError during entry_points() is handled gracefully."""
+        from wavexis.plugins import _discover_entry_points
+
+        def raise_oserror(*args: object, **kwargs: object) -> object:
+            raise OSError("disk error")
+
+        monkeypatch.setattr("wavexis.plugins.entry_points", raise_oserror)
+        registry = _discover_entry_points()
+        assert registry.list_actions() == []
+        assert registry.list_backends() == []
+        assert registry.list_middleware() == []
+
+    def test_discover_handles_valueerror(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test that ValueError during entry_points() is handled gracefully."""
+        from wavexis.plugins import _discover_entry_points
+
+        def raise_valueerror(*args: object, **kwargs: object) -> object:
+            raise ValueError("bad config")
+
+        monkeypatch.setattr("wavexis.plugins.entry_points", raise_valueerror)
+        registry = _discover_entry_points()
+        assert registry.list_actions() == []
+
+    def test_discover_skips_failing_entry_point(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test that a failing entry point load is skipped with a warning."""
+        from wavexis.plugins import _discover_entry_points
+
+        class FakeEP:
+            name = "broken"
+
+            def load(self) -> object:
+                raise ImportError("missing module")
+
+        def fake_entry_points(*args: object, **kwargs: object) -> list:
+            return [FakeEP()]
+
+        monkeypatch.setattr("wavexis.plugins.entry_points", fake_entry_points)
+        registry = _discover_entry_points()
+        assert registry.list_actions() == []
+
+    def test_discover_loads_action_plugin(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test that an ActionPlugin entry point is loaded correctly."""
+        from wavexis.plugins import _discover_entry_points
+
+        action_plugin = ActionPlugin(
+            name="test-action",
+            factory=MagicMock(),
+            description="test",
+        )
+
+        class FakeEP:
+            name = "test-action"
+
+            def load(self) -> ActionPlugin:
+                return action_plugin
+
+        def fake_entry_points(*args: object, **kwargs: object) -> list:
+            return [FakeEP()]
+
+        monkeypatch.setattr("wavexis.plugins.entry_points", fake_entry_points)
+        registry = _discover_entry_points()
+        assert "test-action" in registry.list_actions()
+
+    def test_discover_loads_middleware_plugin(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test that a MiddlewarePlugin entry point is loaded correctly."""
+        from wavexis.plugins import _discover_entry_points
+
+        mw_plugin = MiddlewarePlugin(name="test-mw", factory=MagicMock(), description="test")
+
+        class FakeEP:
+            name = "test-mw"
+
+            def load(self) -> MiddlewarePlugin:
+                return mw_plugin
+
+        def fake_entry_points(*args: object, **kwargs: object) -> list:
+            return [FakeEP()]
+
+        monkeypatch.setattr("wavexis.plugins.entry_points", fake_entry_points)
+        registry = _discover_entry_points()
+        assert "test-mw" in registry.list_middleware()
+
+    def test_discover_loads_hooks_plugin(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test that a Plugin subclass entry point is loaded as hooks."""
+
+        class MyPlugin(Plugin):
+            name = "my-hooks"
+
+        from wavexis.plugins import _discover_entry_points
+
+        class FakeEP:
+            name = "my-hooks"
+
+            def load(self) -> type[Plugin]:
+                return MyPlugin
+
+        def fake_entry_points(*args: object, **kwargs: object) -> list:
+            return [FakeEP()]
+
+        monkeypatch.setattr("wavexis.plugins.entry_points", fake_entry_points)
+        registry = _discover_entry_points()
+        assert len(registry.hooks) == 1
+        assert registry.hooks[0].name == "my-hooks"
+
+    def test_discover_skips_unknown_type(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test that entry points with unknown types are skipped."""
+        from wavexis.plugins import _discover_entry_points
+
+        class FakeEP:
+            name = "unknown"
+
+            def load(self) -> str:
+                return "not a plugin"
+
+        def fake_entry_points(*args: object, **kwargs: object) -> list:
+            return [FakeEP()]
+
+        monkeypatch.setattr("wavexis.plugins.entry_points", fake_entry_points)
+        registry = _discover_entry_points()
+        assert registry.list_actions() == []
+        assert registry.list_backends() == []
+        assert registry.list_middleware() == []
+        assert registry.hooks == []

@@ -702,14 +702,14 @@ class TestBiDiMethodBodies:
     async def test_webaudio_get_contexts(self) -> None:
         backend, mock = _make_mock_backend()
         mock.cdp.send_command = AsyncMock(return_value={})
-        mock.cdp.wait_for_event = AsyncMock(side_effect=TimeoutError())
+        mock.cdp.collect_events = AsyncMock(side_effect=TimeoutError())
         result = await backend.webaudio_get_contexts()
         assert isinstance(result, list)
 
     async def test_webaudio_get_context(self) -> None:
         backend, mock = _make_mock_backend()
         mock.cdp.send_command = AsyncMock(return_value={})
-        mock.cdp.wait_for_event = AsyncMock(side_effect=TimeoutError())
+        mock.cdp.collect_events = AsyncMock(side_effect=TimeoutError())
         result = await backend.webaudio_get_context("ctx-1")
         assert isinstance(result, dict)
 

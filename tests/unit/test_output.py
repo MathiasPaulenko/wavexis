@@ -152,6 +152,31 @@ class TestOutput:
         assert "name" in captured.out
         assert "Alice" in captured.out
 
+    def test_write_yaml_to_file(self, tmp_path: Path) -> None:
+        """Test write_yaml writes a YAML file to disk."""
+        path = str(tmp_path / "out.yml")
+        Output.write_yaml({"x": 1, "y": [1, 2, 3]}, path)
+        text = Path(path).read_text(encoding="utf-8")
+        assert "x: 1" in text
+        assert "y:" in text
+
+    def test_write_yaml_dash_means_stdout(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """Test write_yaml with path='-' prints to stdout."""
+        Output.write_yaml({"x": 1}, "-")
+        captured = capsys.readouterr()
+        assert "x: 1" in captured.out
+
+    def test_write_yaml_raises_when_pyyaml_missing(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Test write_yaml raises ImportError when PyYAML is not installed."""
+        import wavexis.output as output_mod
+
+        monkeypatch.setattr(output_mod, "_yaml", None)
+        with pytest.raises(ImportError, match="PyYAML"):
+            output_mod.Output.write_yaml({"x": 1}, None)
+
 
 @pytest.mark.unit
 class TestOutputRichFallback:

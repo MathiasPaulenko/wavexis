@@ -148,6 +148,29 @@ class TestSessionData:
         with pytest.raises(WavexisError):
             SessionData.from_json("[1, 2, 3]")
 
+    def test_from_json_rejects_cookies_not_list(self) -> None:
+        with pytest.raises(WavexisError, match="cookies"):
+            SessionData.from_json('{"cookies": "not-a-list"}')
+
+    def test_from_json_rejects_local_storage_not_dict(self) -> None:
+        with pytest.raises(WavexisError, match="local_storage"):
+            SessionData.from_json('{"local_storage": []}')
+
+    def test_from_json_rejects_session_storage_not_dict(self) -> None:
+        with pytest.raises(WavexisError, match="session_storage"):
+            SessionData.from_json('{"session_storage": 42}')
+
+    def test_from_json_rejects_url_not_string(self) -> None:
+        with pytest.raises(WavexisError, match="url"):
+            SessionData.from_json('{"url": 123}')
+
+    def test_from_json_defaults_missing_fields(self) -> None:
+        restored = SessionData.from_json("{}")
+        assert restored.cookies == []
+        assert restored.local_storage == {}
+        assert restored.session_storage == {}
+        assert restored.url == ""
+
 
 # ── Extract ──────────────────────────────────────────────────────
 

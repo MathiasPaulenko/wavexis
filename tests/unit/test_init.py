@@ -225,3 +225,54 @@ class TestInteractiveInit:
                 input_fn=lambda _prompt: next(inputs),
                 output_fn=lambda msg: outputs.append(msg),
             )
+
+    def test_multi_step_template_interactive(self) -> None:
+        """Test interactive wizard with multi-step template (selector + text)."""
+        inputs = iter(["5", "https://app.com", "#login-btn", "hello world"])
+        outputs: list[str] = []
+
+        result = interactive_init(
+            input_fn=lambda _prompt: next(inputs),
+            output_fn=lambda msg: outputs.append(msg),
+        )
+        config = yaml.safe_load(result)
+        actions = config["actions"]
+        # First action is navigate
+        assert actions[0]["navigate"]["url"] == "https://app.com"
+        # Should contain a click with the selector
+        click_actions = [a for a in actions if "click" in a]
+        assert len(click_actions) >= 1
+        assert click_actions[0]["click"]["selector"] == "#login-btn"
+        # Should contain a type with the text
+        type_actions = [a for a in actions if "type" in a]
+        assert len(type_actions) >= 1
+        assert type_actions[0]["type"]["text"] == "hello world"
+
+    def test_multi_step_template_default_selector_text(self) -> None:
+        """Test multi-step template uses defaults when inputs are empty."""
+        inputs = iter(["5", "https://app.com", "", ""])
+        outputs: list[str] = []
+
+        result = interactive_init(
+            input_fn=lambda _prompt: next(inputs),
+            output_fn=lambda msg: outputs.append(msg),
+        )
+        config = yaml.safe_load(result)
+        actions = config["actions"]
+        assert actions[0]["navigate"]["url"] == "https://app.com"
+        # Defaults from the template should be used
+        click_actions = [a for a in actions if "click" in a]
+        assert len(click_actions) >= 1
+
+    def test_eval_template_interactive(self) -> None:
+        """Test interactive wizard with eval template."""
+        inputs = iter(["4", "https://example.com", "document.title"])
+        outputs: list[str] = []
+
+        result = interactive_init(
+            input_fn=lambda _prompt: next(inputs),
+            output_fn=lambda msg: outputs.append(msg),
+        )
+        config = yaml.safe_load(result)
+        assert config["actions"][0]["eval"]["url"] == "https://example.com"
+        assert config["actions"][0]["eval"]["expression"] == "document.title"

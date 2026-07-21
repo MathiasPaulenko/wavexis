@@ -271,3 +271,52 @@ class TestCrawlAction:
         action = CrawlAction(params)
         with pytest.raises(WavexisError, match="Invalid url_pattern regex"):
             await action.execute(backend)
+
+    async def test_crawl_uses_deque_for_bfs_queue(self) -> None:
+        """Regression: crawl must use collections.deque for O(1) popleft.
+
+        Previously used list.pop(0) which is O(n) per iteration — slow for
+        large crawls. This test verifies the queue is a deque and that a
+        breadth-first traversal order is preserved.
+        """
+        from collections import deque
+
+        backend = MagicMock()
+        backend.navigate = AsyncMock()
+        # Page 1 links to page2 and page3; page2 links to page4.
+        backend.eval = AsyncMock(
+            side_effect=[
+                "Page 1",
+                ["https://example.com/page2", "https://example.com/page3"],
+                "Page 2",
+                ["https://example.com/page4"],
+                "Page 3",
+                [],
+                "Page 4",
+                [],
+            ]
+        )
+
+        params = CrawlParams(
+            start_url="https://example.com",
+            max_depth=2,
+            max_pages=10,
+            same_origin=True,
+        )
+        action = CrawlAction(params)
+        results = await action.execute(backend)
+
+        urls = [r["url"] for r in results]
+        # BFS order: root, then page2, page3 (depth 1), then page4 (depth 2).
+        assert urls == [
+            "https://example.com",
+            "https://example.com/page2",
+            "https://example.com/page3",
+            "https://example.com/page4",
+        ]
+        # Sanity check: the action imports deque (regression guard for the
+        # list.pop(0) -> deque.popleft fix).
+        import wavexis.actions.crawl as crawl_mod
+
+        assert hasattr(crawl_mod, "deque")
+        assert crawl_mod.deque is deque

@@ -688,7 +688,7 @@ class TestCDPMethodBodies:
 
     async def test_intercept_download(self) -> None:
         backend, _, _ = _make_mock_backend()
-        await backend.intercept_download()
+        await backend.intercept_download(timeout=0.1)
 
     async def test_dialog_accept(self) -> None:
         backend, _, _ = _make_mock_backend()
@@ -982,13 +982,13 @@ class TestCDPMethodBodies:
 
     async def test_webaudio_get_contexts(self) -> None:
         backend, _, mock = _make_mock_backend()
-        mock.wait_for_event = AsyncMock(side_effect=TimeoutError())
+        mock.collect_events = AsyncMock(side_effect=TimeoutError())
         result = await backend.webaudio_get_contexts()
         assert isinstance(result, list)
 
     async def test_webaudio_get_context(self) -> None:
         backend, _, mock = _make_mock_backend()
-        mock.wait_for_event = AsyncMock(side_effect=TimeoutError())
+        mock.collect_events = AsyncMock(side_effect=TimeoutError())
         result = await backend.webaudio_get_context("ctx-1")
         assert isinstance(result, dict)
 

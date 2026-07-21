@@ -76,6 +76,7 @@ class MockBackend:
         self.new_tab_handle = AsyncMock(return_value=AsyncMock())
         self.click = AsyncMock()
         self.type = AsyncMock()
+        self.fill = AsyncMock()
         self.scroll = AsyncMock()
         self.hover = AsyncMock()
         self.focus = AsyncMock()
