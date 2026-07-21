@@ -26,10 +26,21 @@ from wavexis.output import validate_path
 @app.command()
 def session(
     action: str = typer.Argument(..., help="Session action: save, load, list, delete"),
-    url: str = typer.Argument(
-        "", help="URL to navigate to (for save) or load before navigating (for load)"
+    target: str = typer.Argument(
+        "",
+        help=(
+            "For 'save': URL to navigate to. "
+            "For 'load': path to session file to load. "
+            "Use --url to specify the URL when loading."
+        ),
     ),
-    output: str = typer.Option("session.json", "--output", "-o", help="Session file path"),
+    url: str = typer.Option(
+        "",
+        "--url",
+        "-u",
+        help="URL to navigate to after loading a session (for 'load').",
+    ),
+    output: str = typer.Option("session.json", "--output", "-o", help="Session file path (for 'save')"),
     name: str = typer.Option(
         "", "--name", "-n", help="Named session (stored in ~/.wavexis/sessions/)"
     ),
@@ -38,7 +49,8 @@ def session(
 
     \b
     Save:  wavexis session save https://app.com -o mysession.json
-    Load:  wavexis session load mysession.json https://app.com
+    Load:  wavexis session load mysession.json
+    Load + navigate:  wavexis session load mysession.json --url https://app.com
     Named: wavexis session save https://app.com --name mysession
     List:  wavexis session list
     Delete: wavexis session delete --name mysession
@@ -47,7 +59,7 @@ def session(
 
     sessions_dir = Path.home() / ".wavexis" / "sessions"
 
-    def _session_path() -> Path:
+    def _session_path_from_output() -> Path:
         if name:
             safe_name = Path(name).name
             if not safe_name or safe_name != name or safe_name in (".", ".."):
@@ -79,28 +91,28 @@ def session(
         if not name:
             typer.echo("Error: --name required for delete", err=True)
             raise typer.Exit(1)
-        target = _session_path()
-        if not target.exists():
+        target_path = _session_path_from_output()
+        if not target_path.exists():
             typer.echo(f"Error: session '{name}' not found", err=True)
             raise typer.Exit(1)
-        target.unlink()
+        target_path.unlink()
         typer.echo(f"Deleted session '{name}'")
         return
 
-    session_path = _session_path()
-
     if action == "save":
+        session_path = _session_path_from_output()
         if name:
             sessions_dir.mkdir(parents=True, exist_ok=True)
-        if not url:
+        if not target:
             typer.echo("Error: URL required for session save", err=True)
             raise typer.Exit(1)
+        save_url = target
 
         async def _save_session() -> Any:
             backend = _get_backend()
             await backend.launch(_browser_options())
             try:
-                await backend.navigate(url, _wait_strategy())
+                await backend.navigate(save_url, _wait_strategy())
                 save_action = SessionSaveAction(session_path)
                 return await save_action.execute(backend)
             finally:
@@ -108,11 +120,27 @@ def session(
 
         _run_async(_save_session())
         typer.echo(f"Session saved to {session_path}")
+        return
 
-    elif action == "load":
+    if action == "load":
+        # For 'load', the positional `target` is the session file path.
+        if not target:
+            typer.echo(
+                "Error: session file path required for load. "
+                "Usage: wavexis session load <file.json> [--url URL]",
+                err=True,
+            )
+            raise typer.Exit(1)
+        try:
+            session_path = validate_path(target)
+        except ValueError as e:
+            _handle_error(WavexisError(str(e)))
+            return
         if not session_path.exists():
             typer.echo(f"Error: session file not found: {session_path}", err=True)
             raise typer.Exit(1)
+        # `--url` (option) takes precedence; fall back to nothing.
+        nav_url = url
 
         async def _load_session() -> Any:
             backend = _get_backend()
@@ -120,8 +148,8 @@ def session(
             try:
                 load_action = SessionLoadAction(session_path)
                 await load_action.execute(backend)
-                if url:
-                    await backend.navigate(url, _wait_strategy())
+                if nav_url:
+                    await backend.navigate(nav_url, _wait_strategy())
                     title = await backend.eval("document.title", await_promise=False)
                     return title
                 return "Session loaded"
@@ -132,25 +160,35 @@ def session(
         if result is None:
             return
         typer.echo(f"Session loaded from {session_path}: {result}")
+        return
 
-    else:
-        typer.echo(
-            f"Error: unknown session action '{action}'. Use save, load, list, or delete.",
-            err=True,
-        )
-        raise typer.Exit(1)
+    typer.echo(
+        f"Error: unknown session action '{action}'. Use save, load, list, or delete.",
+        err=True,
+    )
+    raise typer.Exit(1)
 
 
 @app.command()
 def extract(
     url: str = typer.Argument(..., help="URL to extract data from"),
     schema: str = typer.Option(
-        ...,
+        "",
         "--schema",
         "-s",
         help=(
             "JSON schema mapping field names to CSS selectors, "
-            'e.g. \'{"title":"h1","price":".price"}\''
+            'e.g. \'{"title":"h1","price":".price"}\'. '
+            "Mutually exclusive with --schema-file."
+        ),
+    ),
+    schema_file: str = typer.Option(
+        "",
+        "--schema-file",
+        help=(
+            "Path to a JSON file containing the extraction schema. "
+            "Useful on shells (e.g. PowerShell) where passing inline JSON is awkward. "
+            "Mutually exclusive with --schema."
         ),
     ),
     selector: str = typer.Option(
@@ -164,10 +202,25 @@ def extract(
     \b
     Examples:
         wavexis extract https://shop.com -s '{"title":"h1","price":".price"}'
-        wavexis extract https://shop.com/products \
+        wavexis extract https://shop.com --schema-file schema.json
+        wavexis extract https://shop.com/products \\
             -s '{"name":".name","price":".price"}' --selector ".product"
     """
     from wavexis.actions.extract import ExtractAction, ExtractParams
+
+    if schema and schema_file:
+        typer.echo("Error: --schema and --schema-file are mutually exclusive", err=True)
+        raise typer.Exit(1)
+    if not schema and not schema_file:
+        typer.echo("Error: --schema or --schema-file is required", err=True)
+        raise typer.Exit(1)
+
+    if schema_file:
+        try:
+            schema = validate_path(schema_file).read_text(encoding="utf-8")
+        except OSError as e:
+            _handle_error(WavexisError(f"Failed to read schema file: {e}"))
+            return
 
     try:
         schema_dict = json.loads(schema)

@@ -70,23 +70,56 @@ async def _a11y(url: str, action: str, node_id: str) -> Any:
 def download(
     url: str = typer.Argument(..., help="URL to navigate to (must trigger a download)"),
     pattern: str = typer.Option(".*", "--pattern", help="URL pattern to match downloads"),
+    selector: str = typer.Option(
+        "",
+        "--selector",
+        "-s",
+        help=(
+            "CSS selector for a download link to click after navigating. "
+            "If omitted, wavexis auto-clicks the first <a download> element. "
+            "Pass 'none' to skip clicking."
+        ),
+    ),
     output: str = typer.Option("download.bin", "--output", "-o", help="Output file path"),
 ) -> None:
-    """Intercept a file download from a web page."""
-    data = _run_async(_download(url, pattern))
+    """Intercept a file download from a web page.
+
+    \b
+    wavexis download https://example.com/file.zip -o file.zip
+    wavexis download https://example.com/page -s "#dl-link" -o file.zip
+    wavexis download https://example.com/page --selector none -o file.zip
+
+    \b
+    Bug #13: previously the command navigated to the page but never
+    clicked any download link, so it always returned 0 bytes. Now it
+    auto-clicks <a download> elements (or a custom --selector) and
+    warns clearly when no download appears.
+    """
+    data = _run_async(_download(url, pattern, selector))
     if data is None:
         return
 
     Output.write_bytes(data, output)
-    typer.echo(f"Download saved to {output} ({len(data)} bytes)")
+    if len(data) == 0:
+        typer.echo(
+            f"WARNING: no download was intercepted within the timeout. "
+            f"Output file '{output}' is 0 bytes. Verify the page triggers "
+            f"a download or pass --selector to click a download link.",
+            err=True,
+        )
+    else:
+        typer.echo(f"Download saved to {output} ({len(data)} bytes)")
 
 
-async def _download(url: str, pattern: str) -> bytes:
+async def _download(url: str, pattern: str, selector: str = "") -> bytes:
     """Intercept a file download from a web page.
 
     Args:
         url: URL to navigate to that triggers a download.
         pattern: URL pattern to match download requests.
+        selector: CSS selector for a download link to click. If empty,
+            auto-click the first ``<a download>`` element. If ``"none"``,
+            skip clicking.
 
     Returns:
         Downloaded file bytes.
@@ -101,7 +134,26 @@ async def _download(url: str, pattern: str) -> bytes:
             url=url,
             wait=_wait_strategy(),
         )
-        return await act.execute(backend)
+        # Navigate first, then optionally click a download link.
+        if url:
+            await backend.navigate(url, _wait_strategy())
+        if selector != "none":
+            if selector:
+                await backend.click(selector, auto_wait=True)
+            else:
+                # Auto-click the first <a download> element if present.
+                import json as _json
+
+                js = (
+                    "(function(){var a=document.querySelector('a[download]');"
+                    "if(!a)return false;a.click();return true;})()"
+                )
+                result = await backend.eval(js, await_promise=False)
+                if result is not True:
+                    # No <a download> found; that's OK if the URL itself
+                    # triggers a download (e.g. Content-Disposition).
+                    pass
+        return await backend.intercept_download(pattern)
     finally:
         await _close_backend(backend)
 

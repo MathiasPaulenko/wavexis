@@ -288,13 +288,30 @@ def page_download(
 
 @app.command()
 def page_snapshot(
-    output: str = typer.Option("snapshot.mhtml", "--output", "-o", help="Output file path"),
+    output: str = typer.Option(
+        "ref/output/snapshot.mhtml",
+        "--output",
+        "-o",
+        help="Output file path (default: ref/output/snapshot.mhtml)",
+    ),
     fmt: str = typer.Option("mhtml", "--format", help="Snapshot format (mhtml or text)"),
 ) -> None:
-    """Capture a snapshot of the current page."""
+    """Capture a snapshot of the current page.
+
+    Bug #33: previously the default output path was ``snapshot.mhtml``
+    in the current working directory, which polluted the repo root.
+    The default is now ``ref/output/snapshot.mhtml`` per the project
+    output convention. Use ``-o`` to override.
+    """
     data = _run_async(_page_op(lambda b: b.page_capture_snapshot(fmt)))
     if data is None:
         return
+    # Ensure the parent directory exists so the write doesn't fail
+    # when the default ref/output/ path is used.
+    from pathlib import Path
+
+    out_path = Path(output)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     Output.write_bytes(data.encode("utf-8"), output)
     typer.echo(f"Snapshot saved to {output}")
 

@@ -147,10 +147,33 @@ async def execute_actions(
         return gathered
 
     results: list[Any] = []
-    for action_dict in actions:
+    for i, action_dict in enumerate(actions):
         action_type = next(iter(action_dict))
         params = action_dict[action_type]
-        result = await _dispatch(action_type, params, backend, cache=cache)
+        try:
+            result = await _dispatch(action_type, params, backend, cache=cache)
+        except WavexisError:
+            raise
+        except Exception as e:
+            # Wrap non-wavexis exceptions (e.g. CDP CommandError, TypeError)
+            # so the CLI presents a friendly message instead of a raw traceback.
+            selector = params.get("selector") if isinstance(params, dict) else None
+            location = f"actions[{i}] ({action_type}"
+            if selector:
+                location += f" selector={selector!r}"
+            location += ")"
+            message = f"{location} failed: {e}"
+            # Add a targeted hint for the common "type/fill on a non-focusable
+            # element" case (e.g. typing into an <h1>). This is a frequent
+            # mistake when generating multi-step configs from a single selector.
+            msg_lower = str(e).lower()
+            if action_type in ("type", "fill") and "not focusable" in msg_lower:
+                message += (
+                    "\nHint: 'type' and 'fill' require a focusable element "
+                    "(<input>, <textarea>, <select> or a contenteditable element). "
+                    "Use a different selector for the type action, or use 'click' for non-input elements."
+                )
+            raise WavexisError(message) from e
         results.append(result)
     return results
 

@@ -159,7 +159,7 @@ def main_callback(
         False, "--headed", help="Run browser in headed mode (visible window)"
     ),
     timeout: int = typer.Option(
-        0, "--timeout", help="Navigation timeout in milliseconds (default: 30000)"
+        30000, "--timeout", help="Navigation timeout in milliseconds"
     ),
     wait_strategy: str = typer.Option(
         "load",
@@ -195,8 +195,9 @@ def main_callback(
     ctx.quiet = quiet
     if headed:
         ctx.headless = False
-    if timeout > 0:
-        ctx.timeout = timeout
+    # --timeout now defaults to 30000 at the Typer layer; honour any explicit
+    # value the user passes (including 0 to disable the navigation timeout).
+    ctx.timeout = timeout
     if wait_strategy:
         ctx.wait_strategy = wait_strategy
     if proxy:
@@ -300,10 +301,38 @@ def _run_async(coro: Any) -> Any:
         The coroutine result, or None if an error was handled.
     """
     try:
-        return asyncio.run(coro)
+        return asyncio.run(_run_with_cleanup(coro))
     except WavexisError as e:
         _handle_error(e)
         return None
+
+
+async def _run_with_cleanup(coro: Any) -> Any:
+    """Run a coroutine and perform async cleanup before returning.
+
+    On Windows, the ProactorEventLoop can emit ``ResourceWarning`` /
+    ``ValueError: I/O operation on closed pipe`` during interpreter
+    shutdown if async generators and pending transports are not given
+    a chance to close. This wrapper ensures ``asyncio`` runs its
+    shutdown sequence before the event loop is closed.
+
+    Bug #9: lighthouse (and other long-running commands) left a
+    traceback on exit even though the operation succeeded.
+    """
+    try:
+        return await coro
+    finally:
+        # Close async generators so their resources are released cleanly.
+        # Note: ``asyncio.shutdown_asyncgens`` is a method on the running
+        # event loop, not a module-level function in some Python builds.
+        try:
+            loop = asyncio.get_running_loop()
+            await loop.shutdown_asyncgens()
+        except (AttributeError, RuntimeError):
+            # Loop already closed or shutdown_asyncgens not available.
+            pass
+        # Yield control to let pending transport callbacks drain.
+        await asyncio.sleep(0)
 
 
 def _get_backend() -> Any:

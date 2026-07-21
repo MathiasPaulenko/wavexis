@@ -233,7 +233,15 @@ def trace(
     \b
     wavexis trace start https://example.com
     wavexis trace stop --trace-id trace-1234567890 -o trace.json
+    wavexis trace https://example.com  # shortcut for `trace start`
     """
+    # Bug #31: the README documents `wavexis trace <url>` as a shortcut
+    # but the command required `trace start <url>`. Detect when the first
+    # argument looks like a URL and treat it as `start` with that URL.
+    if action not in ("start", "stop") and "://" in action:
+        url = action
+        action = "start"
+
     if action == "start":
         trace_id_result = _run_async(
             _trace_start(
@@ -350,15 +358,19 @@ def events(
     duration: int = typer.Option(
         10, "--duration", "-d", help="Duration in seconds (for subscribe)"
     ),
+    output: str | None = typer.Option(
+        None, "--output", "-o", help="Append captured events to this JSONL file"
+    ),
 ) -> None:
     """Subscribe to real-time browser events.
 
     \b
     wavexis events subscribe https://example.com -t "console,network_request" -d 5
+    wavexis events subscribe https://example.com -t "console" -d 5 -o events.jsonl
     """
     if action == "subscribe":
         event_types = [t.strip() for t in types.split(",") if t.strip()]
-        _run_async(_events_subscribe(url, event_types, duration))
+        _run_async(_events_subscribe(url, event_types, duration, output))
     else:
         typer.echo(
             f"Error: unknown events action '{action}'. Use subscribe.",
@@ -367,20 +379,44 @@ def events(
         raise typer.Exit(1)
 
 
-async def _events_subscribe(url: str, event_types: list[str], duration: int) -> None:
-    """Async helper for event subscription."""
+async def _events_subscribe(
+    url: str, event_types: list[str], duration: int, output: str | None
+) -> None:
+    """Async helper for event subscription.
+
+    Bug #27: previously events were only echoed to stdout. Now each event
+    is also appended (as a JSONL line) to ``output`` when provided, and a
+    final count is printed so the user can tell whether anything was
+    captured.
+    """
     backend = _get_backend()
+    count = 0
+    out_file = None
+    if output:
+        from pathlib import Path
+
+        out_path = Path(output)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_file = out_path.open("a", encoding="utf-8")
     try:
         await backend.launch(_browser_options())
         await backend.navigate(url, _wait_strategy())
 
         def on_event(event: dict[str, Any]) -> None:
-            typer.echo(json.dumps(event, default=str))
+            nonlocal count
+            count += 1
+            line = json.dumps(event, default=str)
+            typer.echo(line)
+            if out_file is not None:
+                out_file.write(line + "\n")
+                out_file.flush()
 
         sub_id: str = await backend.subscribe_events(event_types, on_event)
         typer.echo(f"Subscribed: {sub_id}")
         await asyncio.sleep(duration)
         await backend.unsubscribe_events(sub_id)
-        typer.echo("Unsubscribed")
+        typer.echo(f"Unsubscribed (captured {count} event(s))")
     finally:
+        if out_file is not None:
+            out_file.close()
         await _close_backend(backend)

@@ -73,6 +73,7 @@ def generate_config(
     expression: str | None = None,
     selector: str | None = None,
     text: str | None = None,
+    input_selector: str | None = None,
 ) -> str:
     """Generate a wavexis YAML config from a template with optional overrides.
 
@@ -80,8 +81,13 @@ def generate_config(
         template: Template name (must be in TEMPLATES).
         url: Override URL for all actions that accept a url.
         expression: Override JS expression for scrape/eval.
-        selector: Override CSS selector for click/type.
+        selector: Override CSS selector for click actions.
         text: Override text for type action.
+        input_selector: Override CSS selector for type actions. If not provided,
+            the template's default input selector is used. This is separate from
+            ``selector`` because click and type usually target different elements
+            (a button vs. an input field). Using the same selector for both
+            produces workflows that fail by default on non-focusable elements.
 
     Returns:
         YAML string representing the config.
@@ -105,8 +111,10 @@ def generate_config(
             params["urls"] = [url]
         if expression and action_type in ("scrape", "eval"):
             params["expression"] = expression
-        if selector and action_type in ("click", "type"):
+        if selector and action_type == "click":
             params["selector"] = selector
+        if input_selector and action_type == "type":
+            params["selector"] = input_selector
         if text and action_type == "type":
             params["text"] = text
 
@@ -171,7 +179,10 @@ def interactive_init(
 
     if template in ("multi-step",):
         selector = input_fn("CSS selector for click [#button]: ").strip() or None
+        input_selector = input_fn("CSS selector for type [#input]: ").strip() or None
         text = input_fn("Text for type action [hello]: ").strip() or None
+    else:
+        input_selector = None
 
     return generate_config(
         template=template,
@@ -179,4 +190,5 @@ def interactive_init(
         expression=expression,
         selector=selector,
         text=text,
+        input_selector=input_selector,
     )

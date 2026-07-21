@@ -4160,9 +4160,20 @@ def digital_credentials_set_virtual_wallet_cmd(
 def dom_snapshot_capture_cmd(
     url: str = typer.Argument(..., help="URL to navigate to"),
     output: str = typer.Option("-", "--output", "-o", help="Output file (- for stdout)"),
+    computed_styles: str = typer.Option(
+        "",
+        "--computed-styles",
+        help=(
+            "Comma-separated list of CSS computed style properties to include "
+            "(e.g. 'color,background-color'). Omit to capture all styles."
+        ),
+    ),
 ) -> None:
     """Capture a DOM snapshot of the current page."""
-    result = _run_async(_debug_direct(url, lambda b: b.dom_snapshot_capture_snapshot()))
+    styles_list = [s.strip() for s in computed_styles.split(",") if s.strip()] or None
+    result = _run_async(
+        _debug_direct(url, lambda b: b.dom_snapshot_capture_snapshot(computed_styles=styles_list))
+    )
     if result is None:
         return
     _write_json_output(result, output, "DOM snapshot")
@@ -4190,9 +4201,32 @@ def dom_snapshot_enable_cmd(
 def dom_snapshot_get_cmd(
     url: str = typer.Argument(..., help="URL to navigate to"),
     output: str = typer.Option("-", "--output", "-o", help="Output file (- for stdout)"),
+    computed_style_whitelist: str = typer.Option(
+        "",
+        "--computed-style-whitelist",
+        "--computed-styles",
+        help=(
+            "Comma-separated list of CSS computed style properties to include "
+            "(e.g. 'color,background-color'). Omit to capture all styles."
+        ),
+    ),
 ) -> None:
-    """Get a DOM snapshot of the current page."""
-    result = _run_async(_debug_direct(url, lambda b: b.dom_snapshot_get_snapshot()))
+    """Get a DOM snapshot of the current page.
+
+    Bug #8: ``DOMSnapshot.getSnapshot`` requires ``computedStyles`` as an
+    array (even empty). The CLI now passes an empty list when the option
+    is omitted, and forwards the value via the correct kwarg name
+    (``computed_styles``) instead of the previous
+    ``computed_style_whitelist`` which the backend did not accept.
+    """
+    styles_list = (
+        [s.strip() for s in computed_style_whitelist.split(",") if s.strip()] or []
+    )
+    result = _run_async(
+        _debug_direct(
+            url, lambda b: b.dom_snapshot_get_snapshot(computed_styles=styles_list)
+        )
+    )
     if result is None:
         return
     _write_json_output(result, output, "DOM snapshot")

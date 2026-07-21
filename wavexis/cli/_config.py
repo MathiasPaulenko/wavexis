@@ -164,9 +164,9 @@ def repl(
 
 @app.command()
 def config(
-    action: str = typer.Argument("show", help="Config action: show, set, init, path"),
+    action: str = typer.Argument("show", help="Config action: show, get, set, init, path"),
     key: str = typer.Option(
-        "", "--key", help="Config key to set (backend, headless, timeout, proxy)"
+        "", "--key", help="Config key to get/set (backend, headless, timeout, proxy)"
     ),
     value: str = typer.Option("", "--value", help="Value to set for the given key"),
 ) -> None:
@@ -175,6 +175,10 @@ def config(
     \b
     Show current config:
         wavexis config show
+
+    \b
+    Get a single value:
+        wavexis config get --key backend
 
     \b
     Set a default:
@@ -230,6 +234,24 @@ def config(
             _handle_error(WavexisError(f"Failed to read config: {e}"))
         return
 
+    if action == "get":
+        if not key:
+            typer.echo("Error: --key is required for 'get'", err=True)
+            raise typer.Exit(EXIT_CONFIG_ERROR)
+        if not config_path.exists():
+            typer.echo(f"Error: no config file at {config_path}", err=True)
+            raise typer.Exit(EXIT_CONFIG_ERROR)
+        try:
+            loaded = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+        except (OSError, yaml.YAMLError) as e:
+            _handle_error(WavexisError(f"Failed to read config: {e}"))
+            return
+        if not isinstance(loaded, dict) or key not in loaded:
+            typer.echo(f"Error: key '{key}' not found in config", err=True)
+            raise typer.Exit(EXIT_CONFIG_ERROR)
+        typer.echo(loaded[key])
+        return
+
     if action == "set":
         if not key:
             typer.echo("Error: --key is required for 'set'")
@@ -266,7 +288,7 @@ def config(
             _handle_error(WavexisError(f"Failed to write config: {e}"))
         return
 
-    typer.echo(f"Unknown action: {action}. Use: show, set, init, path")
+    typer.echo(f"Unknown action: {action}. Use: show, get, set, init, path")
 
 
 @app.command()
@@ -282,7 +304,16 @@ def init(
         "", "--expression", "-e", help="JS expression for scrape/eval templates"
     ),
     selector: str = typer.Option(
-        "", "--selector", "-s", help="CSS selector for multi-step template"
+        "", "--selector", "-s", help="CSS selector for click action in multi-step template"
+    ),
+    input_selector: str = typer.Option(
+        "",
+        "--input-selector",
+        help=(
+            "CSS selector for type action in multi-step template. "
+            "Defaults to '#input'. Use a separate selector from --selector "
+            "because click and type usually target different elements."
+        ),
     ),
     text: str = typer.Option("", "--text", help="Text for type action in multi-step template"),
     output: str = typer.Option("wavexis.yaml", "--output", "-o", help="Output YAML file path"),
@@ -309,6 +340,7 @@ def init(
                 expression=expression or None,
                 selector=selector or None,
                 text=text or None,
+                input_selector=input_selector or None,
             )
         except ValueError as e:
             typer.echo(f"Error: {e}", err=True)

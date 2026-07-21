@@ -18,8 +18,38 @@ from wavexis.cli._shared import (
     app,
     _wait_strategy,
 )
-perf_app = typer.Typer(help="Performance commands (metrics, trace, profile, heap, coverage)")
+perf_app = typer.Typer(
+    help="Performance commands (metrics, trace, profile, heap, coverage)",
+    invoke_without_command=True,
+)
 app.add_typer(perf_app, name="perf")
+
+
+@perf_app.callback(invoke_without_command=True)
+def perf_callback(
+    ctx: typer.Context,
+    url: str = typer.Option(
+        None,
+        "--url",
+        help=(
+            "Shortcut: run `perf metrics <url>` when no subcommand is given. "
+            "Equivalent to `wavexis perf metrics <url>`."
+        ),
+    ),
+) -> None:
+    """Performance commands.
+
+    If a URL is passed via ``--url`` and no subcommand is given, this
+    delegates to ``perf metrics <url>`` for backward compatibility with
+    the documented ``wavexis perf <url>`` syntax (Bug #30).
+
+    Note: ``wavexis perf <url>`` (positional) does NOT work because Typer
+    interprets the first positional argument as a subcommand name. Use
+    ``wavexis perf --url <url>`` or ``wavexis perf metrics <url>``.
+    """
+    if ctx.invoked_subcommand is None and url:
+        # Delegate to the metrics subcommand.
+        ctx.invoke(perf_metrics, url=url, output="-")
 
 
 @perf_app.command("metrics")

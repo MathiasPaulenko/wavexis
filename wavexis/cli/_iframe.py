@@ -70,9 +70,16 @@ def iframe(
         result = _run_async(_iframe_eval(url, iframe_selector, expression, await_promise))
         if result is None:
             return
-        Output.write_formatted(result, format, output)
+        # Bug #26: previously only ``Output.write_formatted`` was called,
+        # which writes to a file when ``output`` is set but does NOT echo
+        # to stdout when ``output`` is None (it returns silently for
+        # stdout targets in some formats). Echo the result explicitly so
+        # the user always sees the evaluated value.
         if output:
+            Output.write_formatted(result, format, output)
             typer.echo(f"Result saved to {output}")
+        else:
+            typer.echo(result if isinstance(result, str) else str(result))
 
     else:
         typer.echo(

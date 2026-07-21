@@ -75,7 +75,15 @@ async def _cookies(
     domain: str,
     path: str,
 ) -> Any:
-    """Async helper for cookie operations."""
+    """Async helper for cookie operations.
+
+    Bug #15: CDP's ``Network.setCookie`` requires either ``domain`` or
+    ``url`` to scope the cookie. Previously the CLI only forwarded
+    ``domain`` (which defaulted to ""), so ``cookies set --url URL --name N
+    --value V`` failed with "domain or url required". We now derive the
+    domain from the navigation URL when the user does not pass ``--domain``
+    explicitly, and pass ``url`` through to the backend when applicable.
+    """
     backend = _get_backend()
     try:
         await backend.launch(_browser_options())
@@ -85,10 +93,33 @@ async def _cookies(
         if action == "get":
             return await backend.get_cookies()
         if action == "set":
-            cookie = CookieParams(name=name, value=value, domain=domain, path=path)
+            # Prefer an explicit --domain; otherwise derive one from --url
+            # so the user does not have to pass --domain when --url is set.
+            effective_domain = domain
+            if not effective_domain and url:
+                from urllib.parse import urlparse
+
+                parsed = urlparse(url)
+                host = parsed.hostname or ""
+                # CDP expects the leading-dot form for "any subdomain" cookies
+                # but accepts a bare host too. Use the bare host here so the
+                # cookie is scoped exactly to the page the user navigated to.
+                effective_domain = host
+            cookie = CookieParams(
+                name=name,
+                value=value,
+                domain=effective_domain,
+                path=path,
+            )
             await backend.set_cookie(cookie)
         elif action == "delete":
-            await backend.delete_cookie(name, domain)
+            effective_domain = domain
+            if not effective_domain and url:
+                from urllib.parse import urlparse
+
+                parsed = urlparse(url)
+                effective_domain = parsed.hostname or ""
+            await backend.delete_cookie(name, effective_domain)
         elif action == "clear":
             await backend.clear_cookies()
         return None
@@ -127,18 +158,60 @@ async def _headers(headers: dict[str, str]) -> None:
 @app.command()
 def user_agent(
     ua: str = typer.Argument(..., help="User-Agent string to set"),
+    url: str = typer.Option(
+        "",
+        "--url",
+        help=(
+            "Optional URL to navigate to after setting the UA. "
+            "When provided, the actual navigator.userAgent is printed "
+            "so the override can be verified."
+        ),
+    ),
 ) -> None:
-    """Override the browser's User-Agent string."""
-    _run_async(_user_agent(ua))
-    typer.echo("User-Agent set")
+    """Override the browser's User-Agent string.
+
+    \b
+    wavexis user-agent "Mozilla/5.0 (Test)"
+    wavexis user-agent "Mozilla/5.0 (Test)" --url https://example.com
+
+    \b
+    Note: the User-Agent override is applied to the page session and is
+    lost when the browser closes. To make it persist across commands,
+    pass it via the global ``--user-agent`` option instead, e.g.:
+    ``wavexis --user-agent "Mozilla/5.0 (Test)" screenshot https://example.com``
+    """
+    result = _run_async(_user_agent(ua, url))
+    if result is None:
+        return
+    if url:
+        typer.echo(f"User-Agent set to: {ua}")
+        typer.echo(f"Verified navigator.userAgent: {result}")
+    else:
+        typer.echo(
+            f"User-Agent set to: {ua}\n"
+            f"Note: override is session-scoped and lost when the browser "
+            f"closes. Use --url to verify, or the global --user-agent "
+            f"option to apply it to subsequent commands."
+        )
 
 
-async def _user_agent(ua: str) -> None:
-    """Async helper for setting user agent."""
+async def _user_agent(ua: str, url: str = "") -> str | None:
+    """Async helper for setting user agent.
+
+    Bug #29: previously the command set the UA on an ephemeral session
+    that was immediately closed, so the override was lost. Now when
+    ``url`` is provided we navigate to it and read back
+    ``navigator.userAgent`` to verify the override took effect.
+    """
     backend = _get_backend()
     try:
         await backend.launch(_browser_options())
         await backend.set_user_agent(ua)
+        if url:
+            await backend.navigate(url, _wait_strategy())
+            result = await backend.eval("navigator.userAgent", await_promise=False)
+            return str(result) if result is not None else ""
+        return None
     finally:
         await _close_backend(backend)
 
