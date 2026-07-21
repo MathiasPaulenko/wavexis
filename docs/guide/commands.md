@@ -2,7 +2,9 @@
 
 ## Global flags
 
-These flags go before the subcommand (e.g. `wavexis --headed screenshot <url>`).
+These flags go **before** the subcommand (e.g. `wavexis --headed screenshot <url>`).
+Placing them after the subcommand will be rejected by Typer with
+`No such option: --<flag>`.
 
 | Flag | Description |
 |------|-------------|
@@ -11,6 +13,7 @@ These flags go before the subcommand (e.g. `wavexis --headed screenshot <url>`).
 | `--quiet, -q` | Suppress all output except errors |
 | `--headed` | Run browser in headed mode (visible window) |
 | `--timeout <ms>` | Navigation timeout in milliseconds (default: 30000) |
+| `--wait-strategy <name>` | Default navigation wait strategy: `load`, `domcontentloaded`, or `networkidle` (default: `load`) |
 | `--proxy <url>` | Proxy server URL (e.g. `http://proxy:8080`, `socks5://proxy:1080`) |
 | `--stealth` | Enable anti-bot stealth mode (hides `navigator.webdriver`, fakes plugins, etc.) |
 | `--browser-url <url>` | Connect to existing browser (e.g. `ws://localhost:9222`) |
@@ -61,7 +64,28 @@ wavexis pdf <url> [options]
 | `--landscape` | Use landscape orientation |
 | `--margins` | Margin size (e.g. 0.4in) |
 | `--media` | CSS media type (print or screen) |
-| `--no-header-footer` | Omit header and footer |
+
+## page-pdf
+
+Print the current page (already loaded via `--browser-url`) to a PDF file.
+
+```bash
+wavexis page-pdf [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `-o, --output` | Output PDF file path (default: `page.pdf`) |
+| `--landscape` | Use landscape orientation |
+| `--scale` | Scale factor (0.1 to 2.0) |
+| `--print-background` | Print background graphics |
+| `--display-header-footer` | Include header/footer in the PDF |
+| `--paper-width` | Paper width in inches (default: 8.5) |
+| `--paper-height` | Paper height in inches (default: 11.0) |
+| `--margin-top` | Top margin in inches (default: 0.4) |
+| `--margin-bottom` | Bottom margin in inches (default: 0.4) |
+| `--margin-left` | Left margin in inches (default: 0.4) |
+| `--margin-right` | Right margin in inches (default: 0.4) |
 
 ## eval
 
@@ -113,24 +137,28 @@ Actions: `list`, `new`, `close`, `activate`
 
 ## console
 
-Capture console messages and browser logs from a web page. Supports level filtering, output format selection, and capture mode.
+Capture and manage console messages on a page. The `console` command is a
+group with the following subcommands:
 
 ```bash
-wavexis console <url> [options]
+wavexis console capture <url> [options]   # Capture console messages
+wavexis console clear-messages <url>      # Clear all console messages
+wavexis console enable <url>              # Enable the Console domain
+wavexis console disable <url>             # Disable the Console domain
+```
+
+### console capture
+
+Capture console messages emitted by the page after navigation.
+
+```bash
+wavexis console capture <url> [options]
 ```
 
 | Option | Description |
 |--------|-------------|
-| `--level` | Filter by level: all, error, warning, info, log, debug |
-| `--capture` | What to capture: console, logs, both (default: console) |
-| `--format` | Output format: json, csv, yaml |
-| `-o, --output` | Output file path |
-
-The `--capture` option controls what data is collected:
-
-- **console** — JavaScript `console.*` messages (console.log, console.error, etc.)
-- **logs** — Browser-level log entries (network errors, CSP violations, etc.)
-- **both** — Both console messages and browser logs, returned as a combined object
+| `--level` | Minimum log level to capture: all, log, info, warning, error (default: all) |
+| `-o, --output` | Output file path (default: `-` for stdout) |
 
 ## logs
 
@@ -394,7 +422,14 @@ wavexis emulation device <url> --device <name> [-o output]
 wavexis emulation viewport <url> --width <w> --height <h> [-o output]
 wavexis emulation geolocation <url> --lat <lat> --lon <lon> [-o output]
 wavexis emulation timezone <url> --tz <timezone> [-o output]
-wavexis emulation dark_mode <url> [-o output]
+wavexis emulation dark-mode <url> [-o output]
+```
+
+`emulation can-emulate` is a browser-capability query and does not require
+a URL:
+
+```bash
+wavexis emulation can-emulate
 ```
 
 ## raw
@@ -419,23 +454,45 @@ Shells: `bash`, `zsh`, `fish`, `powershell`
 
 ## auth
 
-Manage browser credential profiles for authenticated scraping.
+Apply an auth context (cookies, headers, HTTP basic auth) loaded from a JSON
+file, then navigate to a URL. Optionally take a screenshot after auth is
+applied.
 
 ```bash
-wavexis auth save <name> --user <username> --pass <password>
-wavexis auth use <name> --url <login-url>
-wavexis auth list
-wavexis auth delete <name>
+wavexis auth <context.json> <url> [-o output] [--screenshot]
 ```
+
+| Option | Description |
+|--------|-------------|
+| `<context>` | Path to auth context JSON file (cookies, headers, basic auth) |
+| `<url>` | URL to navigate to after applying the auth context |
+| `-o, --output` | Output file for screenshot (default: `-` for stdout) |
+| `--screenshot` | Take a screenshot after applying auth |
 
 ## record
 
-Record and replay browser sessions.
+Record a browser session against a URL, producing a YAML config that can be
+replayed later.
 
 ```bash
-wavexis record start <url> [-o session.json]
-wavexis record replay <session.json>
-wavexis record list
+wavexis record <url> [-o session.yml] [--actions screenshot,eval,...]
+```
+
+| Option | Description |
+|--------|-------------|
+| `<url>` | URL to record |
+| `-o, --output` | Output YAML file (default: `session.yml`) |
+| `--actions` | Comma-separated action types to record |
+| `--selector` | CSS selector for click/type actions |
+| `--text` | Text for type action |
+| `--expression` | JavaScript expression for eval action |
+
+## replay
+
+Replay a previously recorded session from a YAML config file.
+
+```bash
+wavexis replay <config.yml>
 ```
 
 ## serve
