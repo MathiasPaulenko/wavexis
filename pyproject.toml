@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "wavexis"
-version = "2.16.4"
+version = "2.16.5"
 description = "Browser automation CLI — wraps cdpwave and bidiwave, no Node.js, no Chromium download"
 readme = "README.md"
 license = { text = "MIT" }
