@@ -9,6 +9,7 @@ from wavexis.actions.dialog import DialogAction
 from wavexis.actions.permissions import PermissionsAction
 from wavexis.actions.security import SecurityAction
 from wavexis.backend.base import AbstractBackend
+from wavexis.exceptions import WavexisError
 
 
 def _make_backend() -> MagicMock:
@@ -26,6 +27,8 @@ def _make_backend() -> MagicMock:
     backend.a11y_ancestors = AsyncMock(return_value=[{"nodeId": "0"}])
     backend.dialog_accept = AsyncMock()
     backend.dialog_dismiss = AsyncMock()
+    backend.dialog_wait_for_opening = AsyncMock(return_value={"message": "hello"})
+    backend.page_enable = AsyncMock()
     backend.grant_permission = AsyncMock()
     backend.reset_permissions = AsyncMock()
     backend.get_security_state = AsyncMock(return_value={"secure": True})
@@ -102,6 +105,32 @@ class TestDialogAction:
         backend = _make_backend()
         with pytest.raises(ValueError, match="Unknown dialog action"):
             await DialogAction(params="", action="bad", url="https://example.com").execute(backend)
+
+    async def test_timeout_waits_for_dialog_before_accept(self) -> None:
+        """With a timeout, the action enables Page and waits for the dialog."""
+        backend = _make_backend()
+        await DialogAction(
+            params="",
+            action="accept",
+            url="https://example.com",
+            timeout=5.0,
+        ).execute(backend)
+        backend.page_enable.assert_awaited_once()
+        backend.dialog_wait_for_opening.assert_awaited_once_with(5.0)
+        backend.navigate.assert_awaited_once()
+        backend.dialog_accept.assert_called_once_with(None)
+
+    async def test_timeout_raises_wavexis_error_on_timeout(self) -> None:
+        """If no dialog opens within the timeout, a WavexisError is raised."""
+        backend = _make_backend()
+        backend.dialog_wait_for_opening = AsyncMock(side_effect=TimeoutError())
+        with pytest.raises(WavexisError, match="No JavaScript dialog opened"):
+            await DialogAction(
+                params="",
+                action="accept",
+                url="https://example.com",
+                timeout=1.0,
+            ).execute(backend)
 
 
 @pytest.mark.unit

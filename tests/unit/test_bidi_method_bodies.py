@@ -76,6 +76,7 @@ def _make_mock_backend() -> tuple[Any, Any]:
     mock_client.cdp.on = MagicMock()
     mock_client.cdp.off = MagicMock()
     mock_client.on_log_entry = AsyncMock(return_value="sub-1")
+    mock_client.on_user_prompt_opened = MagicMock(return_value=MagicMock(unsubscribe=MagicMock()))
     mock_client.off = MagicMock()
     mock_client.close = AsyncMock()
     mock_client._connection = MagicMock()
@@ -444,6 +445,17 @@ class TestBiDiMethodBodies:
     async def test_dialog_dismiss(self) -> None:
         backend, _ = _make_mock_backend()
         await backend.dialog_dismiss()
+
+    async def test_dialog_wait_for_opening(self) -> None:
+        backend, mock_client = _make_mock_backend()
+        # Simulate the event firing immediately by calling the handler.
+        def fake_subscribe(handler: Any) -> Any:
+            handler(MagicMock(model_dump=lambda: {"message": "hello"}))
+            return MagicMock(unsubscribe=MagicMock())
+
+        mock_client.on_user_prompt_opened = fake_subscribe
+        result = await backend.dialog_wait_for_opening(timeout=1.0)
+        assert result == {"message": "hello"}
 
     async def test_grant_permission(self) -> None:
         backend, _ = _make_mock_backend()

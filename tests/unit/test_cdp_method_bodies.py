@@ -698,6 +698,14 @@ class TestCDPMethodBodies:
         backend, _, _ = _make_mock_backend()
         await backend.dialog_dismiss()
 
+    async def test_dialog_wait_for_opening(self) -> None:
+        backend, _, session = _make_mock_backend()
+        await backend.dialog_wait_for_opening(timeout=5.0)
+        session.page.enable.assert_awaited_once()
+        session.wait_for_event.assert_awaited_once_with(
+            "Page.javascriptDialogOpening", timeout=5.0
+        )
+
     async def test_grant_permission(self) -> None:
         backend, _, _ = _make_mock_backend()
         await backend.grant_permission("geolocation")
@@ -1319,7 +1327,9 @@ class TestCDPMethodBodies:
     async def test_set_idle_override(self) -> None:
         backend, _, mock = _make_mock_backend()
         await backend.set_idle_override(True, True)
-        mock.emulation.set_idle_override.assert_awaited_once()
+        mock.emulation.set_idle_override.assert_awaited_once_with(
+            is_user_active=True, is_screen_unlocked=True
+        )
 
     async def test_clear_idle_override(self) -> None:
         backend, _, mock = _make_mock_backend()
@@ -1381,7 +1391,9 @@ class TestCDPMethodBodies:
     async def test_page_start_screencast(self) -> None:
         backend, _, mock = _make_mock_backend()
         await backend.page_start_screencast("jpeg", 80)
-        mock.page.start_screencast.assert_awaited_once()
+        mock.page.start_screencast.assert_awaited_once_with(
+            format="jpeg", quality=80, max_width=0, max_height=0
+        )
 
     async def test_page_stop_screencast(self) -> None:
         backend, _, mock = _make_mock_backend()
@@ -1698,18 +1710,26 @@ class TestCDPMethodBodies:
 
     async def test_css_set_rule_selector(self) -> None:
         backend, _, mock = _make_mock_backend()
-        await backend.css_set_rule_selector("ss-1", "0", ".new")
-        mock.css.set_rule_selector.assert_awaited_once()
+        range_ = {"startLine": 0, "startColumn": 0, "endLine": 0, "endColumn": 5}
+        await backend.css_set_rule_selector("ss-1", range_, ".new")
+        mock.css.set_rule_selector.assert_awaited_once_with(
+            style_sheet_id="ss-1", range_=range_, selector=".new"
+        )
 
     async def test_css_set_media_text(self) -> None:
         backend, _, mock = _make_mock_backend()
-        await backend.css_set_media_text("ss-1", "0", "(max-width: 600px)")
-        mock.css.set_media_text.assert_awaited_once()
+        range_ = {"startLine": 0, "startColumn": 0, "endLine": 0, "endColumn": 20}
+        await backend.css_set_media_text("ss-1", range_, "(max-width: 600px)")
+        mock.css.set_media_text.assert_awaited_once_with(
+            style_sheet_id="ss-1", range_=range_, text="(max-width: 600px)"
+        )
 
     async def test_css_force_pseudo_state(self) -> None:
         backend, _, mock = _make_mock_backend()
         await backend.css_force_pseudo_state(1, ["hover"])
-        mock.css.force_pseudo_state.assert_awaited_once()
+        mock.css.force_pseudo_state.assert_awaited_once_with(
+            node_id=1, forced_pseudo_classes=["hover"]
+        )
 
     async def test_css_get_background_colors(self) -> None:
         backend, _, _ = _make_mock_backend()
@@ -2004,9 +2024,12 @@ class TestCDPMethodBodies:
         mock.debugger.set_skip_all_pauses.assert_awaited_once()
 
     async def test_debug_set_script_source(self) -> None:
-        backend, _, _ = _make_mock_backend()
+        backend, _, mock = _make_mock_backend()
         result = await backend.debug_set_script_source("script-1", "console.log(2)")
         assert isinstance(result, dict)
+        mock.debugger.set_script_source.assert_awaited_once_with(
+            script_id="script-1", source="console.log(2)"
+        )
 
     async def test_debug_continue_to_location(self) -> None:
         backend, _, mock = _make_mock_backend()
@@ -2167,7 +2190,9 @@ class TestCDPMethodBodies:
     async def test_storage_clear_trust_tokens(self) -> None:
         backend, _, mock = _make_mock_backend()
         await backend.storage_clear_trust_tokens("https://example.com")
-        mock.storage.clear_trust_tokens.assert_awaited_once()
+        mock.storage.clear_trust_tokens.assert_awaited_once_with(
+            issuer_origin="https://example.com"
+        )
 
     async def test_storage_get_shared_storage_entries(self) -> None:
         backend, _, _ = _make_mock_backend()
@@ -2227,7 +2252,17 @@ class TestCDPMethodBodies:
     async def test_network_set_cookie_controls(self) -> None:
         backend, _, mock = _make_mock_backend()
         await backend.network_set_cookie_controls("block", "block")
-        mock.network.set_cookie_controls.assert_awaited_once()
+        mock.network.set_cookie_controls.assert_awaited_once_with(
+            enable_third_party_cookie_restriction=True
+        )
+
+    async def test_network_set_cookie_controls_allow(self) -> None:
+        """When both modes are 'allow', restriction is disabled."""
+        backend, _, mock = _make_mock_backend()
+        await backend.network_set_cookie_controls("allow", "allow")
+        mock.network.set_cookie_controls.assert_awaited_once_with(
+            enable_third_party_cookie_restriction=False
+        )
 
     async def test_network_set_extra_request_headers(self) -> None:
         backend, _, mock = _make_mock_backend()
@@ -2287,7 +2322,9 @@ class TestCDPMethodBodies:
     async def test_overlay_set_show_paint_rects(self) -> None:
         backend, _, mock = _make_mock_backend()
         await backend.overlay_set_show_paint_rects(True)
-        mock.overlay.set_show_paint_rects.assert_awaited_once()
+        mock.send.assert_awaited_once_with(
+            "Overlay.setShowPaintRects", {"result": True}
+        )
 
     async def test_overlay_set_show_debug_borders(self) -> None:
         backend, _, mock = _make_mock_backend()
@@ -2603,9 +2640,10 @@ class TestCDPMethodBodies:
         mock.dom.set_outer_html.assert_awaited_once()
 
     async def test_dom_request_node(self) -> None:
-        backend, _, _ = _make_mock_backend()
-        result = await backend.dom_request_node(1)
+        backend, _, mock = _make_mock_backend()
+        result = await backend.dom_request_node("obj-123")
         assert isinstance(result, int)
+        mock.dom.request_node.assert_awaited_once_with(object_id="obj-123")
 
     async def test_dom_resolve_node(self) -> None:
         backend, _, _ = _make_mock_backend()
@@ -4410,8 +4448,9 @@ class TestCDPMethodBodies:
     async def test_overlay_set_show_layout_shift_regions(self) -> None:
         backend, _, mock = _make_mock_backend()
         await backend.overlay_set_show_layout_shift_regions(True)
-        mock.send.assert_awaited_once()
-        assert mock.send.call_args.args[0] == "Overlay.setShowLayoutShiftRegions"
+        mock.send.assert_awaited_once_with(
+            "Overlay.setShowLayoutShiftRegions", {"result": True}
+        )
 
     async def test_overlay_set_show_scroll_bottleneck_rects(self) -> None:
         backend, _, mock = _make_mock_backend()

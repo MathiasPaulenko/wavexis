@@ -57,6 +57,7 @@ class TestAbstractBackendPhase5:
         methods = self._get_abstract_methods()
         assert "dialog_accept" in methods
         assert "dialog_dismiss" in methods
+        assert "dialog_wait_for_opening" in methods
 
     def test_permissions_methods_exist(self) -> None:
         """Test permissions methods exist."""

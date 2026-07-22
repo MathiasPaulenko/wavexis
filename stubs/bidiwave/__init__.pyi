@@ -6,6 +6,8 @@ from typing import Any
 class Subscription:
     """Type stub for event subscription handle."""
 
+    def unsubscribe(self) -> None: ...
+
 class BiDiClient:
     """Type stub for BiDiClient."""
 

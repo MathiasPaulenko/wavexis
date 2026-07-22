@@ -1353,10 +1353,10 @@ class BiDiBackend(AbstractBackend):
             "DOM.setOuterHTML", {"nodeId": node_id, "outerHTML": outer_html}
         )
 
-    async def dom_request_node(self, node_id: int) -> int:
-        """Request a node by ID via CDP bridge."""
+    async def dom_request_node(self, object_id: str) -> int:
+        """Request a node by JavaScript object reference via CDP bridge."""
         client = self._require_launched()
-        result = await client.cdp.send_command("DOM.requestNode", {"nodeId": node_id})
+        result = await client.cdp.send_command("DOM.requestNode", {"objectId": object_id})
         return int(result.get("nodeId", 0))
 
     async def dom_resolve_node(self, node_id: int) -> dict[str, Any]:
@@ -3159,7 +3159,9 @@ class BiDiBackend(AbstractBackend):
 
     # ── Downloads ──────────────────────────────────────────
 
-    async def intercept_download(self, pattern: str = ".*") -> bytes:
+    async def intercept_download(
+        self, pattern: str = ".*", timeout: float | None = None
+    ) -> bytes:
         """Set download behavior via CDP and return placeholder.
 
         Uses CDP Page.setDownloadBehavior to allow downloads. The download
@@ -3170,6 +3172,7 @@ class BiDiBackend(AbstractBackend):
 
         Args:
             pattern: Unused — kept for API parity.
+            timeout: Unused by the BiDi placeholder implementation.
 
         Returns:
             Empty bytes placeholder.
@@ -3199,6 +3202,37 @@ class BiDiBackend(AbstractBackend):
             "browsingContext.handleUserPrompt",
             {"accept": False},
         )
+
+    async def dialog_wait_for_opening(self, timeout: float = 30.0) -> dict[str, Any]:
+        """Wait for a JavaScript dialog to open and return its event params.
+
+        Uses the BiDi ``browsingContext.userPromptOpened`` event.
+
+        Args:
+            timeout: Maximum seconds to wait for the dialog.
+
+        Returns:
+            The dialog event params as a dict.
+
+        Raises:
+            TimeoutError: If no dialog opens within ``timeout``.
+        """
+        client = self._require_launched()
+        loop = asyncio.get_event_loop()
+        future: asyncio.Future[dict[str, Any]] = loop.create_future()
+
+        def _handler(params: Any) -> None:
+            if not future.done():
+                data = (
+                    params.model_dump() if hasattr(params, "model_dump") else dict(params)
+                )
+                future.set_result(data)
+
+        subscription = client.on_user_prompt_opened(_handler)
+        try:
+            return await asyncio.wait_for(future, timeout=timeout)
+        finally:
+            subscription.unsubscribe()
 
     # ── Permissions ────────────────────────────────────────
 
@@ -4003,26 +4037,30 @@ class BiDiBackend(AbstractBackend):
             {"styleSheetId": stylesheet_id, "text": text},
         )
 
-    async def css_set_rule_selector(self, stylesheet_id: str, rule_id: str, selector: str) -> None:
+    async def css_set_rule_selector(
+        self, stylesheet_id: str, range_: dict[str, Any], selector: str
+    ) -> None:
         """Set the selector text of a CSS rule via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command(
             "CSS.setRuleSelector",
             {
                 "styleSheetId": stylesheet_id,
-                "ruleId": {"styleSheetId": stylesheet_id, "ordinal": rule_id},
+                "range": range_,
                 "selector": selector,
             },
         )
 
-    async def css_set_media_text(self, stylesheet_id: str, media_id: str, text: str) -> None:
+    async def css_set_media_text(
+        self, stylesheet_id: str, range_: dict[str, Any], text: str
+    ) -> None:
         """Set the text of a media rule via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command(
             "CSS.setMediaText",
             {
                 "styleSheetId": stylesheet_id,
-                "mediaId": {"styleSheetId": stylesheet_id, "ordinal": media_id},
+                "range": range_,
                 "text": text,
             },
         )
@@ -4032,7 +4070,7 @@ class BiDiBackend(AbstractBackend):
         client = self._require_launched()
         await client.cdp.send_command(
             "CSS.forcePseudoState",
-            {"nodeId": node_id, "forcedPseudoState": pseudo_state},
+            {"nodeId": node_id, "forcedPseudoClasses": pseudo_state},
         )
 
     async def css_get_background_colors(self, node_id: int) -> dict[str, Any]:
@@ -4805,7 +4843,7 @@ class BiDiBackend(AbstractBackend):
     async def overlay_set_show_paint_rects(self, show: bool) -> None:
         """Show or hide paint rectangles via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Overlay.setShowPaintRects", {"show": show})
+        await client.cdp.send_command("Overlay.setShowPaintRects", {"result": show})
 
     async def overlay_set_show_debug_borders(self, show: bool) -> None:
         """Show or hide debug borders via CDP bridge."""
@@ -4924,7 +4962,7 @@ class BiDiBackend(AbstractBackend):
     async def overlay_set_show_layout_shift_regions(self, show: bool) -> None:
         """Show or hide layout shift regions via CDP bridge."""
         client = self._require_launched()
-        await client.cdp.send_command("Overlay.setShowLayoutShiftRegions", {"show": show})
+        await client.cdp.send_command("Overlay.setShowLayoutShiftRegions", {"result": show})
 
     async def overlay_set_show_scroll_bottleneck_rects(self, show: bool) -> None:
         """Show or hide scroll bottleneck rects via CDP bridge."""

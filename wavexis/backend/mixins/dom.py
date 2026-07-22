@@ -304,11 +304,11 @@ class DOMBackend(ABC):
         """
 
     @abstractmethod
-    async def dom_request_node(self, node_id: int) -> int:
-        """Request a node by ID and return its node ID.
+    async def dom_request_node(self, object_id: str) -> int:
+        """Request a node by JavaScript object reference and return its node ID.
 
         Args:
-            node_id: The CDP node ID.
+            object_id: JavaScript object id to convert into node.
 
         Returns:
             The node ID.

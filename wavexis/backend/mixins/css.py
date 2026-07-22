@@ -84,12 +84,28 @@ class CSSBackend(ABC):
         """Set the text content of a stylesheet by ID."""
 
     @abstractmethod
-    async def css_set_rule_selector(self, stylesheet_id: str, rule_id: str, selector: str) -> None:
-        """Set the selector text of a CSS rule."""
+    async def css_set_rule_selector(
+        self, stylesheet_id: str, range_: dict[str, Any], selector: str
+    ) -> None:
+        """Set the selector text of a CSS rule.
+
+        Args:
+            stylesheet_id: The stylesheet id.
+            range_: Source range of the selector to edit.
+            selector: The new selector text.
+        """
 
     @abstractmethod
-    async def css_set_media_text(self, stylesheet_id: str, media_id: str, text: str) -> None:
-        """Set the text of a media rule."""
+    async def css_set_media_text(
+        self, stylesheet_id: str, range_: dict[str, Any], text: str
+    ) -> None:
+        """Set the text of a media rule.
+
+        Args:
+            stylesheet_id: The stylesheet id.
+            range_: Source range of the media rule to edit.
+            text: The new media rule text.
+        """
 
     @abstractmethod
     async def css_force_pseudo_state(self, node_id: int, pseudo_state: list[str]) -> None:

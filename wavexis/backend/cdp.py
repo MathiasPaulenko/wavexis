@@ -648,7 +648,7 @@ class CDPBackend(AbstractBackend):
         """Start screencasting the page."""
         session = self._require_session()
         await session.page.start_screencast(
-            format=format, quality=quality, maxWidth=max_width, maxHeight=max_height
+            format=format, quality=quality, max_width=max_width, max_height=max_height
         )
 
     async def page_stop_screencast(self) -> None:
@@ -1414,10 +1414,10 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.dom.set_outer_html(node_id=node_id, outer_html=outer_html)
 
-    async def dom_request_node(self, node_id: int) -> int:
-        """Request a node by ID and return its node ID."""
+    async def dom_request_node(self, object_id: str) -> int:
+        """Request a node by JavaScript object reference and return its node ID."""
         session = self._require_session()
-        result = await session.dom.request_node(node_id=node_id)
+        result = await session.dom.request_node(object_id=object_id)
         return int(result.get("nodeId", 0))
 
     async def dom_resolve_node(self, node_id: int) -> dict[str, Any]:
@@ -3046,9 +3046,17 @@ class CDPBackend(AbstractBackend):
     async def network_set_cookie_controls(
         self, mode: str = "allow", third_party_mode: str = "allow"
     ) -> None:
-        """Set cookie controls."""
+        """Set cookie controls.
+
+        Maps the legacy ``mode``/``third_party_mode`` string parameters to
+        the boolean ``enable_third_party_cookie_restriction`` expected by
+        cdpwave.  Any mode other than ``"allow"`` enables the restriction.
+        """
         session = self._require_session()
-        await session.network.set_cookie_controls(mode=mode, third_party_mode=third_party_mode)
+        enable_restriction = mode != "allow" or third_party_mode != "allow"
+        await session.network.set_cookie_controls(
+            enable_third_party_cookie_restriction=enable_restriction
+        )
 
     async def network_set_extra_request_headers(self, headers: dict[str, str]) -> None:
         """Set extra HTTP headers for all requests."""
@@ -3425,7 +3433,9 @@ class CDPBackend(AbstractBackend):
 
     # ── Downloads ──────────────────────────────────────────
 
-    async def intercept_download(self, pattern: str = ".*", timeout: float = 30.0) -> bytes:
+    async def intercept_download(
+        self, pattern: str = ".*", timeout: float | None = None
+    ) -> bytes:
         """Intercept a file download matching a URL pattern and return bytes.
 
         Sets the download behavior to a temp directory, then polls for the
@@ -3458,7 +3468,8 @@ class CDPBackend(AbstractBackend):
             )
 
             download_path = Path(download_dir)
-            deadline = time.monotonic() + timeout
+            effective_timeout = timeout if timeout is not None else 30.0
+            deadline = time.monotonic() + effective_timeout
             found: Path | None = None
             while time.monotonic() < deadline:
                 def _list_completed_files() -> list[Path]:
@@ -3483,7 +3494,7 @@ class CDPBackend(AbstractBackend):
 
             # Wait for the download to finish writing (size stable for 0.5s).
             prev_size = -1
-            stable_until = time.monotonic() + min(timeout, 10.0)
+            stable_until = time.monotonic() + min(effective_timeout, 10.0)
             while time.monotonic() < stable_until:
                 try:
                     size = await asyncio.to_thread(found.stat)
@@ -3520,6 +3531,24 @@ class CDPBackend(AbstractBackend):
         await session.send(
             "Page.handleJavaScriptDialog",
             {"accept": False},
+        )
+
+    async def dialog_wait_for_opening(self, timeout: float = 30.0) -> dict[str, Any]:
+        """Wait for a JavaScript dialog to open and return its event params.
+
+        Args:
+            timeout: Maximum seconds to wait for the dialog.
+
+        Returns:
+            The ``Page.javascriptDialogOpening`` event params.
+
+        Raises:
+            TimeoutError: If no dialog opens within ``timeout``.
+        """
+        session = self._require_session()
+        await session.page.enable()
+        return await session.wait_for_event(
+            "Page.javascriptDialogOpening", timeout=timeout
         )
 
     # ── Permissions ────────────────────────────────────────
@@ -3669,10 +3698,14 @@ class CDPBackend(AbstractBackend):
     async def set_idle_override(
         self, is_user_active: bool = True, is_screen_active: bool = True
     ) -> None:
-        """Override the idle state."""
+        """Override the idle state.
+
+        Note: ``is_screen_active`` is mapped to the CDP parameter
+        ``is_screen_unlocked`` as expected by cdpwave.
+        """
         session = self._require_session()
         await session.emulation.set_idle_override(
-            is_user_active=is_user_active, is_screen_active=is_screen_active
+            is_user_active=is_user_active, is_screen_unlocked=is_screen_active
         )
 
     async def clear_idle_override(self) -> None:
@@ -4316,28 +4349,45 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.css.set_style_sheet_text(style_sheet_id=stylesheet_id, text=text)
 
-    async def css_set_rule_selector(self, stylesheet_id: str, rule_id: str, selector: str) -> None:
-        """Set the selector text of a CSS rule."""
+    async def css_set_rule_selector(
+        self, stylesheet_id: str, range_: dict[str, Any], selector: str
+    ) -> None:
+        """Set the selector text of a CSS rule.
+
+        Args:
+            stylesheet_id: The stylesheet id.
+            range_: Source range of the selector to edit
+                (``{"startLine": int, "startColumn": int, "endLine": int, "endColumn": int}``).
+            selector: The new selector text.
+        """
         session = self._require_session()
         await session.css.set_rule_selector(
             style_sheet_id=stylesheet_id,
-            rule_id={"styleSheetId": stylesheet_id, "ordinal": rule_id},
+            range_=range_,
             selector=selector,
         )
 
-    async def css_set_media_text(self, stylesheet_id: str, media_id: str, text: str) -> None:
-        """Set the text of a media rule."""
+    async def css_set_media_text(
+        self, stylesheet_id: str, range_: dict[str, Any], text: str
+    ) -> None:
+        """Set the text of a media rule.
+
+        Args:
+            stylesheet_id: The stylesheet id.
+            range_: Source range of the media rule to edit.
+            text: The new media rule text.
+        """
         session = self._require_session()
         await session.css.set_media_text(
             style_sheet_id=stylesheet_id,
-            media_id={"styleSheetId": stylesheet_id, "ordinal": media_id},
+            range_=range_,
             text=text,
         )
 
     async def css_force_pseudo_state(self, node_id: int, pseudo_state: list[str]) -> None:
         """Force a pseudo state on a node."""
         session = self._require_session()
-        await session.css.force_pseudo_state(node_id=node_id, forced_pseudo_state=pseudo_state)
+        await session.css.force_pseudo_state(node_id=node_id, forced_pseudo_classes=pseudo_state)
 
     async def css_get_background_colors(self, node_id: int) -> dict[str, Any]:
         """Get background colors for a node."""
@@ -4754,7 +4804,7 @@ class CDPBackend(AbstractBackend):
     async def debug_set_script_source(self, script_id: str, source: str) -> dict[str, Any]:
         """Edit the source code of a live script."""
         session = self._require_session()
-        result = await session.debugger.set_script_source(script_id=script_id, script_source=source)
+        result = await session.debugger.set_script_source(script_id=script_id, source=source)
         return dict(result) if result else {}
 
     async def debug_continue_to_location(self, url: str, line: int, column: int = 0) -> None:
@@ -5069,7 +5119,7 @@ class CDPBackend(AbstractBackend):
     async def overlay_set_show_paint_rects(self, show: bool) -> None:
         """Show or hide paint rectangles overlay."""
         session = self._require_session()
-        await session.overlay.set_show_paint_rects(show=show)
+        await session.send("Overlay.setShowPaintRects", {"result": show})
 
     async def overlay_set_show_debug_borders(self, show: bool) -> None:
         """Show or hide debug borders overlay."""
@@ -5183,7 +5233,7 @@ class CDPBackend(AbstractBackend):
     async def overlay_set_show_layout_shift_regions(self, show: bool) -> None:
         """Show or hide layout shift regions."""
         session = self._require_session()
-        await session.send("Overlay.setShowLayoutShiftRegions", {"show": show})
+        await session.send("Overlay.setShowLayoutShiftRegions", {"result": show})
 
     async def overlay_set_show_scroll_bottleneck_rects(self, show: bool) -> None:
         """Show or hide scroll bottleneck rects."""
@@ -6016,7 +6066,7 @@ class CDPBackend(AbstractBackend):
     async def storage_clear_trust_tokens(self, origin: str) -> None:
         """Clear trust tokens for a given origin."""
         session = self._require_session()
-        await session.storage.clear_trust_tokens(origin=origin)
+        await session.storage.clear_trust_tokens(issuer_origin=origin)
 
     async def storage_get_shared_storage_entries(self, owner_origin: str) -> list[dict[str, Any]]:
         """Get shared storage entries for an owner origin."""
