@@ -311,16 +311,23 @@ class TestMainModule:
 
     def test_show_completion_uses_clean_prog_name(self) -> None:
         """Shell completion scripts must not contain spaces in env vars or command names."""
+        import sys
+
         from wavexis.cli.app import app
 
         runner = CliRunner()
-        result = runner.invoke(app, ["--show-completion", "powershell"], prog_name="wavexis")
+        # Use bash completion on non-Windows platforms (CI runs on Linux).
+        shell = "powershell" if sys.platform == "win32" else "bash"
+        result = runner.invoke(app, ["--show-completion", shell], prog_name="wavexis")
         assert result.exit_code == 0
         script = result.output
-        assert "$Env:_WAVEXIS_COMPLETE" in script
         assert "_PYTHON _M" not in script
-        assert "Register-ArgumentCompleter -Native -CommandName wavexis" in script
         assert "python -m wavexis" not in script
+        if shell == "powershell":
+            assert "$Env:_WAVEXIS_COMPLETE" in script
+            assert "Register-ArgumentCompleter -Native -CommandName wavexis" in script
+        else:
+            assert "_WAVEXIS_COMPLETE=" in script
 
     def test_cleanup_hook_suppresses_proactor_noise(self) -> None:
         """The unraisablehook swallows asyncio Proactor cleanup artefacts."""
