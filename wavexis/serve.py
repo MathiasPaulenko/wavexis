@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from wavexis import __version__
+from wavexis.actions.eval import MAX_EXPRESSION_LENGTH as _MAX_EXPRESSION_LENGTH
 from wavexis.backend.base import AbstractBackend
 from wavexis.backend.manager import get_manager
 from wavexis.config import (
@@ -35,6 +36,9 @@ from wavexis.config import (
     ScrapeParams,
     ScreenshotParams,
     WaitStrategy,
+)
+from wavexis.config import (
+    _validate_url as _validate_url_scheme,
 )
 from wavexis.exceptions import WavexisError
 from wavexis.output import (
@@ -354,11 +358,12 @@ def _auth_middleware(api_key: str) -> Any:
         if request.path == "/health":
             return await handler(request)
 
-        token = (
-            request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
-            or request.headers.get("X-API-Key", "")
-            or request.query.get("api_key", "")
-        )
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:].strip()
+        else:
+            token = auth_header.strip()
+        token = token or request.headers.get("X-API-Key", "") or request.query.get("api_key", "")
         if not hmac.compare_digest(token.encode(), api_key.encode()):
             return web.Response(
                 status=401,
@@ -1180,6 +1185,10 @@ async def _stream_dom_mutations(
                     "        {type:'attr', target:m.target.tagName, "
                     "         attr:m.attributeName});"
                     "    }"
+                    "    if (window.__wavexisMutations.length > 1000) {"
+                    "      window.__wavexisMutations.splice(0, "
+                    "        window.__wavexisMutations.length - 1000);"
+                    "    }"
                     "  }"
                     "});"
                     "window.__wavexisObserver.observe(document.body || "
@@ -1337,11 +1346,11 @@ async def handle_websocket(request: Any) -> Any:
             await ws.close()
             return ws
 
-        if fmt not in {"png", "jpeg", "webp"}:
+        if fmt not in {"png", "jpeg"}:
             await ws.send_json(
                 {
                     "type": "error",
-                    "message": "Invalid config: format must be 'png', 'jpeg', or 'webp'",
+                    "message": "Invalid config: format must be 'png' or 'jpeg'",
                     "timestamp": time.time(),
                 }
             )
@@ -1472,6 +1481,7 @@ async def handle_websocket(request: Any) -> Any:
                     action = cmd.get("action")
                     if action == "navigate":
                         new_url = cmd.get("url", "")
+                        _validate_url_scheme(new_url, allow_empty=False)
                         await backend.navigate(new_url, WaitStrategy(strategy="load"))
                         await ws.send_json(
                             {
@@ -1482,6 +1492,16 @@ async def handle_websocket(request: Any) -> Any:
                         )
                     elif action == "eval":
                         expr = cmd.get("expression", "")
+                        if len(expr) > _MAX_EXPRESSION_LENGTH:
+                            err_msg = f"expression exceeds {_MAX_EXPRESSION_LENGTH} characters"
+                            await ws.send_json(
+                                {
+                                    "type": "error",
+                                    "message": err_msg,
+                                    "timestamp": time.time(),
+                                }
+                            )
+                            continue
                         result = await backend.eval(expr)
                         await ws.send_json(
                             {
@@ -1543,7 +1563,7 @@ async def handle_websocket(request: Any) -> Any:
             await ws.close()
     finally:
         async with _ws_lock:
-            _ws_connections -= 1
+            _ws_connections = max(0, _ws_connections - 1)
 
     return ws
 

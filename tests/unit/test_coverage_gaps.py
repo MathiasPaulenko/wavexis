@@ -440,7 +440,7 @@ class TestAuthFull:
 
         backend = MockBackend()
         ctx = AuthContext(target_origin="https://example.com")
-        with pytest.raises(WavexisError, match="allowed auth origin"):
+        with pytest.raises(WavexisError, match="does not match required target_origin"):
             await apply_auth_context(backend, ctx, "https://evil.com")
 
     def test_load_auth_context_with_password_warning(self, tmp_path: Path, caplog) -> None:

@@ -92,8 +92,8 @@ class InputAction(BaseAction[InputParams, Any]):
                     p = Path(validate_path(f))
                 except ValueError as exc:
                     raise ActionError(f"Invalid upload file path: {exc}") from exc
-                if not await asyncio.to_thread(p.exists):
-                    raise ActionError(f"Upload file not found: {f}")
+                if not await asyncio.to_thread(p.is_file):
+                    raise ActionError(f"Upload file not found or is not a regular file: {f}")
                 size = (await asyncio.to_thread(p.stat)).st_size
                 if size > MAX_UPLOAD_SIZE:
                     raise ActionError(f"Upload file too large: {f} ({size} bytes)")

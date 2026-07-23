@@ -175,8 +175,6 @@ def _host_matches_cookie_domain(host: str, domain: str) -> bool:
     """Check whether ``host`` matches a cookie ``domain`` attribute."""
     host = host.lower()
     domain = domain.lower().lstrip(".")
-    if domain.startswith("."):
-        domain = domain[1:]
     if host == domain:
         return True
     return host.endswith("." + domain)
@@ -185,25 +183,31 @@ def _host_matches_cookie_domain(host: str, domain: str) -> bool:
 def _validate_auth_origin(url: str, ctx: AuthContext) -> None:
     """Ensure the navigation URL matches an allowed auth origin.
 
-    Without this check a guessed/forced context file could be used to send
-    stored credentials to an attacker-controlled URL.
+    When ``target_origin`` is set it is the only allowed origin. Otherwise the
+    URL must match the origin of one of the cookie domains. This prevents a
+    guessed/forced context file from sending credentials to an
+    attacker-controlled URL.
     """
     url_origin = _origin(url)
+    if ctx.target_origin:
+        if url_origin != ctx.target_origin.lower():
+            raise WavexisError(
+                f"URL {url!r} does not match required target_origin "
+                f"{ctx.target_origin!r}."
+            )
+        return
+
     url_host = urlparse(url).hostname or ""
     allowed: set[str] = set()
-    if ctx.target_origin:
-        allowed.add(ctx.target_origin.lower())
     for cookie in ctx.cookies:
         domain = cookie.get("domain")
-        if domain:
+        if domain and domain.strip():
             allowed.add(domain.lower().lstrip("."))
     if not allowed:
         raise WavexisError(
             "Auth context must specify a target_origin or cookie domain "
             "to prevent credential exfiltration."
         )
-    if ctx.target_origin and url_origin == ctx.target_origin.lower():
-        return
     for origin_or_domain in allowed:
         if "://" in origin_or_domain:
             if url_origin == origin_or_domain:

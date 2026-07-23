@@ -49,6 +49,8 @@ from wavexis.output import validate_path
 
 logger = logging.getLogger(__name__)
 
+_CONNECT_TIMEOUT = 30.0
+
 PIL_AVAILABLE = importlib.util.find_spec("PIL") is not None
 
 
@@ -270,7 +272,9 @@ class BiDiBackend(AbstractBackend):
         else:
             ws_url = "ws://localhost:9222/session"
         try:
-            client = await BiDiClient.connect(ws_url)
+            client = await asyncio.wait_for(
+                BiDiClient.connect(ws_url), timeout=_CONNECT_TIMEOUT
+            )
         except WavexisError:
             # Already a friendly error; re-raise as-is.
             raise
@@ -3193,7 +3197,10 @@ class BiDiBackend(AbstractBackend):
             except Exception:
                 # The subscription may have been removed already; keep going
                 # so the remaining subscriptions are cleaned up.
-                self._subscriptions.setdefault(subscription_id, []).append(subscription)
+                logger.warning(
+                    "Failed to unsubscribe %s; continuing cleanup",
+                    subscription_id,
+                )
 
     # ── Accessibility ──────────────────────────────────────
 

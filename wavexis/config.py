@@ -194,12 +194,14 @@ def _validate_url(
         name: Field name used in error messages.
 
     Raises:
-        ActionError: If the URL scheme is not allowed.
+        ActionError: If the URL scheme is not allowed or the URL is malformed.
     """
     if not url:
         if allow_empty:
             return
         raise ActionError(f"{name} is required")
+    if not isinstance(url, str):
+        raise ActionError(f"{name} must be a string; got {type(url).__name__}")
     parsed = urlparse(url)
     if not parsed.scheme:
         raise ActionError(f"{name} must have a scheme (e.g. https://): {url!r}")
@@ -208,6 +210,16 @@ def _validate_url(
             f"Invalid {name} scheme {parsed.scheme!r} in {url!r}; "
             f"allowed schemes: {', '.join(sorted(schemes))}"
         )
+    if parsed.scheme in ("http", "https", "ws", "wss") and not parsed.hostname:
+        raise ActionError(f"{name} must have a hostname: {url!r}")
+    if parsed.username is not None or parsed.password is not None:
+        raise ActionError(f"{name} must not contain userinfo: {url!r}")
+    try:
+        port = parsed.port
+    except ValueError as exc:
+        raise ActionError(f"{name} has an invalid port: {url!r}") from exc
+    if port is not None and not (1 <= port <= 65535):
+        raise ActionError(f"{name} has an invalid port: {port}")
 
 
 def _validate_int_range(
@@ -220,8 +232,10 @@ def _validate_int_range(
     """Validate that an integer is within an allowed range.
 
     Raises:
-        ActionError: If the value is outside the allowed range.
+        ActionError: If the value is not an integer or is outside the range.
     """
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise ActionError(f"{name} must be an integer; got {type(value).__name__}")
     if min_value is not None and value < min_value:
         raise ActionError(f"{name} must be >= {min_value}; got {value}")
     if max_value is not None and value > max_value:

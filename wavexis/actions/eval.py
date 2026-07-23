@@ -38,8 +38,13 @@ class EvalAction(BaseAction[EvalParams, Any]):
         if params.file:
             file_path = params.file
             try:
+                path = validate_path(file_path)
+                if not await asyncio.to_thread(path.is_file):
+                    raise WavexisError(
+                        f"Failed to read expression file: not a regular file: {file_path}"
+                    )
                 expression = await asyncio.to_thread(
-                    lambda: validate_path(file_path).read_text(encoding="utf-8")
+                    path.read_text, encoding="utf-8"
                 )
             except OSError as e:
                 raise WavexisError(f"Failed to read expression file: {e}") from e

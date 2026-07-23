@@ -42,6 +42,8 @@ from wavexis.output import validate_path
 
 logger = logging.getLogger(__name__)
 
+_CONNECT_TIMEOUT = 30.0
+
 try:
     from cdpwave import CDPClient, CDPSession
 except ImportError:
@@ -230,9 +232,13 @@ class CDPBackend(AbstractBackend):
             parsed = urlparse(options.browser_url)
             host = parsed.hostname or "localhost"
             port = parsed.port or 9222
-            self._client = await CDPClient.connect(host=host, port=port)
+            self._client = await asyncio.wait_for(
+                CDPClient.connect(host=host, port=port), timeout=_CONNECT_TIMEOUT
+            )
         elif options.remote_url:
-            self._client = await CDPClient.connect(ws_url=options.remote_url)
+            self._client = await asyncio.wait_for(
+                CDPClient.connect(ws_url=options.remote_url), timeout=_CONNECT_TIMEOUT
+            )
         else:
             launch_timeout = 30.0 if os.environ.get("CI") else 10.0
             self._client = await CDPClient.launch(
@@ -3433,7 +3439,11 @@ class CDPBackend(AbstractBackend):
                 except Exception:
                     # The handler may have been removed already; keep going
                     # so the remaining subscriptions are cleaned up.
-                    self._subscriptions.setdefault(subscription_id, {})[cdp_event] = handler
+                    logger.warning(
+                        "Failed to unsubscribe %s from %s; continuing cleanup",
+                        subscription_id,
+                        cdp_event,
+                    )
 
     # ── Accessibility ──────────────────────────────────────
 

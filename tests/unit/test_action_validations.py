@@ -191,6 +191,32 @@ class TestNavigateURLValidation:
             await backend.new_tab("javascript:alert(1)")
 
 
+class TestEvalFileRegular:
+    """Regression: EvalAction rejects non-regular files."""
+
+    async def test_directory_as_expression_file(self, tmp_path: Path) -> None:
+        from wavexis.actions.eval import EvalAction
+
+        backend = MagicMock()
+        backend.navigate = AsyncMock()
+        action = EvalAction(EvalParams(url="https://example.com", file=str(tmp_path)))
+        with pytest.raises(WavexisError, match="not a regular file"):
+            await action.execute(backend)
+
+
+class TestScrapeFileRegular:
+    """Regression: ScrapeAction rejects non-regular files."""
+
+    async def test_directory_as_expression_file(self, tmp_path: Path) -> None:
+        from wavexis.actions.scrape import ScrapeAction
+
+        backend = MagicMock()
+        backend.navigate = AsyncMock()
+        action = ScrapeAction(ScrapeParams(urls=["https://example.com"], file=str(tmp_path)))
+        with pytest.raises(WavexisError, match="not a regular file"):
+            await action.execute(backend)
+
+
 class TestFilePathBaseDirRestriction:
     """Regression: file paths used by actions are restricted to base_dir."""
 

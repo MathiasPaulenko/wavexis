@@ -2,6 +2,20 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.16.11 — 2026-07-23
+
+### Security
+
+- **URL validation hardening** — `_validate_url` now rejects userinfo, out-of-range ports, missing hostnames on network schemes, and non-string values.
+- **Auth context strict origin binding** — when `target_origin` is set, it is the only allowed origin; cookie domains can no longer bypass it.
+- **Serve-mode WebSocket hardening** — WebSocket `navigate` and `eval` commands now validate URL schemes and expression length; the screenshot format allowlist matches the backend (`png`/`jpeg`); authorization token parsing avoids `removeprefix` timing side-channels; the DOM mutation observer queue is bounded.
+- **Connection timeouts** — `CDPBackend.launch` and `BiDiBackend.launch` now wrap `connect()` calls with `asyncio.wait_for` to avoid hanging on unreachable endpoints.
+
+### Bug Fixes
+
+- **Subscription cleanup** — `cdp.py` and `bidi.py` no longer re-add handlers to `_subscriptions` when `off()` raises; they log and continue.
+- **File type checks** — `EvalAction`, `ScrapeAction`, and `InputAction` now verify that referenced paths are regular files before reading them.
+
 ## v2.16.10 — 2026-07-22
 
 ### Security

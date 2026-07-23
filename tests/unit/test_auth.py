@@ -167,3 +167,21 @@ class TestAuthContext:
         assert ctx.username is None
         assert ctx.password is None
         assert ctx.target_origin is None
+
+    @pytest.mark.unit
+    async def test_target_origin_ignores_cookie_domains(self):
+        """When target_origin is set, cookie domains must not bypass it."""
+        from wavexis.auth import apply_auth_context
+        from wavexis.exceptions import WavexisError
+
+        class _FakeBackend:
+            async def set_headers(self, headers): ...
+            async def set_cookie(self, cookie): ...
+            async def navigate(self, url, wait=None): ...
+
+        ctx = AuthContext(
+            target_origin="https://example.com",
+            cookies=[{"name": "session", "value": "x", "domain": "evil.com"}],
+        )
+        with pytest.raises(WavexisError, match="required target_origin"):
+            await apply_auth_context(_FakeBackend(), ctx, "https://evil.com")

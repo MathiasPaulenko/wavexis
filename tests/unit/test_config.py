@@ -1,5 +1,7 @@
 """Unit tests for config dataclasses."""
 
+import pytest
+
 from wavexis.config import (
     DEVICE_PRESETS,
     PAPER_SIZES,
@@ -15,6 +17,7 @@ from wavexis.config import (
     ScreenshotParams,
     WaitStrategy,
 )
+from wavexis.exceptions import ActionError
 
 
 class TestBrowserOptions:
@@ -341,3 +344,32 @@ class TestNetworkParams:
 
         with pytest.raises(ActionError):
             NetworkParams(action="unknown_action")
+
+
+class TestURLValidation:
+    """Regression: _validate_url rejects malformed or dangerous URLs."""
+
+    def test_rejects_userinfo_in_url(self):
+        """Userinfo in URLs can be used to confuse parsers and exfiltrate."""
+        with pytest.raises(ActionError, match="userinfo"):
+            ScreenshotParams(url="https://user:pass@example.com")
+
+    def test_rejects_invalid_port(self):
+        """Out-of-range ports must raise a friendly ActionError."""
+        with pytest.raises(ActionError, match="invalid port"):
+            ScreenshotParams(url="https://example.com:65536")
+
+    def test_rejects_missing_hostname(self):
+        """Network schemes require a hostname."""
+        with pytest.raises(ActionError, match="hostname"):
+            BrowserOptions(browser_url="http://")
+
+    def test_rejects_non_string_url(self):
+        """Non-string URL values must raise a friendly ActionError."""
+        with pytest.raises(ActionError, match="must be a string"):
+            ScreenshotParams(url=123)
+
+    def test_allows_about_blank(self):
+        """about:blank is a valid navigation target with no hostname."""
+        params = ScreenshotParams(url="about:blank")
+        assert params.url == "about:blank"
