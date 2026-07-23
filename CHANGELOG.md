@@ -2,6 +2,12 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.16.9 — 2026-07-22
+
+### Bug Fixes
+
+- **Restore `none` wait strategy** — `WaitStrategy` validation now accepts `"none"` again, and both CDP and BiDi backends treat it as a no-op. This fixes integration tests and any user code that skips navigation waiting.
+
 ## v2.16.8 — 2026-07-22
 
 ### Bug Fixes
