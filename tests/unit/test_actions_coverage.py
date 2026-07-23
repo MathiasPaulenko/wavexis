@@ -401,6 +401,7 @@ class TestVisualDiffAction:
         return str(path)
 
     async def test_identical_images(self, backend: AsyncMock, tmp_path: Path) -> None:
+        pytest.importorskip("PIL")
         baseline = self._make_png(tmp_path)
         backend.screenshot.return_value = await asyncio.to_thread(Path(baseline).read_bytes)
         action = VisualDiffAction(
