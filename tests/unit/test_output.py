@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import typer
 
-from wavexis.output import Output, validate_path
+from wavexis.output import Output, set_allowed_base_dir, validate_path
 
 
 class TestValidatePath:
@@ -34,6 +34,33 @@ class TestValidatePath:
     def test_rejects_null_byte(self):
         with pytest.raises(ValueError, match="Invalid path"):
             validate_path("foo\x00bar.txt")
+
+
+class TestValidatePathBaseDir:
+    """Regression: validate_path resolves relative paths from base_dir."""
+
+    def test_relative_path_resolves_from_base_dir(self, tmp_path: Path):
+        base = tmp_path / "base"
+        base.mkdir()
+        (base / "file.txt").write_text("ok")
+        set_allowed_base_dir(str(base))
+        try:
+            resolved = validate_path("file.txt")
+            assert resolved == (base / "file.txt").resolve()
+        finally:
+            set_allowed_base_dir(None)
+
+    def test_relative_path_outside_base_dir_rejected(self, tmp_path: Path):
+        base = tmp_path / "base"
+        base.mkdir()
+        outside = tmp_path / "outside.txt"
+        outside.write_text("ok")
+        set_allowed_base_dir(str(base))
+        try:
+            with pytest.raises(ValueError, match="Invalid path"):
+                validate_path(str(outside))
+        finally:
+            set_allowed_base_dir(None)
 
 
 class TestOutputPathTraversal:

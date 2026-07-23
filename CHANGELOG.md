@@ -13,8 +13,11 @@ All notable changes to wavexis are documented in this file.
 
 ### Bug Fixes
 
-- **Subscription cleanup** — `cdp.py` and `bidi.py` no longer re-add handlers to `_subscriptions` when `off()` raises; they log and continue.
+- **Auth context origin binding** — `apply_auth_context` now rejects `data:`, `about:`, and other non-network URL schemes, and validates that cookie domains are plain hosts without schemes.
+- **Subscription cleanup** — `cdp.py` and `bidi.py` no longer re-add handlers to `_subscriptions` when `off()` raises; they log and continue. Event subscription also rolls back partial registrations if a domain `enable()` call fails.
+- **TabHandle counters** — `CDPBackend.TabHandle` now initializes its own `_subscription_counter` and `_trace_counter`.
 - **File type checks** — `EvalAction`, `ScrapeAction`, and `InputAction` now verify that referenced paths are regular files before reading them.
+- **Path sandboxing** — `output.validate_path` now resolves relative paths from the configured `base_dir` instead of the process working directory.
 
 ## v2.16.10 — 2026-07-22
 

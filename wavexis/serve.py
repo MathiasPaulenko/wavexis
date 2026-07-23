@@ -1291,21 +1291,21 @@ async def handle_websocket(request: Any) -> Any:
     web = _import_aiohttp()
 
     global _ws_connections
-    async with _ws_lock:
-        if _ws_connections >= _ws_max_connections:
-            return web.Response(
-                status=503,
-                text='{"error": "too many websocket connections"}',
-                content_type="application/json",
-            )
-        _ws_connections += 1
-
-    ws = web.WebSocketResponse()
-    tasks: list[asyncio.Task[None]] = []
-    backend: AbstractBackend | None = None
-    backend_launched = False
-    subscription_id: str | None = None
     try:
+        async with _ws_lock:
+            if _ws_connections >= _ws_max_connections:
+                return web.Response(
+                    status=503,
+                    text='{"error": "too many websocket connections"}',
+                    content_type="application/json",
+                )
+            _ws_connections += 1
+
+        ws = web.WebSocketResponse()
+        tasks: list[asyncio.Task[None]] = []
+        backend: AbstractBackend | None = None
+        backend_launched = False
+        subscription_id: str | None = None
         await ws.prepare(request)
         try:
             msg = await ws.receive()

@@ -3160,28 +3160,34 @@ class BiDiBackend(AbstractBackend):
             ),
         }
 
-        for evt_type in event_types:
-            if evt_type in event_map:
-                _, subscribe_fn, label = event_map[evt_type]
+        try:
+            for evt_type in event_types:
+                if evt_type in event_map:
+                    _, subscribe_fn, label = event_map[evt_type]
 
-                def make_handler(lbl: str) -> Any:
-                    def _handler(params: Any) -> None:
-                        data = (
-                            params.model_dump() if hasattr(params, "model_dump") else dict(params)
-                        )
-                        callback({"type": lbl, "data": data})
+                    def make_handler(lbl: str) -> Any:
+                        def _handler(params: Any) -> None:
+                            data = (
+                                params.model_dump() if hasattr(params, "model_dump") else dict(params)
+                            )
+                            callback({"type": lbl, "data": data})
 
-                    return _handler
+                        return _handler
 
-                handler = make_handler(label)
-                if inspect.iscoroutinefunction(subscribe_fn):
-                    subscription = await subscribe_fn(handler)
-                else:
-                    subscription = subscribe_fn(handler)
-                subscriptions.append(subscription)
+                    handler = make_handler(label)
+                    if inspect.iscoroutinefunction(subscribe_fn):
+                        subscription = await subscribe_fn(handler)
+                    else:
+                        subscription = subscribe_fn(handler)
+                    subscriptions.append(subscription)
 
-        self._subscriptions[sub_id] = subscriptions
-        return sub_id
+            self._subscriptions[sub_id] = subscriptions
+            return sub_id
+        except Exception:
+            for subscription in subscriptions:
+                with contextlib.suppress(Exception):
+                    client.off(subscription)
+            raise
 
     async def unsubscribe_events(self, subscription_id: str) -> None:
         """Unsubscribe from events by subscription ID.

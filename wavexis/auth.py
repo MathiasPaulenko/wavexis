@@ -188,6 +188,11 @@ def _validate_auth_origin(url: str, ctx: AuthContext) -> None:
     guessed/forced context file from sending credentials to an
     attacker-controlled URL.
     """
+    parsed_url = urlparse(url)
+    if parsed_url.scheme not in ("http", "https"):
+        raise WavexisError(
+            f"Auth context cannot be applied to {parsed_url.scheme!r} URLs"
+        )
     url_origin = _origin(url)
     if ctx.target_origin:
         if url_origin != ctx.target_origin.lower():
@@ -197,12 +202,17 @@ def _validate_auth_origin(url: str, ctx: AuthContext) -> None:
             )
         return
 
-    url_host = urlparse(url).hostname or ""
+    url_host = parsed_url.hostname or ""
     allowed: set[str] = set()
     for cookie in ctx.cookies:
         domain = cookie.get("domain")
-        if domain and domain.strip():
-            allowed.add(domain.lower().lstrip("."))
+        if not domain or not domain.strip():
+            continue
+        if "://" in domain or "/" in domain:
+            raise WavexisError(
+                f"Cookie domain must be a plain host, got {domain!r}"
+            )
+        allowed.add(domain.lower().lstrip("."))
     if not allowed:
         raise WavexisError(
             "Auth context must specify a target_origin or cookie domain "

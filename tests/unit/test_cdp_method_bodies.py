@@ -1136,6 +1136,13 @@ class TestCDPMethodBodies:
         handle = await backend.new_tab_handle("https://example.com")
         assert handle is not None
 
+    async def test_tab_handle_initializes_counters(self) -> None:
+        """TabHandle must have its own subscription/trace counters."""
+        backend, _, _ = _make_mock_backend()
+        handle = await backend.new_tab_handle("https://example.com")
+        assert handle._subscription_counter == 0
+        assert handle._trace_counter == 0
+
     async def test_launch_with_browser_url(self) -> None:
         from wavexis.backend.cdp import CDPBackend
 

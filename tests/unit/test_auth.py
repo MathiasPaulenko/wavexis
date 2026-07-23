@@ -185,3 +185,34 @@ class TestAuthContext:
         )
         with pytest.raises(WavexisError, match="required target_origin"):
             await apply_auth_context(_FakeBackend(), ctx, "https://evil.com")
+
+    @pytest.mark.unit
+    async def test_rejects_data_url(self):
+        """data: URLs cannot carry auth credentials."""
+        from wavexis.auth import apply_auth_context
+        from wavexis.exceptions import WavexisError
+
+        class _FakeBackend:
+            async def set_headers(self, headers): ...
+            async def set_cookie(self, cookie): ...
+            async def navigate(self, url, wait=None): ...
+
+        ctx = AuthContext(target_origin="data:text/html,<html></html>")
+        data_url = "data:text/html,<script>alert(1)</script>"
+        with pytest.raises(WavexisError, match="cannot be applied"):
+            await apply_auth_context(_FakeBackend(), ctx, data_url)
+
+    @pytest.mark.unit
+    async def test_rejects_cookie_domain_with_scheme(self):
+        """Cookie domains must be plain hosts, not origins."""
+        from wavexis.auth import apply_auth_context
+        from wavexis.exceptions import WavexisError
+
+        class _FakeBackend:
+            async def set_headers(self, headers): ...
+            async def set_cookie(self, cookie): ...
+            async def navigate(self, url, wait=None): ...
+
+        ctx = AuthContext(cookies=[{"name": "session", "value": "x", "domain": "https://evil.com"}])
+        with pytest.raises(WavexisError, match="plain host"):
+            await apply_auth_context(_FakeBackend(), ctx, "https://example.com")

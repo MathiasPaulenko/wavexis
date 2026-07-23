@@ -289,6 +289,16 @@ class TestSubscribeEventsCDP:
         asyncio.run(backend.unsubscribe_events(sub_id))
         backend._session.off.assert_called()
 
+    def test_subscribe_rolls_back_on_enable_failure(self) -> None:
+        """Registered handlers are removed if domain enable() fails."""
+        backend = _make_cdp_backend()
+        backend._session.on = MagicMock()
+        backend._session.off = MagicMock()
+        backend._session.runtime.enable = MagicMock(side_effect=RuntimeError("boom"))
+        with pytest.raises(RuntimeError, match="boom"):
+            asyncio.run(backend.subscribe_events(["console"], lambda e: None))
+        backend._session.off.assert_called_once()
+
 
 @pytest.mark.unit
 class TestCombinedTraceBiDi:
@@ -345,3 +355,11 @@ class TestSubscribeEventsBiDi:
         sub_id = asyncio.run(backend.subscribe_events(["console"], lambda e: None))
         asyncio.run(backend.unsubscribe_events(sub_id))
         backend._client.off.assert_called()
+
+    def test_subscribe_rolls_back_on_failure(self) -> None:
+        """Registered handlers are removed if a later subscription fails."""
+        backend = _make_bidi_backend()
+        backend._client.on_request = MagicMock(side_effect=RuntimeError("boom"))
+        with pytest.raises(RuntimeError, match="boom"):
+            asyncio.run(backend.subscribe_events(["console", "network_request"], lambda e: None))
+        backend._client.off.assert_called_once_with("log-sub-1")

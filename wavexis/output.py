@@ -59,7 +59,9 @@ def validate_path(path: str | Path, *, base_dir: str | Path | None = None) -> Pa
 
     allowed = Path(base_dir).resolve() if base_dir is not None else _ALLOWED_BASE_DIR
     if allowed is not None:
-        resolved = p.resolve()
+        # Relative paths must be interpreted from the allowed base directory,
+        # not from the process current working directory.
+        resolved = p.resolve() if p.is_absolute() else (allowed / p).resolve()
         try:
             resolved.relative_to(allowed)
         except ValueError as exc:

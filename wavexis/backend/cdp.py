@@ -3395,33 +3395,39 @@ class CDPBackend(AbstractBackend):
             "navigation": ("Page.frameNavigated", "navigation"),
         }
 
-        for evt_type in event_types:
-            if evt_type in event_map:
-                cdp_event, label = event_map[evt_type]
+        try:
+            for evt_type in event_types:
+                if evt_type in event_map:
+                    cdp_event, label = event_map[evt_type]
 
-                def make_handler(lbl: str) -> Any:
-                    def _handler(params: dict[str, Any]) -> None:
-                        callback({"type": lbl, "data": params})
+                    def make_handler(lbl: str) -> Any:
+                        def _handler(params: dict[str, Any]) -> None:
+                            callback({"type": lbl, "data": params})
 
-                    return _handler
+                        return _handler
 
-                handler = make_handler(label)
-                session.on(cdp_event, handler)
-                handlers[cdp_event] = handler
+                    handler = make_handler(label)
+                    session.on(cdp_event, handler)
+                    handlers[cdp_event] = handler
 
-                if evt_type in ("network_request", "network_response"):
-                    await session.network.enable()
-                elif evt_type == "console":
-                    await session.runtime.enable()
-                elif evt_type in ("dialog", "navigation"):
-                    # Bug #27: Page events (Page.javascriptDialogOpening,
-                    # Page.frameNavigated) are only delivered after
-                    # Page.enable() is called. Without this, the
-                    # subscription silently captured nothing.
-                    await session.page.enable()
+                    if evt_type in ("network_request", "network_response"):
+                        await session.network.enable()
+                    elif evt_type == "console":
+                        await session.runtime.enable()
+                    elif evt_type in ("dialog", "navigation"):
+                        # Bug #27: Page events (Page.javascriptDialogOpening,
+                        # Page.frameNavigated) are only delivered after
+                        # Page.enable() is called. Without this, the
+                        # subscription silently captured nothing.
+                        await session.page.enable()
 
-        self._subscriptions[sub_id] = handlers
-        return sub_id
+            self._subscriptions[sub_id] = handlers
+            return sub_id
+        except Exception:
+            for cdp_event, handler in handlers.items():
+                with contextlib.suppress(Exception):
+                    session.off(cdp_event, handler)
+            raise
 
     async def unsubscribe_events(self, subscription_id: str) -> None:
         """Unsubscribe from events by subscription ID.
@@ -10799,6 +10805,8 @@ class TabHandle(CDPBackend):
         self._current_url: str = ""
         self._subscriptions: dict[str, dict[str, Any]] = {}
         self._combined_traces: dict[str, dict[str, Any]] = {}
+        self._subscription_counter = 0
+        self._trace_counter = 0
 
     async def close(self) -> None:
         """Close the tab session without closing the browser."""
