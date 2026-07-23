@@ -137,11 +137,8 @@ markers = [
 ]
 
 [tool.coverage.run]
-omit = [
-    "wavexis/backend/bidi.py",
-    "wavexis/backend/cdp.py",
-    "wavexis/cli/_debug.py",
-]
+# No omissions: cdp, bidi and debug CLI are part of the public surface and
+# must be measured. Total coverage is ~72 %; we raise the threshold as it improves.
 
 [tool.codespell]
 skip = "ref,.venv*,.venv-dev,.venv-prod-test,.git,*.png,*.pdf,*.jpg,*.jpeg,*.svg,*.lock,*.json,*.js,*.txt,*.out"
