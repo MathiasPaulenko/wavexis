@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import binascii
 import contextlib
 import json
+import logging
 import os
 import re
 import time
@@ -13,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from wavexis import __version__
-from wavexis.backend._trace import extract_trace_events
+from wavexis.backend._trace import extract_trace_events, read_trace_stream
 from wavexis.backend.base import AbstractBackend
 from wavexis.config import (
     DEVICE_PRESETS,
@@ -27,6 +29,7 @@ from wavexis.config import (
     SensorParams,
     ThrottleParams,
     WaitStrategy,
+    _validate_url,
 )
 from wavexis.exceptions import (
     ElementNotFoundError,
@@ -37,11 +40,44 @@ from wavexis.exceptions import (
 )
 from wavexis.output import validate_path
 
+logger = logging.getLogger(__name__)
+
 try:
     from cdpwave import CDPClient, CDPSession
 except ImportError:
     CDPClient = None  # type: ignore[assignment,misc]
     CDPSession = None  # type: ignore[assignment,misc]
+
+
+def _safe_json_loads(value: Any, default: Any = None) -> Any:
+    """Parse a JSON string or pass through an already-parsed structure safely.
+
+    Returns ``default`` when the value is missing, not a string, or cannot be
+    parsed as JSON. This avoids raising from remote scripts that return null
+    or malformed JSON.
+    """
+    if isinstance(value, (dict, list)):
+        return value
+    if not isinstance(value, str) or not value:
+        return default
+    try:
+        return json.loads(value)
+    except (json.JSONDecodeError, TypeError):
+        return default
+
+
+def _b64decode(data: Any) -> bytes:
+    """Decode base64 data safely, returning empty bytes for missing/invalid values."""
+    if not data:
+        return b""
+    if isinstance(data, bytes):
+        return data
+    if not isinstance(data, str):
+        return b""
+    try:
+        return base64.b64decode(data)
+    except (binascii.Error, TypeError, ValueError):
+        return b""
 
 
 class CDPBackend(AbstractBackend):
@@ -60,6 +96,10 @@ class CDPBackend(AbstractBackend):
         self._console_entries: list[dict[str, Any]] = []
         self._log_entries: list[dict[str, Any]] = []
         self._current_url: str = ""
+        self._subscriptions: dict[str, dict[str, Any]] = {}
+        self._combined_traces: dict[str, dict[str, Any]] = {}
+        self._subscription_counter = 0
+        self._trace_counter = 0
 
     async def new_tab_handle(self, url: str = "about:blank") -> TabHandle:
         """Create a new tab with its own session, sharing the browser process.
@@ -257,12 +297,11 @@ class CDPBackend(AbstractBackend):
     async def close(self) -> None:
         """Close the browser client and release resources."""
         if self._session is not None:
-            subs: dict[str, dict[str, Any]] = getattr(self, "_subscriptions", {})
-            for handlers in subs.values():
+            for handlers in self._subscriptions.values():
                 for cdp_event, handler in handlers.items():
                     with contextlib.suppress(Exception):
                         self._session.off(cdp_event, handler)
-            subs.clear()
+            self._subscriptions.clear()
             await self._session.close()
             self._session = None
         if self._client is not None:
@@ -285,6 +324,7 @@ class CDPBackend(AbstractBackend):
             SessionNotInitializedError: If launch() has not been called.
             WaitTimeoutError: If the wait strategy times out.
         """
+        _validate_url(url, allow_empty=False)
         if self._session is None:
             await self.launch(BrowserOptions())
         session = self._require_session()
@@ -373,8 +413,8 @@ class CDPBackend(AbstractBackend):
             quality=params.quality,
             capture_beyond_viewport=params.full_page,
         )
-        data_b64 = result.get("data", "")
-        return base64.b64decode(data_b64)
+        data_b64 = result.get("data", "") if result else ""
+        return _b64decode(data_b64)
 
     async def screenshot_selector(
         self, selector: str, format: str = "png", quality: int = 80
@@ -394,15 +434,21 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
 
         doc = await session.dom.get_document()
+        if not doc:
+            raise ElementNotFoundError(selector)
         root_node_id = doc.get("root", {}).get("nodeId", 0)
         node = await session.dom.query_selector(root_node_id, selector)
+        if not node:
+            raise ElementNotFoundError(selector)
         node_id = node.get("nodeId", 0)
         if node_id == 0:
             raise ElementNotFoundError(selector)
         box = await session.dom.get_box_model(node_id)
+        if not box:
+            raise NavigationError(selector, "Could not determine element bounds.")
         model = box.get("model", {})
         borders = model.get("border", [])
-        if len(borders) >= 8:
+        if len(borders) >= 8 and all(isinstance(b, (int, float)) for b in borders):
             x = min(borders[0], borders[2], borders[4], borders[6])
             y = min(borders[1], borders[3], borders[5], borders[7])
             width = max(borders[0], borders[2], borders[4], borders[6]) - x
@@ -422,8 +468,8 @@ class CDPBackend(AbstractBackend):
             quality=quality,
             clip=clip,
         )
-        data_b64 = result.get("data", "")
-        return base64.b64decode(data_b64)
+        data_b64 = result.get("data", "") if result else ""
+        return _b64decode(data_b64)
 
     @staticmethod
     def _annotate_js(selectors: list[str]) -> str:
@@ -493,12 +539,14 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         js = self._annotate_js(selectors)
         result = await session.runtime.evaluate(js)
-        raw = result.get("result", {}).get("value")
-        label_map: dict[str, str] = json.loads(raw) if isinstance(raw, str) else {}
+        raw = (result or {}).get("result", {}).get("value")
+        label_map = _safe_json_loads(raw, {})
+        if not isinstance(label_map, dict):
+            label_map = {}
         screenshot = await session.page.capture_screenshot(format=format)
         await session.runtime.evaluate(self._remove_annotate_js())
-        data_b64 = screenshot.get("data", "")
-        return base64.b64decode(data_b64), label_map
+        data_b64 = screenshot.get("data", "") if screenshot else ""
+        return _b64decode(data_b64), label_map
 
     async def eval(self, expression: str, await_promise: bool = False) -> Any:
         """Evaluate a JavaScript expression.
@@ -765,13 +813,13 @@ class CDPBackend(AbstractBackend):
         await session.send("Page.crash", {})
 
     async def page_create_isolated_world(
-        self, frame_id: str, world_name: str = "", grant_univeral_access: bool = False
+        self, frame_id: str, world_name: str = "", grant_universal_access: bool = False
     ) -> str:
         """Create an isolated world for the given frame. Returns execution context ID."""
         session = self._require_session()
         params: dict[str, Any] = {
             "frameId": frame_id,
-            "grantUniveralAccess": grant_univeral_access,
+            "grantUniversalAccess": grant_universal_access,
         }
         if world_name:
             params["worldName"] = world_name
@@ -1053,8 +1101,8 @@ class CDPBackend(AbstractBackend):
             margin_left=margin_val,
             margin_right=margin_val,
         )
-        data_b64 = result.get("data", "")
-        return base64.b64decode(data_b64)
+        data_b64 = result.get("data", "") if result else ""
+        return _b64decode(data_b64)
 
     async def screencast(self, params: ScreencastParams) -> list[bytes]:
         """Capture a screencast and return a list of frame bytes.
@@ -1077,7 +1125,7 @@ class CDPBackend(AbstractBackend):
             """
             data = event_params.get("data")
             if data:
-                frames.append(base64.b64decode(data))
+                frames.append(_b64decode(data))
 
         session.on("Page.screencastFrame", on_frame)
 
@@ -1120,6 +1168,7 @@ class CDPBackend(AbstractBackend):
         Returns:
             The target ID of the new tab.
         """
+        _validate_url(url, allow_empty=False)
         session = self._require_session()
         result = await session.target.create_target(url)
         return str(result.get("targetId", ""))
@@ -1236,8 +1285,12 @@ class CDPBackend(AbstractBackend):
         while True:
             try:
                 doc = await session.dom.get_document(depth=-1)
+                if not doc:
+                    raise ElementNotFoundError(selector)
                 root_node_id = doc.get("root", {}).get("nodeId", 0)
                 result = await session.dom.query_selector(root_node_id, selector)
+                if not result:
+                    raise ElementNotFoundError(selector)
                 node_id = result.get("nodeId", 0)
                 if node_id != 0:
                     return int(node_id)
@@ -1264,9 +1317,9 @@ class CDPBackend(AbstractBackend):
         node_id = await self._find_node(selector)
         if outer:
             result = await session.dom.get_outer_html(node_id)
-            return str(result.get("outerHTML", ""))
+            return str((result or {}).get("outerHTML", ""))
         result = await session.dom.get_outer_html(node_id)
-        outer_html = str(result.get("outerHTML", ""))
+        outer_html = str((result or {}).get("outerHTML", ""))
         inner = re.sub(r"^<[^>]+>", "", outer_html, count=1)
         inner = re.sub(r"<[^>]+>$", "", inner, count=1)
         return inner
@@ -1286,23 +1339,29 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         await session.dom.enable()
         doc = await session.dom.get_document()
+        if not doc:
+            raise ElementNotFoundError(selector)
         root_node_id = doc.get("root", {}).get("nodeId", 0)
 
         if all:
             result = await session.dom.query_selector_all(root_node_id, selector)
+            if not result:
+                return []
             node_ids = result.get("nodeIds", [])
             nodes: list[dict[str, Any]] = []
             for nid in node_ids:
                 desc = await session.dom.describe_node(node_id=nid)
-                nodes.append(desc.get("node", {}))
+                nodes.append((desc or {}).get("node", {}))
             return nodes
 
         result = await session.dom.query_selector(root_node_id, selector)
+        if not result:
+            raise ElementNotFoundError(selector)
         node_id = result.get("nodeId", 0)
         if node_id == 0:
             raise ElementNotFoundError(selector)
         desc = await session.dom.describe_node(node_id=node_id)
-        return dict(desc.get("node", {}))
+        return dict((desc or {}).get("node", {}))
 
     async def dom_set_attr(self, selector: str, name: str, value: str) -> None:
         """Set an attribute on an element matching a CSS selector."""
@@ -1315,7 +1374,7 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         node_id = await self._find_node(selector)
         result = await session.dom.get_attribute(node_id, name)
-        value = result.get("value")
+        value = (result or {}).get("value")
         return str(value) if value is not None else ""
 
     async def dom_remove_attr(self, selector: str, name: str) -> None:
@@ -1714,13 +1773,15 @@ class CDPBackend(AbstractBackend):
         escaped = json.dumps(selector)
         js = self._suggest_locator_js(escaped)
         result = await session.runtime.evaluate(js)
-        raw = result.get("result", {}).get("value")
+        raw = (result or {}).get("result", {}).get("value")
         if not raw:
             raise ElementNotFoundError(selector)
-        suggestions: list[str] = json.loads(raw)
+        suggestions = _safe_json_loads(raw, [])
+        if not isinstance(suggestions, list) or not suggestions:
+            raise ElementNotFoundError(selector)
         if all:
             return suggestions
-        return suggestions[0] if suggestions else selector
+        return suggestions[0]
 
     @staticmethod
     def _suggest_locator_js(escaped: str) -> str:
@@ -1783,11 +1844,11 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
         js = self._find_by_text_js(query)
         result = await session.runtime.evaluate(js)
-        raw = result.get("result", {}).get("value")
+        raw = (result or {}).get("result", {}).get("value")
         if not raw:
             raise ElementNotFoundError(query)
-        selectors: list[str] = json.loads(raw)
-        if not selectors:
+        selectors = _safe_json_loads(raw, [])
+        if not isinstance(selectors, list) or not selectors:
             raise ElementNotFoundError(query)
         if all:
             return selectors
@@ -2608,7 +2669,7 @@ class CDPBackend(AbstractBackend):
         js = (
             f"(function(){{var el=({pierce_js});"
             f"if(!el)return null;"
-            f"return (function(){{{escaped_expr}}}).call(el);}})()"
+            f"return (new Function({escaped_expr})).call(el);}})()"
         )
         result = await session.runtime.evaluate(js, await_promise=await_promise)
         return result.get("result", {}).get("value")
@@ -2948,7 +3009,9 @@ class CDPBackend(AbstractBackend):
             content = await asyncio.to_thread(validate_path(har_path).read_text, encoding="utf-8")
         except OSError as e:
             raise WavexisError(f"Failed to read HAR file: {e}") from e
-        har_data = json.loads(content)
+        har_data = _safe_json_loads(content, {})
+        if not isinstance(har_data, dict):
+            raise WavexisError("HAR file must contain a JSON object")
 
         entries = har_data.get("log", {}).get("entries", [])
         for entry in entries:
@@ -3118,7 +3181,8 @@ class CDPBackend(AbstractBackend):
             A trace ID string for later stopping and collecting results.
         """
         session = self._require_session()
-        trace_id = f"trace-{int(time.time() * 1000)}"
+        self._trace_counter += 1
+        trace_id = f"trace-{self._trace_counter}"
 
         state: dict[str, Any] = {
             "trace_events": [],
@@ -3188,7 +3252,6 @@ class CDPBackend(AbstractBackend):
 
         await session.send("Tracing.start", {"traceType": "devtools-timeline"})
 
-        self._combined_traces: dict[str, dict[str, Any]] = getattr(self, "_combined_traces", {})
         self._combined_traces[trace_id] = state
         return trace_id
 
@@ -3202,7 +3265,7 @@ class CDPBackend(AbstractBackend):
             Dict with keys: trace_events, screenshots, network, console.
         """
         session = self._require_session()
-        traces: dict[str, dict[str, Any]] = getattr(self, "_combined_traces", {})
+        traces = self._combined_traces
         state = traces.get(trace_id)
         if state is None:
             return {"error": f"Unknown trace_id: {trace_id}"}
@@ -3215,19 +3278,15 @@ class CDPBackend(AbstractBackend):
             try:
                 stream_handle = params.get("stream")
                 if stream_handle:
-                    chunks: list[bytes] = []
-                    while True:
-                        resp = await session.send("IO.read", {"handle": stream_handle})
-                        data = resp.get("data", "")
-                        if not data:
-                            break
-                        chunks.append(base64.b64decode(data))
-                        if not resp.get("base64Encoded", True):
-                            break
-                    raw = b"".join(chunks)
+                    raw = await read_trace_stream(
+                        lambda: session.send("IO.read", {"handle": stream_handle})
+                    )
                     extracted = await asyncio.to_thread(extract_trace_events, raw)
                     trace_events.extend(extracted)
             finally:
+                if stream_handle:
+                    with contextlib.suppress(Exception):
+                        await session.send("IO.close", {"handle": stream_handle})
                 tracing_done.set()
 
         session.on("Tracing.tracingComplete", _on_tracing_complete)
@@ -3245,8 +3304,10 @@ class CDPBackend(AbstractBackend):
                     )
 
             # Wait for the tracingComplete handler to finish (max 10s).
-            with contextlib.suppress(TimeoutError):
+            try:
                 await asyncio.wait_for(tracing_done.wait(), timeout=10.0)
+            except TimeoutError:
+                logger.warning("tracingComplete handler did not fire within 10s")
         finally:
             session.off("Tracing.tracingComplete", _on_tracing_complete)
 
@@ -3290,15 +3351,13 @@ class CDPBackend(AbstractBackend):
             "})"
         )
         result = await session.runtime.evaluate(axe_js, await_promise=True)
-        value = result.get("result", {}).get("value")
+        value = (result or {}).get("result", {}).get("value")
         if isinstance(value, dict):
             return value
-        if isinstance(value, str):
-            try:
-                return dict(json.loads(value))
-            except (json.JSONDecodeError, TypeError):
-                pass
-        return {"error": "axe-core audit failed", "raw": dict(result)}
+        parsed = _safe_json_loads(value, {})
+        if isinstance(parsed, dict) and parsed:
+            return parsed
+        return {"error": "axe-core audit failed", "raw": dict(result) if result else None}
 
     # ── Event subscription (W11) ───────────────────────────
 
@@ -3317,10 +3376,8 @@ class CDPBackend(AbstractBackend):
             A subscription ID for later unsubscription.
         """
         session = self._require_session()
-        sub_id = f"sub-{int(time.time() * 1000)}"
-
-        if not hasattr(self, "_subscriptions"):
-            self._subscriptions: dict[str, dict[str, Any]] = {}
+        self._subscription_counter += 1
+        sub_id = f"sub-{self._subscription_counter}"
 
         handlers: dict[str, Any] = {}
 
@@ -3367,12 +3424,16 @@ class CDPBackend(AbstractBackend):
             subscription_id: The ID returned by subscribe_events.
         """
         session = self._require_session()
-        subs: dict[str, dict[str, Any]] = getattr(self, "_subscriptions", {})
-        handlers = subs.pop(subscription_id, {})
+        handlers = self._subscriptions.pop(subscription_id, {})
         for cdp_event, handler in handlers.items():
             off = getattr(session, "off", None)
             if off is not None:
-                off(cdp_event, handler)
+                try:
+                    off(cdp_event, handler)
+                except Exception:
+                    # The handler may have been removed already; keep going
+                    # so the remaining subscriptions are cleaned up.
+                    self._subscriptions.setdefault(subscription_id, {})[cdp_event] = handler
 
     # ── Accessibility ──────────────────────────────────────
 
@@ -4014,6 +4075,7 @@ class CDPBackend(AbstractBackend):
         """
         session = self._require_session()
         trace_events: list[dict[str, Any]] = []
+        tracing_done = asyncio.Event()
 
         async def _on_tracing_complete(params: dict[str, Any]) -> None:
             """Handle Tracing.tracingComplete and extract trace events from the stream.
@@ -4021,25 +4083,22 @@ class CDPBackend(AbstractBackend):
             Args:
                 params: CDP event parameters containing the trace data stream handle.
             """
-            stream_handle = params.get("stream")
-            if stream_handle:
-                chunks: list[bytes] = []
-                while True:
-                    resp = await session.send(
-                        "IO.read",
-                        {"handle": stream_handle},
-                    )
-                    data = resp.get("data", "")
-                    if not data:
-                        break
-                    chunks.append(base64.b64decode(data))
-                    if not resp.get("base64Encoded", True):
-                        break
-                raw = b"".join(chunks)
-                extracted = await asyncio.to_thread(extract_trace_events, raw)
-                trace_events.extend(extracted)
-            else:
-                trace_events.append({"error": "No stream handle in tracingComplete"})
+            try:
+                stream_handle = params.get("stream")
+                if stream_handle:
+                    try:
+                        raw = await read_trace_stream(
+                            lambda: session.send("IO.read", {"handle": stream_handle})
+                        )
+                        extracted = await asyncio.to_thread(extract_trace_events, raw)
+                        trace_events.extend(extracted)
+                    finally:
+                        with contextlib.suppress(Exception):
+                            await session.send("IO.close", {"handle": stream_handle})
+                else:
+                    trace_events.append({"error": "No stream handle in tracingComplete"})
+            finally:
+                tracing_done.set()
 
         session.on("Tracing.tracingComplete", _on_tracing_complete)
         try:
@@ -4049,6 +4108,12 @@ class CDPBackend(AbstractBackend):
             )
             await asyncio.sleep(duration_ms / 1000)
             await session.send("Tracing.end", {})
+
+            # Wait for the tracingComplete handler to finish (max 10s).
+            try:
+                await asyncio.wait_for(tracing_done.wait(), timeout=10.0)
+            except TimeoutError:
+                logger.warning("tracingComplete handler did not fire within 10s")
         finally:
             session.off("Tracing.tracingComplete", _on_tracing_complete)
         return {"traceEvents": trace_events}
@@ -10722,14 +10787,20 @@ class TabHandle(CDPBackend):
         self._console_entries: list[dict[str, Any]] = []
         self._log_entries: list[dict[str, Any]] = []
         self._current_url: str = ""
+        self._subscriptions: dict[str, dict[str, Any]] = {}
+        self._combined_traces: dict[str, dict[str, Any]] = {}
 
     async def close(self) -> None:
         """Close the tab session without closing the browser."""
         if self._session is not None:
+            for handlers in self._subscriptions.values():
+                for cdp_event, handler in handlers.items():
+                    with contextlib.suppress(Exception):
+                        self._session.off(cdp_event, handler)
+            self._subscriptions.clear()
             await self._session.close()
             self._session = None
         self._client = None
         # Drop any in-progress combined traces so their captured frames
         # and events are released before the backend is reused or GC'd.
-        if hasattr(self, "_combined_traces"):
-            self._combined_traces.clear()
+        self._combined_traces.clear()

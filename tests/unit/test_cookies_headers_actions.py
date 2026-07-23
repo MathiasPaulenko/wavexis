@@ -72,6 +72,19 @@ class TestCookieAction:
         with pytest.raises(ValueError, match="name is required"):
             await CookieAction(params).execute(backend)
 
+    async def test_delete_cookie_missing_domain(self) -> None:
+        """Test delete cookie raises ValueError without domain."""
+        backend = MagicMock()
+        backend.launch = AsyncMock()
+        backend.navigate = AsyncMock()
+        backend.close = AsyncMock()
+
+        params = CookieActionParams(
+            url="https://example.com", action="delete", name="token"
+        )
+        with pytest.raises(ValueError, match="domain is required"):
+            await CookieAction(params).execute(backend)
+
     async def test_clear_cookies(self) -> None:
         """Test clear cookies action."""
         backend = MagicMock()

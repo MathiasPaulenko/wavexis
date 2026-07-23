@@ -123,6 +123,7 @@ actions:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """{{env.KEY}} should resolve from os.environ."""
+        monkeypatch.setenv("WAVEXIS_ENV_ALLOWLIST", "WAVERXIS_TEST_TOKEN")
         monkeypatch.setenv("WAVERXIS_TEST_TOKEN", "secret123")
         config = tmp_path / "env.yml"
         config.write_text(

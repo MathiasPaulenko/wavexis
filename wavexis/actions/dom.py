@@ -63,10 +63,15 @@ class DOMAction(BaseAction[DOMParams, Any]):
             return None
 
         if params.action == "scroll":
+            try:
+                x = int(float(params.value or 0))
+                y = int(float(params.attribute or 0)) if params.attribute else 0
+            except (TypeError, ValueError) as exc:
+                raise ActionError(f"scroll offsets must be numeric: {exc}") from exc
             await backend.dom_scroll(
                 selector=params.selector or None,
-                x=int(params.value or 0),
-                y=int(params.attribute or 0) if params.attribute else 0,
+                x=x,
+                y=y,
             )
             return None
 

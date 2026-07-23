@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from typing import Any
 
@@ -36,5 +37,5 @@ class MultiAction(BaseAction[Path, list[Any]]):
         Returns:
             List of results from each action.
         """
-        actions = parse_yaml(self.params)
+        actions = await asyncio.to_thread(parse_yaml, self.params)
         return await execute_actions(actions, backend, parallel=self._parallel)

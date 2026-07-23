@@ -7,6 +7,7 @@ from typing import Any
 
 from wavexis.actions.base import BaseAction
 from wavexis.backend.base import AbstractBackend
+from wavexis.config import _validate_choice, _validate_url
 from wavexis.exceptions import ActionError
 
 
@@ -23,6 +24,14 @@ class TabsParams:
     action: str = "list"
     url: str = "about:blank"
     tab_id: str = ""
+
+    def __post_init__(self) -> None:
+        """Validate tab action parameters."""
+        _validate_choice(self.action, "tabs action", {"list", "new", "close", "activate"})
+        if self.action == "new":
+            _validate_url(self.url, allow_empty=False)
+        if self.action in ("close", "activate") and not self.tab_id:
+            raise ActionError("tab_id is required for 'close' and 'activate' actions")
 
 
 class TabsAction(BaseAction[TabsParams, Any]):

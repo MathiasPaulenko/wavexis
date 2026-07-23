@@ -306,7 +306,13 @@ def page_snapshot(
     # Ensure the parent directory exists so the write doesn't fail
     # when the default ref/output/ path is used.
     out_path = validate_path(output)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        typer.echo(
+            f"Error: failed to create output directory {out_path.parent}: {e}", err=True
+        )
+        raise typer.Exit(1) from e
     Output.write_bytes(data.encode("utf-8"), output)
     typer.echo(f"Snapshot saved to {output}")
 

@@ -8,7 +8,8 @@ from typing import Any
 
 from wavexis.actions.base import BaseAction
 from wavexis.backend.base import AbstractBackend
-from wavexis.config import BrowserOptions, WaitStrategy
+from wavexis.config import BrowserOptions, WaitStrategy, _validate_url
+from wavexis.exceptions import ActionError
 
 
 @dataclass
@@ -28,6 +29,19 @@ class ExtractParams:
     selector: str | None = None
     wait: WaitStrategy = field(default_factory=WaitStrategy)
     browser: BrowserOptions = field(default_factory=BrowserOptions)
+
+    def __post_init__(self) -> None:
+        """Validate extraction parameters."""
+        _validate_url(self.url)
+        if not isinstance(self.schema, dict):
+            raise ActionError("schema must be a dict of field names to CSS selectors")
+        for key, value in self.schema.items():
+            if not isinstance(key, str) or not isinstance(value, str):
+                raise ActionError("schema keys and values must be strings")
+            if "\x00" in value:
+                raise ActionError("selector cannot contain null bytes")
+        if self.selector is not None and not isinstance(self.selector, str):
+            raise ActionError("selector must be a string or None")
 
 
 class ExtractAction(BaseAction[ExtractParams, list[dict[str, Any]]]):

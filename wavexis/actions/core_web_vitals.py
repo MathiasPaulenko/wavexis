@@ -9,7 +9,12 @@ from typing import Any
 
 from wavexis.actions.base import BaseAction
 from wavexis.backend.base import AbstractBackend
-from wavexis.config import BrowserOptions, WaitStrategy
+from wavexis.config import (
+    BrowserOptions,
+    WaitStrategy,
+    _validate_int_range,
+    _validate_url,
+)
 from wavexis.exceptions import WavexisError
 
 logger = logging.getLogger(__name__)
@@ -61,6 +66,13 @@ class CoreWebVitalsParams:
     browser: BrowserOptions = field(default_factory=BrowserOptions)
     budgets: dict[str, float] = field(default_factory=dict)
     observe_ms: int = 5000
+
+    def __post_init__(self) -> None:
+        """Validate Core Web Vitals parameters."""
+        _validate_url(self.url)
+        _validate_int_range(self.observe_ms, "observe_ms", min_value=0, max_value=600_000)
+        if not isinstance(self.budgets, dict):
+            raise WavexisError("budgets must be a dict of metric → threshold value")
 
 
 class CoreWebVitalsAction(BaseAction[CoreWebVitalsParams, dict[str, Any]]):

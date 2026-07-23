@@ -458,6 +458,11 @@ class DOMParams:
     def __post_init__(self) -> None:
         """Validate DOM parameters."""
         _validate_url(self.url)
+        _validate_choice(
+            self.action,
+            "dom action",
+            {"get", "query", "attr", "remove_attr", "remove", "focus", "scroll"},
+        )
 
 
 @dataclass
@@ -628,6 +633,13 @@ class EmulationParams:
             raise ActionError(
                 f"Invalid device {self.device!r}; available: {', '.join(sorted(DEVICE_PRESETS))}"
             )
+        if self.action == "geolocation":
+            if not -90 <= self.latitude <= 90:
+                raise ActionError(f"latitude must be between -90 and 90; got {self.latitude}")
+            if not -180 <= self.longitude <= 180:
+                raise ActionError(f"longitude must be between -180 and 180; got {self.longitude}")
+            if self.accuracy < 0:
+                raise ActionError(f"accuracy must be >= 0; got {self.accuracy}")
 
 
 @dataclass

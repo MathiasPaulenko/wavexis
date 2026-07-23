@@ -422,7 +422,13 @@ async def _events_subscribe(
         typer.echo(f"Unsubscribed (captured {count} event(s))")
         if output:
             out_path = validate_path(output)
-            out_path.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                out_path.parent.mkdir(parents=True, exist_ok=True)
+            except OSError as e:
+                typer.echo(
+                    f"Error: failed to create output directory {out_path.parent}: {e}", err=True
+                )
+                raise typer.Exit(1) from e
             lines = [json.dumps(event, default=str) for event in buffer]
             await asyncio.to_thread(_append_jsonl, out_path, lines)
     finally:

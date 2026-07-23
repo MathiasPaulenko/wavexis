@@ -182,9 +182,7 @@ def _load_global_config() -> None:
             ctx.stealth = bool(raw["stealth"])
     except ImportError:
         _echo(f"Warning: failed to load config from {config_path}: PyYAML not installed")
-    except (OSError, ValueError, TypeError) as exc:
-        _echo(f"Warning: failed to load config from {config_path}: {exc}")
-    except Exception as exc:
+    except (OSError, ValueError, TypeError, yaml.YAMLError) as exc:
         _echo(f"Warning: failed to load config from {config_path}: {exc}")
 
 
@@ -450,10 +448,10 @@ def _browser_options() -> BrowserOptions:
     return BrowserOptions(
         headless=ctx.headless,
         timeout=ctx.timeout,
-        proxy=ctx.proxy,
-        user_data_dir=ctx.user_data_dir,
-        browser_url=ctx.browser_url,
-        remote_url=ctx.remote_url,
+        proxy=ctx.proxy or None,
+        user_data_dir=ctx.user_data_dir or None,
+        browser_url=ctx.browser_url or None,
+        remote_url=ctx.remote_url or None,
         stealth=ctx.stealth,
     )
 

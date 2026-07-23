@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import time
@@ -56,6 +57,7 @@ class ActionCache:
         """
         self._store: dict[str, CacheEntry] = {}
         self._url_index: dict[str, set[str]] = {}
+        self._locks: dict[str, asyncio.Lock] = {}
         self.default_ttl = default_ttl
 
     @staticmethod

@@ -63,6 +63,26 @@ class TestShadowEval:
         result = asyncio.run(backend.shadow_eval(["my-component", "button"], "this.textContent"))
         assert result == "hello"
 
+    def test_cdp_shadow_eval_uses_function_constructor(self) -> None:
+        """Regression: shadow_eval must evaluate the expression, not return it as a string."""
+        backend = _make_cdp_backend()
+        backend._session.runtime.evaluate = AsyncMock(return_value={"result": {"value": 42}})
+        asyncio.run(backend.shadow_eval(["my-component"], "1 + 1"))
+        expression = backend._session.runtime.evaluate.call_args[0][0]
+        assert "new Function(" in expression
+        assert '"1 + 1"' in expression
+
+    def test_bidi_shadow_eval_uses_function_constructor(self) -> None:
+        """Regression: shadow_eval must evaluate the expression, not return it as a string."""
+        backend = _make_bidi_backend()
+        result_mock = MagicMock()
+        result_mock.value = 42
+        backend._client.script.evaluate = AsyncMock(return_value=result_mock)
+        asyncio.run(backend.shadow_eval(["my-component"], "1 + 1"))
+        expression = backend._client.script.evaluate.call_args[0][1]
+        assert "new Function(" in expression
+        assert '"1 + 1"' in expression
+
 
 @pytest.mark.unit
 class TestShadowClick:

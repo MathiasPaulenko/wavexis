@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from typing import Any
 
 from wavexis.actions.base import BaseAction
@@ -84,11 +85,13 @@ class DialogAction(BaseAction[str, None]):
         timeout = self._timeout
         if timeout is None:
             raise TypeError("timeout is required for dialog wait")
+        if timeout <= 0:
+            raise WavexisError("dialog timeout must be positive")
         wait_task = asyncio.create_task(backend.dialog_wait_for_opening(timeout))
-        # Yield so the task registers its event handler before navigation.
-        await asyncio.sleep(0)
-        await backend.navigate(self._url, self._wait)
         try:
+            # Yield so the task registers its event handler before navigation.
+            await asyncio.sleep(0)
+            await backend.navigate(self._url, self._wait)
             await wait_task
         except TimeoutError:
             raise WavexisError(
@@ -96,3 +99,8 @@ class DialogAction(BaseAction[str, None]):
                 "Verify the page triggers a dialog (alert, confirm, prompt) "
                 "or increase --timeout."
             ) from None
+        finally:
+            if not wait_task.done():
+                wait_task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await wait_task

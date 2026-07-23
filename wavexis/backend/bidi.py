@@ -10,26 +10,20 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import binascii
 import contextlib
+import importlib.util
 import inspect
 import json
+import logging
 import re
 import tempfile
 import time
 from pathlib import Path
 from typing import Any
 
-try:
-    from io import BytesIO
-
-    from PIL import Image
-
-    PIL_AVAILABLE = True
-except ImportError:
-    PIL_AVAILABLE = False
-
 from wavexis import __version__
-from wavexis.backend._trace import extract_trace_events
+from wavexis.backend._trace import extract_trace_events, read_trace_stream
 from wavexis.backend.base import AbstractBackend
 from wavexis.config import (
     DEVICE_PRESETS,
@@ -43,6 +37,7 @@ from wavexis.config import (
     SensorParams,
     ThrottleParams,
     WaitStrategy,
+    _validate_url,
 )
 from wavexis.exceptions import (
     ElementNotFoundError,
@@ -51,6 +46,10 @@ from wavexis.exceptions import (
     WavexisError,
 )
 from wavexis.output import validate_path
+
+logger = logging.getLogger(__name__)
+
+PIL_AVAILABLE = importlib.util.find_spec("PIL") is not None
 
 
 def _safe_json_loads(value: Any, default: Any = None) -> Any:
@@ -68,6 +67,48 @@ def _safe_json_loads(value: Any, default: Any = None) -> Any:
         return json.loads(value)
     except (json.JSONDecodeError, TypeError):
         return default
+
+
+def _safe_int(value: Any, default: int = 0) -> int:
+    """Convert a value to an integer, falling back to ``default`` on failure."""
+    if value is None:
+        return default
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return default
+
+
+def _b64decode(data: Any) -> bytes:
+    """Decode base64 data safely, returning empty bytes for missing/invalid values."""
+    if not data:
+        return b""
+    if isinstance(data, bytes):
+        return data
+    if not isinstance(data, str):
+        return b""
+    try:
+        return base64.b64decode(data)
+    except (binascii.Error, TypeError, ValueError):
+        return b""
+
+
+def _crop_image(image_bytes: bytes, rect: dict[str, Any], format: str) -> bytes:
+    """Crop ``image_bytes`` to ``rect`` using Pillow (sync helper)."""
+    from io import BytesIO
+
+    from PIL import Image
+
+    img = Image.open(BytesIO(image_bytes))
+    x = _safe_int(rect.get("x", 0))
+    y = _safe_int(rect.get("y", 0))
+    width = _safe_int(rect.get("width", img.width))
+    height = _safe_int(rect.get("height", img.height))
+    crop_box = (x, y, x + width, y + height)
+    cropped = img.crop(crop_box)
+    output = BytesIO()
+    cropped.save(output, format=format.upper() if format != "jpg" else "JPEG")
+    return output.getvalue()
 
 
 try:
@@ -127,6 +168,10 @@ class BiDiBackend(AbstractBackend):
         self._client: BiDiClient | None = None
         self._context: Any = None
         self._current_url: str = ""
+        self._subscriptions: dict[str, list[Any]] = {}
+        self._combined_traces: dict[str, dict[str, Any]] = {}
+        self._subscription_counter = 0
+        self._trace_counter = 0
 
     async def new_tab_handle(self, url: str = "about:blank") -> BiDiTabHandle:
         """Create a new browsing context with its own session for concurrent ops.
@@ -290,12 +335,11 @@ class BiDiBackend(AbstractBackend):
         """Close the BiDi client and release resources."""
         client = self._client
         if client is not None:
-            subs: dict[str, list[Any]] = getattr(self, "_subscriptions", {})
-            for subscriptions in subs.values():
+            for subscriptions in self._subscriptions.values():
                 for subscription in subscriptions:
                     with contextlib.suppress(Exception):
                         client.off(subscription)
-            subs.clear()
+            self._subscriptions.clear()
             if self._context is not None:
                 await client.browsing.close(self._context)
                 self._context = None
@@ -309,6 +353,7 @@ class BiDiBackend(AbstractBackend):
             url: The URL to navigate to.
             wait: Wait strategy (mapped to BiDi wait parameter).
         """
+        _validate_url(url, allow_empty=False)
         client = self._require_launched()
         timeout_ms: int = wait.timeout if wait is not None else 30000
 
@@ -388,8 +433,12 @@ class BiDiBackend(AbstractBackend):
         result = await client.browsing.screenshot(
             self._context, format=params.format, quality=params.quality
         )
-        data = result.data if hasattr(result, "data") else result.get("data", "")
-        return base64.b64decode(data)
+        data = (
+            result.data
+            if result and hasattr(result, "data")
+            else (result or {}).get("data", "")
+        )
+        return _b64decode(data)
 
     async def screenshot_selector(
         self, selector: str, format: str = "png", quality: int = 80
@@ -426,25 +475,16 @@ class BiDiBackend(AbstractBackend):
         )
         data = (
             screenshot_result.data
-            if hasattr(screenshot_result, "data")
-            else screenshot_result.get("data", "")
+            if screenshot_result and hasattr(screenshot_result, "data")
+            else (screenshot_result or {}).get("data", "")
         )
-        image_bytes = base64.b64decode(data)
+        image_bytes = _b64decode(data)
 
         # Crop to bounding box if PIL is available
         if PIL_AVAILABLE:
-            img = Image.open(BytesIO(image_bytes))
-            # rect contains x, y, width, height
-            crop_box = (
-                int(rect.get("x", 0)),
-                int(rect.get("y", 0)),
-                int(rect.get("x", 0) + rect.get("width", img.width)),
-                int(rect.get("y", 0) + rect.get("height", img.height)),
+            return await asyncio.to_thread(
+                _crop_image, image_bytes, rect, format
             )
-            cropped = img.crop(crop_box)
-            output = BytesIO()
-            cropped.save(output, format=format.upper() if format != "jpg" else "JPEG")
-            return output.getvalue()
 
         return image_bytes
 
@@ -516,16 +556,18 @@ class BiDiBackend(AbstractBackend):
         client = self._require_client()
         js = self._annotate_js(selectors)
         result = await client.script.evaluate(self._context, js)
-        raw = getattr(result, "value", None)
-        label_map: dict[str, str] = json.loads(raw) if isinstance(raw, str) else {}
+        raw = getattr(result, "value", None) if result else None
+        label_map = _safe_json_loads(raw, {})
+        if not isinstance(label_map, dict):
+            label_map = {}
         screenshot_result = await client.browsing.screenshot(self._context, format=format)
         await client.script.evaluate(self._context, self._remove_annotate_js())
         data = (
             screenshot_result.data
-            if hasattr(screenshot_result, "data")
-            else screenshot_result.get("data", "")
+            if screenshot_result and hasattr(screenshot_result, "data")
+            else (screenshot_result or {}).get("data", "")
         )
-        return base64.b64decode(data), label_map
+        return _b64decode(data), label_map
 
     async def eval(self, expression: str, await_promise: bool = False) -> Any:
         """Evaluate a JavaScript expression via script.evaluate.
@@ -801,13 +843,13 @@ class BiDiBackend(AbstractBackend):
         await client.cdp.send_command("Page.crash", {})
 
     async def page_create_isolated_world(
-        self, frame_id: str, world_name: str = "", grant_univeral_access: bool = False
+        self, frame_id: str, world_name: str = "", grant_universal_access: bool = False
     ) -> str:
         """Create an isolated world for the given frame via CDP bridge."""
         client = self._require_launched()
         params: dict[str, Any] = {
             "frameId": frame_id,
-            "grantUniveralAccess": grant_univeral_access,
+            "grantUniversalAccess": grant_universal_access,
         }
         if world_name:
             params["worldName"] = world_name
@@ -1085,8 +1127,12 @@ class BiDiBackend(AbstractBackend):
             scale=1.0,
             shrink_to_fit=True,
         )
-        data = result.data if hasattr(result, "data") else result.get("data", "")
-        return base64.b64decode(data)
+        data = (
+            result.data
+            if result and hasattr(result, "data")
+            else (result or {}).get("data", "")
+        )
+        return _b64decode(data)
 
     async def screencast(self, params: ScreencastParams) -> list[bytes]:
         """Capture a screencast via repeated CDP screenshots.
@@ -1113,7 +1159,7 @@ class BiDiBackend(AbstractBackend):
             )
             data = result.get("data", "") if result else ""
             if data:
-                frames.append(base64.b64decode(data))
+                frames.append(_b64decode(data))
             await asyncio.sleep(interval)
             elapsed += interval
         return frames
@@ -1126,6 +1172,7 @@ class BiDiBackend(AbstractBackend):
 
     async def new_tab(self, url: str = "about:blank") -> str:
         """Create a new browsing context (tab) via browsingContext.create."""
+        _validate_url(url, allow_empty=False)
         client = self._require_launched()
         result = await client._connection.send_command(
             "browsingContext.create",
@@ -1297,10 +1344,14 @@ class BiDiBackend(AbstractBackend):
         """Resolve a CSS selector to a CDP nodeId via the CDP bridge."""
         await client.cdp.send_command("DOM.enable", {})
         doc = await client.cdp.send_command("DOM.getDocument", {})
+        if not doc:
+            raise ElementNotFoundError(selector)
         root_id = doc.get("root", {}).get("nodeId", 0)
         result = await client.cdp.send_command(
             "DOM.querySelector", {"nodeId": root_id, "selector": selector}
         )
+        if not result:
+            raise ElementNotFoundError(selector)
         node_id = result.get("nodeId", 0)
         if node_id == 0:
             raise ElementNotFoundError(selector)
@@ -1310,26 +1361,29 @@ class BiDiBackend(AbstractBackend):
         """Get the document root node via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("DOM.enable", {})
-        return dict(await client.cdp.send_command("DOM.getDocument", {}))
+        result = await client.cdp.send_command("DOM.getDocument", {})
+        return dict(result) if result else {}
 
     async def dom_get_flattened_document(self) -> dict[str, Any]:
         """Get the flattened document tree via CDP bridge."""
         client = self._require_launched()
         await client.cdp.send_command("DOM.enable", {})
-        return dict(await client.cdp.send_command("DOM.getFlattenedDocument", {}))
+        result = await client.cdp.send_command("DOM.getFlattenedDocument", {})
+        return dict(result) if result else {}
 
     async def dom_get_box_model(self, selector: str) -> dict[str, Any]:
         """Get the box model for an element matching a CSS selector."""
         client = self._require_launched()
         node_id = await self._find_node_cdp(client, selector)
-        return dict(await client.cdp.send_command("DOM.getBoxModel", {"nodeId": node_id}))
+        result = await client.cdp.send_command("DOM.getBoxModel", {"nodeId": node_id})
+        return dict(result) if result else {}
 
     async def dom_get_content_quads(self, selector: str) -> list[dict[str, Any]]:
         """Get the content quads for an element matching a CSS selector."""
         client = self._require_launched()
         node_id = await self._find_node_cdp(client, selector)
         result = await client.cdp.send_command("DOM.getContentQuads", {"nodeId": node_id})
-        return list(result.get("quads", []))
+        return list((result or {}).get("quads", []))
 
     async def dom_get_node_for_location(self, x: int, y: int) -> dict[str, Any]:
         """Get the node ID for a location in the viewport (hit testing)."""
@@ -2388,7 +2442,7 @@ class BiDiBackend(AbstractBackend):
         js = (
             f"(function(){{var el=({pierce_js});"
             f"if(!el)return null;"
-            f"return (function(){{{escaped_expr}}}).call(el);}})()"
+            f"return (new Function({escaped_expr})).call(el);}})()"
         )
         result = await client.script.evaluate(self._context, js, await_promise=await_promise)
         if hasattr(result, "value"):
@@ -2881,7 +2935,8 @@ class BiDiBackend(AbstractBackend):
             A trace ID string for later stopping and collecting results.
         """
         client = self._require_client()
-        trace_id = f"trace-{int(time.time() * 1000)}"
+        self._trace_counter += 1
+        trace_id = f"trace-{self._trace_counter}"
 
         state: dict[str, Any] = {
             "trace_events": [],
@@ -2941,17 +2996,17 @@ class BiDiBackend(AbstractBackend):
 
         if capture_screenshots:
             result = await client.cdp.send_command("Page.captureScreenshot", {})
-            if result.get("data"):
+            data = result.get("data") if result else None
+            if data:
                 state["screenshots"].append(
                     {
                         "timestamp": time.time(),
-                        "data": result["data"],
+                        "data": data,
                     }
                 )
 
         await client.cdp.send_command("Tracing.start", {"traceType": "devtools-timeline"})
 
-        self._combined_traces: dict[str, dict[str, Any]] = getattr(self, "_combined_traces", {})
         self._combined_traces[trace_id] = state
         return trace_id
 
@@ -2965,8 +3020,7 @@ class BiDiBackend(AbstractBackend):
             Dict with keys: trace_events, screenshots, network, console.
         """
         client = self._require_client()
-        traces: dict[str, dict[str, Any]] = getattr(self, "_combined_traces", {})
-        state = traces.get(trace_id)
+        state = self._combined_traces.get(trace_id)
         if state is None:
             return {"error": f"Unknown trace_id: {trace_id}"}
 
@@ -2978,19 +3032,15 @@ class BiDiBackend(AbstractBackend):
             try:
                 stream_handle = params.get("stream")
                 if stream_handle:
-                    chunks: list[bytes] = []
-                    while True:
-                        resp = await client.cdp.send_command("IO.read", {"handle": stream_handle})
-                        data = resp.get("data", "")
-                        if not data:
-                            break
-                        chunks.append(base64.b64decode(data))
-                        if not resp.get("base64Encoded", True):
-                            break
-                    raw = b"".join(chunks)
+                    raw = await read_trace_stream(
+                        lambda: client.cdp.send_command("IO.read", {"handle": stream_handle})
+                    )
                     extracted = await asyncio.to_thread(extract_trace_events, raw)
                     trace_events.extend(extracted)
             finally:
+                if stream_handle:
+                    with contextlib.suppress(Exception):
+                        await client.cdp.send_command("IO.close", {"handle": stream_handle})
                 tracing_done.set()
 
         client.cdp.on("Tracing.tracingComplete", _on_tracing_complete)
@@ -2999,17 +3049,19 @@ class BiDiBackend(AbstractBackend):
 
             if state["capture_screenshots"]:
                 screenshot_result = await client.cdp.send_command("Page.captureScreenshot", {})
-                if screenshot_result.get("data"):
+                if screenshot_result and screenshot_result.get("data"):
                     state["screenshots"].append(
                         {
-                            "timestamp": 0,
+                            "timestamp": time.time(),
                             "data": screenshot_result["data"],
                         }
                     )
 
             # Wait for the tracingComplete handler to finish (max 10s).
-            with contextlib.suppress(TimeoutError):
+            try:
                 await asyncio.wait_for(tracing_done.wait(), timeout=10.0)
+            except TimeoutError:
+                logger.warning("tracingComplete handler did not fire within 10s")
         finally:
             client.cdp.off("Tracing.tracingComplete", _on_tracing_complete)
 
@@ -3021,7 +3073,7 @@ class BiDiBackend(AbstractBackend):
         }
         for event_name, handler in state.get("handlers", []):
             client.cdp.off(event_name, handler)
-        del traces[trace_id]
+        del self._combined_traces[trace_id]
         return result
 
     # ── axe-core audit (W9) ────────────────────────────────
@@ -3050,15 +3102,13 @@ class BiDiBackend(AbstractBackend):
             await_promise=True,
             target=self._context,
         )
-        value = getattr(result, "value", None)
+        value = getattr(result, "value", None) if result else None
         if isinstance(value, dict):
             return dict(value)
-        if isinstance(value, str):
-            try:
-                return dict(json.loads(value))
-            except (json.JSONDecodeError, TypeError):
-                pass
-        return {"error": "axe-core audit failed", "raw": str(result)}
+        parsed = _safe_json_loads(value, {})
+        if isinstance(parsed, dict) and parsed:
+            return parsed
+        return {"error": "axe-core audit failed", "raw": str(result) if result else None}
 
     # ── Event subscription (W11) ───────────────────────────
 
@@ -3077,10 +3127,8 @@ class BiDiBackend(AbstractBackend):
             A subscription ID for later unsubscription.
         """
         client = self._require_client()
-        sub_id = f"sub-{int(time.time() * 1000)}"
-
-        if not hasattr(self, "_subscriptions"):
-            self._subscriptions: dict[str, list[Any]] = {}
+        self._subscription_counter += 1
+        sub_id = f"sub-{self._subscription_counter}"
 
         subscriptions: list[Any] = []
 
@@ -3138,10 +3186,14 @@ class BiDiBackend(AbstractBackend):
             subscription_id: The ID returned by subscribe_events.
         """
         client = self._require_client()
-        subs: dict[str, list[Any]] = getattr(self, "_subscriptions", {})
-        subscriptions = subs.pop(subscription_id, [])
+        subscriptions = self._subscriptions.pop(subscription_id, [])
         for subscription in subscriptions:
-            client.off(subscription)
+            try:
+                client.off(subscription)
+            except Exception:
+                # The subscription may have been removed already; keep going
+                # so the remaining subscriptions are cleaned up.
+                self._subscriptions.setdefault(subscription_id, []).append(subscription)
 
     # ── Accessibility ──────────────────────────────────────
 
@@ -10704,18 +10756,23 @@ class BiDiTabHandle(BiDiBackend):
             client: The BiDiClient instance shared with the parent backend.
             context: The browsing context ID for this specific tab.
         """
+        super().__init__()
         self._client = client
         self._context = context
-        self._current_url: str = ""
 
     async def close(self) -> None:
         """Close the browsing context without closing the browser."""
         client = self._client
+        if client is not None:
+            for subscriptions in self._subscriptions.values():
+                for subscription in subscriptions:
+                    with contextlib.suppress(Exception):
+                        client.off(subscription)
+            self._subscriptions.clear()
         if client is not None and self._context is not None:
             await client.browsing.close(self._context)
             self._context = None
         self._client = None
         # Drop any in-progress combined traces so their captured frames
         # and events are released before the backend is reused or GC'd.
-        if hasattr(self, "_combined_traces"):
-            self._combined_traces.clear()
+        self._combined_traces.clear()

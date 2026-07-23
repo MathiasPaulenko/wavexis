@@ -228,24 +228,28 @@ class TestCombinedTraceAction:
 class TestHARReplayAction:
     """Tests for har_replay action."""
 
-    async def test_replay(self) -> None:
+    async def test_replay(self, tmp_path: Path) -> None:
         from wavexis.actions.har_replay import HARReplayAction, HARReplayParams
 
+        har_file = tmp_path / "test.har"
+        har_file.write_text('{"log": {"version": "1.2", "entries": []}}', encoding="utf-8")
         backend = MockBackend()
         backend.replay_har = AsyncMock()
-        params = HARReplayParams(har_path="/tmp/test.har", url="https://example.com")
+        params = HARReplayParams(har_path=str(har_file), url="https://example.com")
         action = HARReplayAction(params)
         result = await action.execute(backend)
 
         assert result["status"] == "ok"
-        assert result["har_path"] == "/tmp/test.har"
+        assert result["har_path"] == str(har_file)
 
-    async def test_replay_no_url(self) -> None:
+    async def test_replay_no_url(self, tmp_path: Path) -> None:
         from wavexis.actions.har_replay import HARReplayAction, HARReplayParams
 
+        har_file = tmp_path / "test.har"
+        har_file.write_text('{"log": {"version": "1.2", "entries": []}}', encoding="utf-8")
         backend = MockBackend()
         backend.replay_har = AsyncMock()
-        params = HARReplayParams(har_path="/tmp/test.har")
+        params = HARReplayParams(har_path=str(har_file))
         action = HARReplayAction(params)
         result = await action.execute(backend)
 
@@ -409,7 +413,7 @@ class TestAuthFull:
 
         backend = MockBackend()
         backend.navigate = AsyncMock()
-        ctx = AuthContext()
+        ctx = AuthContext(target_origin="https://example.com")
         await apply_auth_context(backend, ctx, "https://example.com")
         assert backend.navigate.call_count == 1
 
@@ -421,10 +425,23 @@ class TestAuthFull:
         backend.set_cookie = AsyncMock()
         backend.navigate = AsyncMock()
 
-        ctx = AuthContext(username="user", password="pass")
+        ctx = AuthContext(
+            username="user",
+            password="pass",
+            target_origin="https://example.com",
+        )
         await apply_auth_context(backend, ctx, "https://example.com")
 
         assert backend.set_headers.call_count == 1
+
+    async def test_apply_auth_context_rejects_mismatched_origin(self) -> None:
+        from wavexis.auth import AuthContext, apply_auth_context
+        from wavexis.exceptions import WavexisError
+
+        backend = MockBackend()
+        ctx = AuthContext(target_origin="https://example.com")
+        with pytest.raises(WavexisError, match="allowed auth origin"):
+            await apply_auth_context(backend, ctx, "https://evil.com")
 
     def test_load_auth_context_with_password_warning(self, tmp_path: Path, caplog) -> None:
         import logging

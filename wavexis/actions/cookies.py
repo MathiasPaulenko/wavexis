@@ -38,12 +38,17 @@ class CookieAction(BaseAction[CookieActionParams, Any]):
             return await backend.get_cookies()
 
         if action == "set":
-            await backend.set_cookie(self.params.cookie)
+            cookie = self.params.cookie
+            if cookie is None or not cookie.name or not cookie.value:
+                raise ActionError("name and value are required for set action")
+            await backend.set_cookie(cookie)
             return None
 
         if action == "delete":
             if not self.params.name:
                 raise ActionError("name is required for delete action")
+            if not self.params.domain:
+                raise ActionError("domain is required for delete action")
             await backend.delete_cookie(self.params.name, self.params.domain)
             return None
 

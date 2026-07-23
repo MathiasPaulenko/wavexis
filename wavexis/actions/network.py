@@ -32,14 +32,22 @@ class NetworkAction(BaseAction[NetworkParams, Any]):
 
         if params.action == "cookies_set":
             if params.cookie:
+                if not params.cookie.name or not params.cookie.value:
+                    raise ActionError("name and value are required for cookies_set")
                 await backend.set_cookie(params.cookie)
             elif params.cookies:
                 from wavexis.config import CookieParams
 
                 for cookie_dict in params.cookies:
+                    name = str(cookie_dict.get("name", ""))
+                    value = str(cookie_dict.get("value", ""))
+                    if not name or not value:
+                        raise ActionError(
+                            "name and value are required for each cookie in cookies_set"
+                        )
                     cookie = CookieParams(
-                        name=str(cookie_dict.get("name", "")),
-                        value=str(cookie_dict.get("value", "")),
+                        name=name,
+                        value=value,
                         domain=str(cookie_dict.get("domain", "")),
                         path=str(cookie_dict.get("path", "/")),
                         secure=bool(cookie_dict.get("secure", True)),
@@ -47,6 +55,8 @@ class NetworkAction(BaseAction[NetworkParams, Any]):
                         same_site=str(cookie_dict.get("same_site", "Lax")),
                     )
                     await backend.set_cookie(cookie)
+            else:
+                raise ActionError("cookie or cookies is required for cookies_set action")
             return None
 
         if params.action == "cookies_delete":

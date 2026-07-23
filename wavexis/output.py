@@ -12,29 +12,59 @@ from typing import Any
 
 import typer
 
-__all__ = ["Output", "validate_path"]
+__all__ = ["Output", "set_allowed_base_dir", "validate_path"]
 
 
-def validate_path(path: str | Path) -> Path:
+_ALLOWED_BASE_DIR: Path | None = None
+
+
+def set_allowed_base_dir(path: str | Path | None) -> None:
+    """Set the base directory that file paths must be inside of.
+
+    When set, :func:`validate_path` resolves the supplied path and ensures it
+    is located inside the configured base directory (after resolving symlinks).
+    Call with ``None`` to disable the restriction.
+
+    Args:
+        path: Absolute path to the allowed base directory, or None to allow
+            any path (default, not recommended for server mode).
+    """
+    global _ALLOWED_BASE_DIR
+    _ALLOWED_BASE_DIR = Path(path).resolve() if path else None
+
+
+def validate_path(path: str | Path, *, base_dir: str | Path | None = None) -> Path:
     """Validate a user-supplied file or directory path.
 
-    Rejects parent-directory traversal and null bytes. Absolute paths are
-    allowed, but ``..`` segments are not.
+    Rejects parent-directory traversal, null bytes and, when a base directory
+    is configured, paths that resolve outside of it.
 
     Args:
         path: The path to validate.
+        base_dir: Optional base directory the path must be inside of. If not
+            provided, the module-level base directory set by
+            :func:`set_allowed_base_dir` is used.
 
     Returns:
         The resolved Path object.
 
     Raises:
-        ValueError: If the path attempts directory traversal or contains null bytes.
+        ValueError: If the path is invalid or outside the allowed base directory.
     """
     if isinstance(path, str) and "\x00" in path:
         raise ValueError(f"Invalid path: {path}")
     p = Path(path)
     if ".." in p.parts or any("\x00" in part for part in p.parts):
         raise ValueError(f"Invalid path: {path}")
+
+    allowed = Path(base_dir).resolve() if base_dir is not None else _ALLOWED_BASE_DIR
+    if allowed is not None:
+        resolved = p.resolve()
+        try:
+            resolved.relative_to(allowed)
+        except ValueError as exc:
+            raise ValueError(f"Invalid path: {path}") from exc
+        return resolved
     return p
 
 

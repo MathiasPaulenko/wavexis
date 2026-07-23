@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
+import logging
 from typing import Any
 
 import yaml
@@ -13,7 +14,9 @@ from wavexis.backend.base import AbstractBackend
 from wavexis.config import BrowserOptions, WaitStrategy
 from wavexis.exceptions import WavexisError
 
-_RECORD_SCRIPT = """
+logger = logging.getLogger(__name__)
+
+_RECORD_SCRIPT = r"""
 (function() {
     const events = [];
     const recordEvent = (type, data) => {
@@ -21,20 +24,30 @@ _RECORD_SCRIPT = """
         window.__wavexis_record_events = events;
     };
 
+    // Build a robust CSS selector for the element, escaping any special
+    // characters that would break querySelector or allow injection.
+    const esc = (s) => CSS.escape(String(s));
+    const classSelector = (el) => {
+        const cls = el.className;
+        if (cls && typeof cls === 'string') {
+            const first = cls.trim().split(/\s+/)[0];
+            if (first) return '.' + esc(first);
+        }
+        return '';
+    };
+
     document.addEventListener('click', (e) => {
         const el = e.target;
-        const selector = el.id ? '#' + el.id :
-            el.className && typeof el.className === 'string' ?
-                '.' + el.className.split(' ')[0] :
-                el.tagName.toLowerCase();
+        const selector = el.id ? '#' + esc(el.id) :
+            classSelector(el) || el.tagName.toLowerCase();
         recordEvent('click', { selector, x: e.clientX, y: e.clientY });
     }, true);
 
     document.addEventListener('change', (e) => {
         const el = e.target;
         if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {
-            const selector = el.id ? '#' + el.id :
-                el.name ? `[name="${el.name}"]` :
+            const selector = el.id ? '#' + esc(el.id) :
+                el.name ? '[name=' + esc(el.name) + ']' :
                 el.tagName.toLowerCase();
             recordEvent('input', { selector, value: el.value, tag: el.tagName.toLowerCase() });
         }
@@ -43,7 +56,7 @@ _RECORD_SCRIPT = """
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === 'Tab' || e.key === 'Escape') {
             const el = e.target;
-            const selector = el.id ? '#' + el.id :
+            const selector = el.id ? '#' + esc(el.id) :
                 el.tagName.toLowerCase();
             recordEvent('keypress', { selector, key: e.key });
         }
@@ -157,7 +170,7 @@ async def record_session(
             events = json.loads(raw)
         elif isinstance(raw, list):
             events = raw
-    except (json.JSONDecodeError, TypeError, WavexisError):
-        pass
+    except (json.JSONDecodeError, TypeError, WavexisError) as exc:
+        logger.warning("Failed to collect recorded events: %s", exc)
 
     return events_to_yaml(events, url)

@@ -79,3 +79,15 @@ class TestEmulationAction:
         action = EmulationAction(params)
         with pytest.raises(ValueError, match="Unknown emulation action"):
             await action.execute(backend)
+
+    @pytest.mark.unit
+    async def test_geolocation_latitude_range(self) -> None:
+        """Test geolocation latitude is range validated."""
+        with pytest.raises(ValueError, match="latitude"):
+            EmulationParams(action="geolocation", latitude=999, longitude=0)
+
+    @pytest.mark.unit
+    async def test_geolocation_longitude_range(self) -> None:
+        """Test geolocation longitude is range validated."""
+        with pytest.raises(ValueError, match="longitude"):
+            EmulationParams(action="geolocation", latitude=0, longitude=999)

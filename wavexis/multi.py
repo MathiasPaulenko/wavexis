@@ -19,22 +19,51 @@ from wavexis.output import validate_path
 __all__ = ["parse_yaml", "execute_actions"]
 
 
-def _substitute_variables(value: Any, variables: dict[str, str]) -> Any:
+_MAX_SUBSTITUTION_DEPTH = 100
+_MAX_STRING_LENGTH = 1_000_000
+
+
+def _get_allowed_env_vars() -> frozenset[str]:
+    """Return the set of environment variable names allowed for substitution.
+
+    Names are read from the ``WAVEXIS_ENV_ALLOWLIST`` environment variable as a
+    comma-separated list. If the variable is not set, no environment variables
+    may be substituted.
+    """
+    allowlist = os.environ.get("WAVEXIS_ENV_ALLOWLIST", "")
+    return frozenset(name.strip() for name in allowlist.split(",") if name.strip())
+
+
+def _substitute_variables(
+    value: Any,
+    variables: dict[str, str],
+    depth: int = 0,
+) -> Any:
     """Recursively substitute {{var}} and {{env.X}} in strings.
 
     Args:
         value: The value to substitute in (str, dict, list, etc.).
         variables: User-defined variables from the config's 'vars' section.
+        depth: Current recursion depth (used internally).
 
     Returns:
         The value with all substitutions applied.
+
+    Raises:
+        ValueError: If recursion depth or string length limits are exceeded.
     """
+    if depth > _MAX_SUBSTITUTION_DEPTH:
+        raise ValueError("Variable substitution depth exceeded")
     if isinstance(value, str):
+        if len(value) > _MAX_STRING_LENGTH:
+            raise ValueError("String too large for variable substitution")
 
         def replacer(match: re.Match[str]) -> str:
             expr = match.group(1).strip()
             if expr.startswith("env."):
                 env_key = expr[4:]
+                if "\x00" in env_key or env_key not in _get_allowed_env_vars():
+                    return match.group(0)
                 return os.environ.get(env_key, match.group(0))
             if expr in variables:
                 return str(variables[expr])
@@ -42,9 +71,9 @@ def _substitute_variables(value: Any, variables: dict[str, str]) -> Any:
 
         return re.sub(r"\{\{([^{}]+)\}\}", replacer, value)
     if isinstance(value, dict):
-        return {k: _substitute_variables(v, variables) for k, v in value.items()}
+        return {k: _substitute_variables(v, variables, depth + 1) for k, v in value.items()}
     if isinstance(value, list):
-        return [_substitute_variables(item, variables) for item in value]
+        return [_substitute_variables(item, variables, depth + 1) for item in value]
     return value
 
 
@@ -211,17 +240,17 @@ async def _dispatch(
     if cache is not None and action_type in _CACHEABLE_ACTIONS:
         url = params.get("url", "")
         if url:
-            cached = cache.get(url, action_type, params)
-            if cached is not None:
-                return cached
+            key = cache._make_key(url, action_type, params)
+            lock = cache._locks.setdefault(key, asyncio.Lock())
+            async with lock:
+                cached = cache.get(url, action_type, params)
+                if cached is not None:
+                    return cached
+                result = await _execute_action(action_type, params, backend)
+                cache.set(url, action_type, params, result)
+                return result
 
     result = await _execute_action(action_type, params, backend)
-
-    if cache is not None and action_type in _CACHEABLE_ACTIONS:
-        url = params.get("url", "")
-        if url:
-            cache.set(url, action_type, params, result)
-
     return result
 
 

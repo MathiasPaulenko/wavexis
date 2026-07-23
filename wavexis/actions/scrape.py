@@ -11,6 +11,8 @@ from wavexis.config import ScrapeParams, WaitStrategy
 from wavexis.exceptions import WavexisError
 from wavexis.output import validate_path
 
+MAX_EXPRESSION_LENGTH = 100_000
+
 
 class ScrapeAction(BaseAction[ScrapeParams, list[dict[str, Any]]]):
     """Action for scraping multiple URLs.
@@ -42,6 +44,10 @@ class ScrapeAction(BaseAction[ScrapeParams, list[dict[str, Any]]]):
 
         if not expression:
             expression = "document.title"
+        if len(expression) > MAX_EXPRESSION_LENGTH:
+            raise WavexisError(
+                f"expression exceeds maximum length of {MAX_EXPRESSION_LENGTH} characters"
+            )
 
         wait = params.wait
         if params.selector:

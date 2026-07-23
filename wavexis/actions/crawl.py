@@ -12,7 +12,7 @@ from urllib.parse import urljoin, urlparse
 
 from wavexis.actions.base import BaseAction
 from wavexis.backend.base import AbstractBackend
-from wavexis.config import WaitStrategy
+from wavexis.config import WaitStrategy, _validate_url
 from wavexis.exceptions import ActionError, WavexisError
 
 logger = logging.getLogger(__name__)
@@ -37,6 +37,19 @@ class CrawlParams:
     same_origin: bool = True
     url_pattern: str = ""
     wait: WaitStrategy = field(default_factory=WaitStrategy)
+
+    def __post_init__(self) -> None:
+        """Validate crawl parameters."""
+        _validate_url(self.start_url)
+        if self.max_depth < 0:
+            raise ActionError(f"max_depth must be non-negative; got {self.max_depth}")
+        if self.max_pages < 1:
+            raise ActionError(f"max_pages must be at least 1; got {self.max_pages}")
+        if self.url_pattern:
+            try:
+                re.compile(self.url_pattern)
+            except re.error as e:
+                raise ActionError(f"Invalid url_pattern regex: {e}") from e
 
 
 class CrawlAction(BaseAction[CrawlParams, list[dict[str, Any]]]):

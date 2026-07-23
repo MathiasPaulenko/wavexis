@@ -11,6 +11,8 @@ from wavexis.config import EvalParams
 from wavexis.exceptions import WavexisError
 from wavexis.output import validate_path
 
+MAX_EXPRESSION_LENGTH = 100_000
+
 
 class EvalAction(BaseAction[EvalParams, Any]):
     """Action for evaluating a JavaScript expression on a web page.
@@ -44,5 +46,9 @@ class EvalAction(BaseAction[EvalParams, Any]):
 
         if not expression:
             raise WavexisError("expression or file is required for eval action")
+        if len(expression) > MAX_EXPRESSION_LENGTH:
+            raise WavexisError(
+                f"expression exceeds maximum length of {MAX_EXPRESSION_LENGTH} characters"
+            )
 
         return await backend.eval(expression, await_promise=params.await_promise)

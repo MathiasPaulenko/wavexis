@@ -13,7 +13,6 @@ import dataclasses
 import hmac
 import json
 import logging
-import os
 import time
 import types
 import typing
@@ -38,6 +37,12 @@ from wavexis.config import (
     WaitStrategy,
 )
 from wavexis.exceptions import WavexisError
+from wavexis.output import (
+    set_allowed_base_dir as _output_set_allowed_base_dir,
+)
+from wavexis.output import (
+    validate_path as _output_validate_path,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -298,6 +303,7 @@ def set_allowed_base_dir(path: str | None) -> None:
     """
     global _ALLOWED_BASE_DIR
     _ALLOWED_BASE_DIR = Path(path).resolve() if path else None
+    _output_set_allowed_base_dir(path)
 
 
 def _validate_path(raw_path: str) -> Path:
@@ -323,16 +329,10 @@ def _validate_path(raw_path: str) -> Path:
         )
     if not raw_path or not isinstance(raw_path, str):
         raise WavexisError("A non-empty file path is required.")
-    if "\x00" in raw_path or ".." in Path(raw_path).parts:
-        raise WavexisError(f"Invalid path '{raw_path}'.")
-    resolved = Path(raw_path).resolve()
     try:
-        common = Path(os.path.commonpath([str(resolved), str(_ALLOWED_BASE_DIR)]))
-    except ValueError:
-        raise WavexisError(f"Path '{raw_path}' is outside the allowed base directory.") from None
-    if common != _ALLOWED_BASE_DIR:
-        raise WavexisError(f"Path '{raw_path}' is outside the allowed base directory.")
-    return resolved
+        return _output_validate_path(raw_path, base_dir=_ALLOWED_BASE_DIR)
+    except ValueError as exc:
+        raise WavexisError(f"Invalid path '{raw_path}'.") from exc
 
 
 def _auth_middleware(api_key: str) -> Any:
@@ -410,6 +410,26 @@ def _import_aiohttp() -> Any:
         raise WavexisError("aiohttp is not installed. Run: pip install wavexis[serve]") from exc
 
 
+async def _sanitize_backend(backend: AbstractBackend) -> None:
+    """Reset browser state before returning a backend to the pool.
+
+    This reduces the risk of leaking cookies, storage, headers, or
+    permissions between unrelated server requests.
+    """
+    with contextlib.suppress(Exception):
+        await backend.navigate("about:blank", WaitStrategy(strategy="none"))
+    with contextlib.suppress(Exception):
+        await backend.clear_cookies()
+    with contextlib.suppress(Exception):
+        await backend.storage_clear("local")
+    with contextlib.suppress(Exception):
+        await backend.storage_clear("session")
+    with contextlib.suppress(Exception):
+        await backend.set_headers({})
+    with contextlib.suppress(Exception):
+        await backend.reset_permissions()
+
+
 # ── Handlers ───────────────────────────────────────────────
 
 
@@ -480,6 +500,7 @@ class BackendPool:
                 self._created -= 1
             self._semaphore.release()
             return
+        await _sanitize_backend(backend)
         await self._pool.put(backend)
         self._semaphore.release()
 
@@ -867,8 +888,15 @@ async def handle_cwv(request: Any) -> Any:
 
     data = await _get_json_body(request)
     url = data.get("url", "")
-    observe_ms = int(data.get("observe_ms", 5000))
-    budgets = data.get("budgets", {})
+    try:
+        observe_ms = int(data.get("observe_ms", 5000))
+    except (TypeError, ValueError):
+        return web.json_response(
+            {"error": "observe_ms must be an integer"}, status=400
+        )
+    budgets = data.get("budgets") or {}
+    if not isinstance(budgets, dict):
+        return web.json_response({"error": "budgets must be a JSON object"}, status=400)
     params = CoreWebVitalsParams(
         url=url,
         wait=WaitStrategy(strategy="load"),
@@ -893,7 +921,7 @@ async def handle_auth(request: Any, backend: AbstractBackend) -> Any:
         return web.json_response({"error": str(e)}, status=400)
     url = data.get("url", "")
     try:
-        ctx = load_auth_context(str(context_path))
+        ctx = await asyncio.to_thread(load_auth_context, str(context_path))
     except (json.JSONDecodeError, OSError) as e:
         return web.json_response({"error": f"Failed to load auth context: {e}"}, status=400)
     await apply_auth_context(backend, ctx, url)
@@ -1048,6 +1076,7 @@ async def _stream_console(
     from collections import deque
 
     max_seen = 1000
+    max_message_size = 10_000
     seen: set[str] = set()
     seen_order: deque[str] = deque(maxlen=max_seen)
     while True:
@@ -1055,6 +1084,8 @@ async def _stream_console(
             messages = await backend.capture_console()
             for msg in messages:
                 key = json.dumps(msg, sort_keys=True)
+                if len(key) > max_message_size:
+                    continue
                 if key not in seen:
                     # deque evicts from the left when full on append, so
                     # capture the soon-to-be-evicted key before appending.
@@ -1300,6 +1331,37 @@ async def handle_websocket(request: Any) -> Any:
                 {
                     "type": "error",
                     "message": "Invalid config: interval and quality must be numbers",
+                    "timestamp": time.time(),
+                }
+            )
+            await ws.close()
+            return ws
+
+        if fmt not in {"png", "jpeg", "webp"}:
+            await ws.send_json(
+                {
+                    "type": "error",
+                    "message": "Invalid config: format must be 'png', 'jpeg', or 'webp'",
+                    "timestamp": time.time(),
+                }
+            )
+            await ws.close()
+            return ws
+        if not (0 <= quality <= 100):
+            await ws.send_json(
+                {
+                    "type": "error",
+                    "message": "Invalid config: quality must be between 0 and 100",
+                    "timestamp": time.time(),
+                }
+            )
+            await ws.close()
+            return ws
+        if interval <= 0 or interval > 3600:
+            await ws.send_json(
+                {
+                    "type": "error",
+                    "message": "Invalid config: interval must be between 0 and 3600",
                     "timestamp": time.time(),
                 }
             )
@@ -1552,14 +1614,14 @@ def create_app(
                 "authenticated requests. Consider restricting --cors-origins "
                 "to specific domains."
             )
-        middlewares.append(_cors_middleware(cors_origins))
+        middlewares.append(web.middleware(_cors_middleware(cors_origins)))
 
     if api_key:
-        middlewares.append(_auth_middleware(api_key))
+        middlewares.append(web.middleware(_auth_middleware(api_key)))
 
     if rate_limit and rate_limit > 0:
         bucket = TokenBucket(capacity=rate_limit, refill_period=60.0)
-        middlewares.append(_rate_limit_middleware(bucket))
+        middlewares.append(web.middleware(_rate_limit_middleware(bucket)))
 
     app = web.Application(
         middlewares=middlewares,
@@ -1572,7 +1634,6 @@ def create_app(
 
     app.router.add_post("/screenshot", handle_screenshot)
     app.router.add_post("/pdf", handle_pdf)
-    app.router.add_post("/eval", handle_eval)
     app.router.add_post("/scrape", handle_scrape)
     app.router.add_post("/dom/get", handle_dom_get)
     app.router.add_post("/dom/query", handle_dom_query)
@@ -1595,8 +1656,17 @@ def create_app(
     app.router.add_get("/health", handle_health)
     app.router.add_get("/backends", handle_backends)
     app.router.add_get("/version", handle_version)
-    app.router.add_get("/ws", handle_websocket)
     app.router.add_get("/plugins", handle_plugins)
+
+    # /eval and /ws allow arbitrary JavaScript execution; require an API key
+    # so they are not exposed unauthenticated.
+    if api_key:
+        app.router.add_post("/eval", handle_eval)
+        app.router.add_get("/ws", handle_websocket)
+    else:
+        logger.warning(
+            "/eval and /ws are disabled because no --api-key was provided"
+        )
     return app
 
 

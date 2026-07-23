@@ -45,12 +45,14 @@ class PermissionsAction(BaseAction[str, None]):
         Returns:
             None.
         """
+        if self._action not in ("grant", "reset"):
+            raise ActionError(f"Unknown permissions action: {self._action}")
         if self._url:
             await backend.navigate(self._url, self._wait)
         if self._action == "grant":
+            if not self._permission:
+                raise ActionError("permission is required for grant action")
             await backend.grant_permission(self._permission)
         elif self._action == "reset":
             await backend.reset_permissions()
-        else:
-            raise ActionError(f"Unknown permissions action: {self._action}")
         return None

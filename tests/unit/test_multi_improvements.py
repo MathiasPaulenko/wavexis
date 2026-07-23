@@ -45,14 +45,22 @@ class TestSubstituteVariables:
         assert result == "Navigate to https://example.com now"
 
     def test_env_var(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("WAVEXIS_ENV_ALLOWLIST", "API_KEY")
         monkeypatch.setenv("API_KEY", "secret123")
         result = _substitute_variables("{{env.API_KEY}}", {})
         assert result == "secret123"
 
     def test_env_var_not_set(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("WAVEXIS_ENV_ALLOWLIST", "NONEXISTENT_KEY")
         monkeypatch.delenv("NONEXISTENT_KEY", raising=False)
         result = _substitute_variables("{{env.NONEXISTENT_KEY}}", {})
         assert result == "{{env.NONEXISTENT_KEY}}"
+
+    def test_env_var_not_allowlisted(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("SECRET", "should-not-appear")
+        monkeypatch.setenv("WAVEXIS_ENV_ALLOWLIST", "API_KEY")
+        result = _substitute_variables("{{env.SECRET}}", {})
+        assert result == "{{env.SECRET}}"
 
     def test_multiple_vars(self) -> None:
         result = _substitute_variables(
@@ -95,6 +103,25 @@ class TestSubstituteVariables:
         result = _substitute_variables("{{unclosed", {})
         assert result == "{{unclosed"
 
+    def test_recursion_depth_limit(self) -> None:
+        """Deeply nested structures should fail rather than recurse infinitely."""
+        value: Any = "leaf"
+        for _ in range(200):
+            value = [value]
+        with pytest.raises(ValueError, match="depth"):
+            _substitute_variables(value, {})
+
+    def test_string_length_limit(self) -> None:
+        """Oversized strings should be rejected before substitution."""
+        with pytest.raises(ValueError, match="too large"):
+            _substitute_variables("x" * 2_000_000, {})
+
+    def test_env_key_with_null_byte_ignored(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Environment lookups with null bytes should not leak."""
+        monkeypatch.setenv("WAVEXIS_ENV_ALLOWLIST", "BADKEY")
+        result = _substitute_variables("{{env.BAD\x00KEY}}", {})
+        assert result == "{{env.BAD\x00KEY}}"
+
 
 class TestParseYamlVariables:
     """Tests for variable substitution in parse_yaml."""
@@ -123,6 +150,7 @@ actions:
         assert actions[1]["eval"]["expression"] == ("document.querySelector('#main').textContent")
 
     def test_env_var_substitution(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("WAVEXIS_ENV_ALLOWLIST", "TARGET_URL")
         monkeypatch.setenv("TARGET_URL", "https://env.example.com")
         config = tmp_path / "config.yml"
         config.write_text(

@@ -32,13 +32,22 @@ Keep the following in mind:
   which exposes a WebSocket endpoint. In production, ensure this port is not
   accessible to untrusted networks.
 - **Arbitrary JavaScript execution**: `wavexis eval` executes arbitrary
-  JavaScript in the browser context. Only run trusted code.
+  JavaScript in the browser context. Only run trusted code. In `serve` mode,
+  `/eval` and `/ws` are only registered when `--api-key` is provided.
 - **Browser subprocess**: The browser process inherits the permissions of the
   user running the Python script. Run with least privilege.
 - **URL navigation**: `wavexis screenshot` and other commands can open any URL.
-  Validate user input if accepting URLs from untrusted sources.
+  In `serve` mode, navigation URLs are validated to allow only `http`, `https`,
+  `about`, and `data` schemes; `javascript:` and `file:` are rejected.
 - **Auth context**: The `--auth` flag loads cookies and headers from a JSON file.
-  Do not commit auth context files to version control.
+  Do not commit auth context files to version control. Auth context files should
+  include a `target_origin` field so credentials are only sent to the intended
+  origin.
+- **File path access in serve mode**: When running `wavexis serve --base-dir`,
+  file paths referenced by actions are restricted to that directory. Do not run
+  the server without `--api-key` or `--base-dir` in untrusted environments.
+- **Environment variables in multi configs**: YAML `{{env.KEY}}` substitutions
+  are limited to the comma-separated list in `WAVEXIS_ENV_ALLOWLIST`.
 
 ## Disclosure Policy
 

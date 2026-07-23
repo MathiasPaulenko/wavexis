@@ -253,7 +253,14 @@ def batch(
     except ValueError as e:
         _handle_error(WavexisError(str(e)))
         return
-    out_dir.mkdir(parents=True, exist_ok=True)
+    if out_dir.exists() and not out_dir.is_dir():
+        _handle_error(WavexisError(f"Output path exists but is not a directory: {out_dir}"))
+        return
+    try:
+        out_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        _handle_error(WavexisError(f"Failed to create output directory: {e}"))
+        return
 
     results = _run_async(_batch(urls, action, out_dir, expression, parallel, mode))
     if results is None:

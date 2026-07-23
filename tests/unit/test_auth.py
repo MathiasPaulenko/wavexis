@@ -50,6 +50,26 @@ class TestLoadAuthContext:
         with pytest.raises(ValueError):
             load_auth_context(str(path))
 
+    @pytest.mark.unit
+    def test_load_oversized_file_raises(self, tmp_path: Path):
+        """Reject auth files that exceed the size guard."""
+        path = tmp_path / "huge.json"
+        # Create a file that is just over the 1 MB guard
+        path.write_bytes(b'{"x": "' + b"0" * (1_000_001) + b'"}')
+
+        with pytest.raises(ValueError, match="exceeds maximum size"):
+            load_auth_context(str(path))
+
+    @pytest.mark.unit
+    def test_load_invalid_cookie_raises(self, tmp_path: Path):
+        """Reject cookies missing required name/value keys."""
+        data = {"cookies": [{"name": "session"}, {"value": "abc"}]}
+        path = tmp_path / "bad_cookies.json"
+        path.write_text(json.dumps(data), encoding="utf-8")
+
+        with pytest.raises(ValueError, match="'name' and 'value'"):
+            load_auth_context(str(path))
+
 
 class TestLoadAuth:
     """Tests for load_auth."""
@@ -146,3 +166,4 @@ class TestAuthContext:
         assert ctx.headers == {}
         assert ctx.username is None
         assert ctx.password is None
+        assert ctx.target_origin is None

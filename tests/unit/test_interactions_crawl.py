@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -77,23 +78,25 @@ class TestUploadAction:
         )
         assert params.files == ["/path/to/file1.pdf", "/path/to/file2.pdf"]
 
-    async def test_upload_executes_set_files(self) -> None:
+    async def test_upload_executes_set_files(self, tmp_path: Path) -> None:
         backend = MagicMock()
         backend.launch = AsyncMock()
         backend.navigate = AsyncMock()
         backend.close = AsyncMock()
         backend.set_files = AsyncMock()
 
+        file_path = tmp_path / "file.pdf"
+        file_path.write_text("pdf", encoding="utf-8")
         params = InputParams(
             url="https://example.com/upload",
             action="upload",
             selector="#file-input",
-            files=["/abs/path/file.pdf"],
+            files=[str(file_path)],
             wait=WaitStrategy(strategy="load"),
         )
         await InputAction(params).execute(backend)
 
-        backend.set_files.assert_called_once_with("#file-input", ["/abs/path/file.pdf"])
+        backend.set_files.assert_called_once_with("#file-input", [str(file_path)])
 
 
 class TestCrawlParams:
@@ -262,14 +265,14 @@ class TestCrawlAction:
         backend.navigate = AsyncMock()
         backend.eval = AsyncMock(return_value=None)
 
-        params = CrawlParams(
-            start_url="https://example.com",
-            url_pattern="[unclosed",
-            max_depth=1,
-            max_pages=10,
-        )
-        action = CrawlAction(params)
         with pytest.raises(WavexisError, match="Invalid url_pattern regex"):
+            params = CrawlParams(
+                start_url="https://example.com",
+                url_pattern="[unclosed",
+                max_depth=1,
+                max_pages=10,
+            )
+            action = CrawlAction(params)
             await action.execute(backend)
 
     async def test_crawl_uses_deque_for_bfs_queue(self) -> None:

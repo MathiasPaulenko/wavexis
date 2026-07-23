@@ -5,6 +5,9 @@ from __future__ import annotations
 from wavexis.actions.base import BaseAction
 from wavexis.backend.base import AbstractBackend
 from wavexis.config import PDFParams
+from wavexis.exceptions import WavexisError
+
+MAX_JS_LENGTH = 100_000
 
 
 class PDFAction(BaseAction[PDFParams, bytes]):
@@ -28,6 +31,8 @@ class PDFAction(BaseAction[PDFParams, bytes]):
             await backend.navigate(params.url, params.wait)
 
         if params.js:
+            if len(params.js) > MAX_JS_LENGTH:
+                raise WavexisError(f"js exceeds maximum length of {MAX_JS_LENGTH} characters")
             await backend.eval(params.js, await_promise=True)
 
         return await backend.pdf(params)

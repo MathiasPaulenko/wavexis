@@ -51,7 +51,7 @@ class TestServeCreateApp:
         """Test create app has routes."""
         from wavexis.serve import create_app
 
-        app = create_app()
+        app = create_app(api_key="test-key")
         routes = [r.resource.canonical for r in app.router.routes()]
         assert "/screenshot" in routes
         assert "/pdf" in routes
@@ -283,9 +283,9 @@ class TestServeHandlerMocks:
         from wavexis.serve import create_app
 
         mock_backend = self._make_mock_backend()
-        app = create_app()
+        app = create_app(api_key="test-key")
         server = TestServer(app)
-        client = TestClient(server)
+        client = TestClient(server, headers={"Authorization": "Bearer test-key"})
         await client.start_server()
         with patch(
             "wavexis.backend.manager.BackendManager.select_with_fallback",
@@ -450,9 +450,9 @@ class TestServeHandlerMocks:
 
         mock_backend = self._make_mock_backend()
         mock_backend.capture_console = AsyncMock(return_value=[])
-        app = create_app()
+        app = create_app(api_key="test-key")
         server = TestServer(app)
-        client = TestClient(server)
+        client = TestClient(server, headers={"Authorization": "Bearer test-key"})
         await client.start_server()
         with patch(
             "wavexis.backend.manager.BackendManager.select_with_fallback",
@@ -486,9 +486,9 @@ class TestServeHandlerMocks:
 
         mock_backend = self._make_mock_backend()
         mock_backend.capture_console = AsyncMock(return_value=[])
-        app = create_app()
+        app = create_app(api_key="test-key")
         server = TestServer(app)
-        client = TestClient(server)
+        client = TestClient(server, headers={"Authorization": "Bearer test-key"})
         await client.start_server()
         with patch(
             "wavexis.backend.manager.BackendManager.select_with_fallback",
@@ -527,9 +527,9 @@ class TestServeHandlerMocks:
 
         mock_backend = self._make_mock_backend()
         mock_backend.capture_console = AsyncMock(return_value=[])
-        app = create_app()
+        app = create_app(api_key="test-key")
         server = TestServer(app)
-        client = TestClient(server)
+        client = TestClient(server, headers={"Authorization": "Bearer test-key"})
         await client.start_server()
         with patch(
             "wavexis.backend.manager.BackendManager.select_with_fallback",
@@ -762,6 +762,30 @@ class TestServeHandlerMocks:
         ):
             resp = await client.post("/cwv", json={"url": "https://example.com", "observe_ms": 100})
         assert resp.status == 200
+        await client.close()
+
+    async def test_cwv_endpoint_rejects_invalid_observe_ms(self) -> None:
+        """Regression: observe_ms must be a valid integer."""
+        from unittest.mock import patch
+
+        from aiohttp.test_utils import TestClient, TestServer
+
+        from wavexis.serve import create_app
+
+        mock_backend = self._make_mock_backend()
+        app = create_app()
+        server = TestServer(app)
+        client = TestClient(server)
+        await client.start_server()
+        with patch(
+            "wavexis.backend.manager.BackendManager.select_with_fallback",
+            new_callable=AsyncMock,
+            return_value=mock_backend,
+        ):
+            resp = await client.post(
+                "/cwv", json={"url": "https://example.com", "observe_ms": "abc"}
+            )
+        assert resp.status == 400
         await client.close()
 
     async def test_user_agent_endpoint(self) -> None:

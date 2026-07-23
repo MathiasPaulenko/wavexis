@@ -138,7 +138,7 @@ class PageBackend(ABC):
 
     @abstractmethod
     async def page_create_isolated_world(
-        self, frame_id: str, world_name: str = "", grant_univeral_access: bool = False
+        self, frame_id: str, world_name: str = "", grant_universal_access: bool = False
     ) -> str:
         """Create an isolated world for the given frame. Returns execution context ID."""
 

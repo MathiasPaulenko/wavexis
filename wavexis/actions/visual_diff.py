@@ -53,8 +53,8 @@ class VisualDiffAction(BaseAction[VisualDiffParams, dict[str, Any]]):
             Dict with diff_count, diff_percentage, total_pixels, and diff_base64.
 
         Raises:
-            ActionError: If baseline_path is missing or threshold is out of range.
-            FileNotFoundError: If the baseline image file does not exist.
+            ActionError: If baseline_path is missing, the baseline image does not
+                exist, or the threshold is out of range.
         """
         if not self.params.baseline_path:
             raise ActionError("baseline_path is required for visual diff")
@@ -63,8 +63,8 @@ class VisualDiffAction(BaseAction[VisualDiffParams, dict[str, Any]]):
             raise ActionError(f"threshold must be between 0 and 255, got {self.params.threshold}")
 
         baseline_path = validate_path(self.params.baseline_path)
-        if not await asyncio.to_thread(baseline_path.exists):
-            raise FileNotFoundError(f"Baseline image not found: {self.params.baseline_path}")
+        if not await asyncio.to_thread(baseline_path.is_file):
+            raise ActionError(f"Baseline image not found: {self.params.baseline_path}")
 
         if self.params.url:
             await backend.navigate(self.params.url, self.params.wait)
@@ -95,8 +95,11 @@ class VisualDiffAction(BaseAction[VisualDiffParams, dict[str, Any]]):
                 "error": "Pillow is required for visual diff. Install: pip install Pillow",
             }
 
-        baseline_img = Image.open(io.BytesIO(baseline)).convert("RGB")
-        current_img = Image.open(io.BytesIO(current)).convert("RGB")
+        try:
+            baseline_img = Image.open(io.BytesIO(baseline)).convert("RGB")
+            current_img = Image.open(io.BytesIO(current)).convert("RGB")
+        except Exception as exc:
+            return {"error": f"Failed to decode image: {exc}"}
 
         if baseline_img.size != current_img.size:
             current_img = current_img.resize(baseline_img.size)

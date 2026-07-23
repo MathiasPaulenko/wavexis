@@ -2,6 +2,18 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.16.10 — 2026-07-22
+
+### Security
+
+- **Serve-mode hardening**
+  - `/eval` and `/ws` are now only registered when `--api-key` is provided, preventing unauthenticated arbitrary JavaScript execution.
+  - `BackendPool.return_backend` now resets cookies, storage, headers, and permissions before reusing a browser instance, reducing cross-request state leakage.
+  - `output.validate_path` enforces the configured `--base-dir` in serve mode; actions that read or write files (`eval`, `scrape`, `input`, `har_replay`, `session`) cannot escape the allowed directory.
+  - `multi.py` environment variable substitution is now restricted to the `WAVEXIS_ENV_ALLOWLIST` comma-separated list, stopping arbitrary secret exfiltration.
+- **Auth context origin binding** — `apply_auth_context` now verifies that the target URL matches the auth context's `target_origin` or one of the cookie domains before sending Basic auth headers or cookies, preventing credential exfiltration to attacker-controlled URLs.
+- **Backend URL validation** — `CDPBackend.navigate`/`new_tab` and `BiDiBackend.navigate`/`new_tab` now reject `javascript:`, `file:`, and other non-HTTP/HTTPS/about schemes.
+
 ## v2.16.9 — 2026-07-22
 
 ### Bug Fixes

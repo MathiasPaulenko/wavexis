@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
+import asyncio
+from pathlib import Path
 from typing import Any
 
 from wavexis.actions.base import BaseAction
 from wavexis.backend.base import AbstractBackend
 from wavexis.config import InputParams
 from wavexis.exceptions import ActionError
+from wavexis.output import validate_path
+
+MAX_UPLOAD_SIZE = 100 * 1024 * 1024  # 100 MB
 
 
 class InputAction(BaseAction[InputParams, Any]):
@@ -80,7 +85,20 @@ class InputAction(BaseAction[InputParams, Any]):
         elif action == "upload":
             if not self.params.selector:
                 raise ActionError("selector is required for upload action")
-            await backend.set_files(self.params.selector, self.params.files or [])
+            files = self.params.files or []
+            validated_files: list[str] = []
+            for f in files:
+                try:
+                    p = Path(validate_path(f))
+                except ValueError as exc:
+                    raise ActionError(f"Invalid upload file path: {exc}") from exc
+                if not await asyncio.to_thread(p.exists):
+                    raise ActionError(f"Upload file not found: {f}")
+                size = (await asyncio.to_thread(p.stat)).st_size
+                if size > MAX_UPLOAD_SIZE:
+                    raise ActionError(f"Upload file too large: {f} ({size} bytes)")
+                validated_files.append(str(p))
+            await backend.set_files(self.params.selector, validated_files)
         else:
             raise ActionError(f"Unknown input action: {action}")
         return None

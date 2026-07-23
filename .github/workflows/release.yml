@@ -42,7 +42,6 @@ jobs:
           name: dist
           path: dist/
       - uses: pypa/gh-action-pypi-publish@release/v1
-        continue-on-error: true
 
   docker:
     name: Build & push Docker image
@@ -75,7 +74,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-        continue-on-error: true
 
   github-release:
     name: Create GitHub Release
