@@ -55,11 +55,12 @@ async def test_serve_screenshot() -> None:
 
 
 async def test_serve_eval() -> None:
-    """Test serve eval."""
-    app = create_app()
+    """Test serve eval with an API key."""
+    app = create_app(api_key="test-key")
     async with aiohttp.test_utils.TestServer(app) as server, aiohttp.ClientSession() as session:  # noqa: SIM117
         async with session.post(
             f"http://127.0.0.1:{server.port}/eval",
+            headers={"X-API-Key": "test-key"},
             json={
                 "url": "https://example.com",
                 "expression": "document.title",
