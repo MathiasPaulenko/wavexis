@@ -22,6 +22,8 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
     "Topic :: Internet :: WWW/HTTP :: Browsers",
     "Topic :: Software Development :: Testing",
+    "Typing :: Typed",
+    "Operating System :: OS Independent",
 ]
 dependencies = [
     "typer>=0.12,<1.0",
@@ -62,8 +64,10 @@ wavexis = "wavexis.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/MathiasPaulenko/wavexis"
+Documentation = "https://mathiaspaulenko.github.io/wavexis/"
 Repository = "https://github.com/MathiasPaulenko/wavexis"
 Issues = "https://github.com/MathiasPaulenko/wavexis/issues"
+Changelog = "https://github.com/MathiasPaulenko/wavexis/blob/main/CHANGELOG.md"
 
 [tool.ruff]
 line-length = 100

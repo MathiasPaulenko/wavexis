@@ -649,26 +649,6 @@ wavexis batch urls.txt screenshot -o ./screenshots/
 wavexis batch urls.txt scrape --expression "document.title"
 ```
 
-## crawl
-
-Crawl a website starting from a URL, collecting titles and links.
-
-```bash
-wavexis crawl <url> [options]
-```
-
-| Option | Description |
-|--------|-------------|
-| `-d, --depth` | Maximum crawl depth (0 = start page only, default: 2) |
-| `--max-pages` | Maximum number of pages to visit (default: 50) |
-| `--same-origin/--cross-origin` | Only crawl same-origin links (default: same) |
-| `--pattern` | Regex pattern to filter URLs (empty = all) |
-| `-o, --output` | Output file path (.json) |
-
-```bash
-wavexis crawl https://example.com --depth 3 --max-pages 100 -o results.json
-```
-
 ## plugins
 
 List discovered plugins (actions, backends, middleware).

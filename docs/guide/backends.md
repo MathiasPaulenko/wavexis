@@ -51,7 +51,7 @@ wavexis install_check
 
 Output:
 
-```
+```text
   cdp: 2.0.1
   bidi: 1.7.2
 ```

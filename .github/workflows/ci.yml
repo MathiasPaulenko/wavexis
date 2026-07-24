@@ -15,12 +15,33 @@ jobs:
     name: Lint (ruff)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
       - run: pip install "ruff>=0.4,<1.0"
       - run: ruff check .
+
+  docs-lint:
+    name: Lint docs (markdownlint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - run: npx -y markdownlint-cli README.md CHANGELOG.md CONTRIBUTING.md SECURITY.md CODE_OF_CONDUCT.md .github/**/*.md docs/**/*.md
+
+  spellcheck:
+    name: Spell check (codespell)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - run: pip install "codespell>=2.0,<3.0"
+      - run: codespell
 
   typecheck:
     name: Typecheck (mypy ${{ matrix.python-version }})
@@ -29,8 +50,8 @@ jobs:
       matrix:
         python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install -e ".[dev,cdp,bidi]"
@@ -44,13 +65,13 @@ jobs:
       matrix:
         python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install -e ".[dev,cdp,bidi,serve,image]"
       - run: pytest tests/unit/ -m unit -v --cov=wavexis --cov-report=xml ${{ matrix.python-version == '3.11' && '--cov-fail-under=72' || '' }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: matrix.python-version == '3.11'
         with:
           name: coverage
@@ -60,12 +81,12 @@ jobs:
     name: Serve mode tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: pip install -e ".[cdp,serve,dev]"
-      - uses: browser-actions/setup-chrome@v1
+      - uses: browser-actions/setup-chrome@v2.1.2
       - run: pytest tests/unit/test_serve.py -v
       - run: pytest tests/integration/test_serve.py -v -m integration --timeout=60
         env:
@@ -75,11 +96,11 @@ jobs:
     name: Integration tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
-      - uses: browser-actions/setup-chrome@v1
+      - uses: browser-actions/setup-chrome@v2.1.2
         with:
           chrome-version: stable
       - run: pip install -e ".[dev,cdp]"
@@ -91,22 +112,27 @@ jobs:
     name: BiDi integration tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+      - uses: browser-actions/setup-chrome@v2.1.2
+        with:
+          chrome-version: stable
       - run: pip install -e ".[dev,bidi]"
       - run: pytest tests/integration/ -m integration -v --timeout=60 -k bidi
+        env:
+          CHROME_PATH: /opt/chrome/chrome
 
   e2e-tests:
     name: E2E CLI tests (real browser)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - uses: browser-actions/setup-chrome@v1
+      - uses: browser-actions/setup-chrome@v2.1.2
         with:
           chrome-version: stable
       - run: pip install -e ".[dev,cdp]"
@@ -118,9 +144,9 @@ jobs:
     name: Docker build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4.2.0
+      - uses: docker/build-push-action@v7.3.0
         with:
           context: .
           push: false

@@ -115,6 +115,7 @@ CI runs unit tests on Python 3.11, 3.12, and 3.13 with coverage reporting. Serve
 ### Release pipeline
 
 On `v*.*.*` tag push:
+
 1. Build sdist + wheel
 2. Publish to PyPI (trusted publishing)
 3. Build and push Docker image to `ghcr.io/mathiaspaulenko/wavexis` with semver tags

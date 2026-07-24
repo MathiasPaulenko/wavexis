@@ -135,10 +135,6 @@
 
 ::: wavexis.actions.combined_trace.CombinedTraceAction
 
-## Accessibility Audit
-
-::: wavexis.actions.axe_audit.AxeAuditAction
-
 ## Browser
 
 ::: wavexis.actions.browser.BrowserAction

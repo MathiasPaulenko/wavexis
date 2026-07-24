@@ -13,3 +13,8 @@ tests/
 docs/
 *.md
 !README.md
+.venv*
+ref/
+coverage.json
+out.yml
+screenshot.png

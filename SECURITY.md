@@ -16,7 +16,7 @@ If you discover a security vulnerability in wavexis, please report it
 responsibly:
 
 1. **Do not** open a public GitHub issue
-2. Email **mathias.paulenko@outlook.com** with:
+2. Email **<mathias.paulenko@outlook.com>** with:
    - A description of the vulnerability
    - Steps to reproduce
    - Potential impact

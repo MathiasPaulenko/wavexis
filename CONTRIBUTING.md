@@ -36,7 +36,7 @@ python spike.py
 
 ### Project Structure
 
-```
+```text
 wavexis/
 ├── wavexis/              # Source code
 │   ├── cli/              # Typer CLI commands
@@ -79,11 +79,13 @@ Use the **Feature Request** issue template. Describe:
 1. **Fork** the repository and create your branch from `main`
 2. **Write tests** for your changes — unit tests are required for new features
 3. **Ensure all checks pass**:
+
    ```bash
    ruff check .
    mypy wavexis/
    pytest tests/unit/ -v
    ```
+
 4. **Use conventional commit messages**:
    - `feat:` new feature
    - `fix:` bug fix
@@ -106,11 +108,12 @@ Use the **Feature Request** issue template. Describe:
 
 Releases are managed by the maintainer:
 
-1. Version bump in `pyproject.toml` and `wavexis/__init__.py`
+1. Version bump in `pyproject.toml`
 2. Create annotated git tag (`vX.Y.Z`)
 3. GitHub Actions builds and publishes to PyPI automatically
 
 Versioning follows [Semantic Versioning](https://semver.org/):
+
 - **MAJOR**: breaking API changes
 - **MINOR**: new features, backwards compatible
 - **PATCH**: bug fixes, backwards compatible
@@ -118,7 +121,7 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 ## Questions?
 
 Feel free to open a **Question** issue or reach out at
-**mathias.paulenko@outlook.com**.
+**<mathias.paulenko@outlook.com>**.
 
 By participating in this project, you agree to abide by the
 [Code of Conduct](CODE_OF_CONDUCT.md).

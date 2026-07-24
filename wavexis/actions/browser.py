@@ -13,10 +13,8 @@ class BrowserAction(BaseAction[str, Any]):
     """Action for browser management operations.
 
     Supports contexts (new/list) and version info. The params string
-    specifies the action: "new_context", "list_contexts", or "version".
-    "close_context", "get_window", and "set_window" raise NotImplementedError.
+    specifies the action: "version", "new_context", or "list_contexts".
     """
-
     async def execute(self, backend: AbstractBackend) -> Any:
         """Execute the browser action.
 

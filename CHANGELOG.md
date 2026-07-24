@@ -2,6 +2,26 @@
 
 All notable changes to wavexis are documented in this file.
 
+## Unreleased
+
+### Documentation & repository presentation
+
+- Added `.markdownlint.json`, fixed Markdown lint errors across README, docs, and community files, and introduced a `docs-lint` CI job to keep them clean.
+- Polished README: added requirements and installation extras, updated command counts, added contributing/security links, used an absolute logo URL for PyPI, and fixed feature parity wording.
+- Polished `docs/index.md` and removed duplicate headings in `docs/api/actions.md` and `docs/guide/commands.md`.
+- Fixed bare email URLs in `SECURITY.md`, `CODE_OF_CONDUCT.md`, and `CONTRIBUTING.md`.
+
+### CI / tooling
+
+- Upgraded all GitHub Actions to current major versions.
+- Added `spellcheck` (codespell) job and a BiDi integration test Chrome setup step to CI.
+- Expanded `.dockerignore` and `.gitignore` to ignore scratch artifacts.
+
+### Package metadata
+
+- Added `Documentation` and `Changelog` URLs to `pyproject.toml`.
+- Added `Typing :: Typed` and `Operating System :: OS Independent` classifiers.
+
 ## v2.16.15 — 2026-07-24
 
 ### CI / Testing

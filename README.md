@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/images/logo-wide.svg" alt="wavexis" width="480">
+  <img src="https://raw.githubusercontent.com/MathiasPaulenko/wavexis/main/docs/assets/images/logo-wide.svg" alt="wavexis" width="480">
 </p>
 
 <h3 align="center">Browser automation CLI — wraps cdpwave and bidiwave</h3>
@@ -13,7 +13,7 @@
 [![License](https://img.shields.io/github/license/MathiasPaulenko/wavexis.svg)](https://github.com/MathiasPaulenko/wavexis/blob/main/LICENSE)
 [![Docs](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://mathiaspaulenko.github.io/wavexis/)
 
-> Browser automation CLI — wraps cdpwave and bidiwave. No Node.js, no Chromium download. Uses your existing Chrome/Edge. 117 CLI commands, 743 backend methods, full CDP + BiDi parity.
+> Browser automation CLI — wraps cdpwave and bidiwave. No Node.js, no Chromium download. Uses your existing Chrome/Edge. 130+ top-level CLI commands, 480+ sub-commands, 743 backend methods, full CDP + BiDi parity.
 
 ## Why wavexis?
 
@@ -21,15 +21,28 @@ wavexis is a command-line tool for browser automation. It wraps the [cdpwave](ht
 
 ### Core concepts
 
-- **Backend** — The browser driver that executes commands. wavexis supports two backends with full feature parity: CDP (default, via cdpwave) and BiDi (via bidiwave). Both implement all 743 methods across 60 CDP domains and 12 BiDi modules, so you can switch with `--backend bidi` without losing functionality.
+- **Backend** — The browser driver that executes commands. wavexis supports two backends with full feature parity: CDP (default, via cdpwave) and BiDi (via bidiwave). Both expose the same public API over 60 CDP domains and 12 BiDi modules, so you can switch with `--backend bidi` without losing functionality.
 - **Action** — A single operation (screenshot, eval, click, etc.). Each action maps to a CLI command or a step in a multi-action YAML config.
 - **Multi-action** — A YAML config that chains multiple actions in sequence on a single browser session. Avoids the overhead of launching a browser per action.
 - **Serve mode** — An HTTP API server that exposes all wavexis commands as REST endpoints with WebSocket streaming for real-time events.
 
+## Requirements
+
+- Python 3.11 or higher
+- A Chromium-based browser (Chrome, Edge, Brave, or Chromium) already installed
+- No Node.js, no separate Chromium download
+
 ## Install
 
 ```bash
+# CDP backend (default, recommended)
 pip install wavexis[cdp]
+
+# BiDi backend
+pip install wavexis[bidi]
+
+# Serve mode + image extras
+pip install wavexis[cdp,serve,image]
 ```
 
 ## Docker
@@ -89,7 +102,7 @@ wavexis repl
 
 Inside the REPL:
 
-```
+```text
 wavexis> navigate https://example.com
 wavexis> screenshot
 wavexis> eval document.title
@@ -424,10 +437,10 @@ wavexis screenshot https://example.com -o out.png
 wavexis --backend bidi screenshot https://example.com -o out.png
 ```
 
-### Feature parity (v2.13.0)
+### Feature parity
 
-Both backends implement **all** 743 methods across 60 CDP domains and 12 BiDi modules. BiDi uses native BiDi commands, JS workarounds
-(`script.evaluate`), or the CDP bridge (`browser.cdp.sendCommand`) when needed. Zero uncovered methods.
+Both backends expose the same public API across 60 CDP domains and 12 BiDi modules. BiDi uses native BiDi commands, JS workarounds
+(`script.evaluate`), or the CDP bridge (`browser.cdp.sendCommand`) when needed.
 
 | Category | Methods | BiDi impl |
 |----------|---------|-----------|
@@ -505,9 +518,9 @@ wavexis provides 130+ top-level CLI commands plus 480+ sub-commands organized in
 |----------|----------|
 | Capture | `screenshot`, `pdf`, `screencast`, `scrape` |
 | Navigate | `navigate`, `back`, `forward`, `reload`, `stop`, `tabs` |
-| Console | `console` (with `--capture`, `--format`), `logs`, `har` |
+| Console | `console` (with `--capture`, `--format`), `logs` |
 | Cookies | `cookies` (get/set/delete/clear) |
-| Network | `headers`, `user-agent`, `block`, `throttle`, `cache`, `intercept`, `mock` |
+| Network | `headers`, `user-agent`, `block`, `throttle`, `cache`, `intercept`, `mock`, `har` |
 | Browser | `open`, `close`, `version` |
 | Emulation | `emulation device`, `emulation viewport`, `emulation geolocation`, `emulation timezone`, `emulation dark-mode`, `emulation media`, `emulation vision-deficiency`, `emulation idle-override`, `emulation disable-js`, `emulation visible-size`, `devices` |
 | Input | `click`, `type`, `fill`, `select`, `hover`, `key`, `drag`, `tap` |
@@ -583,6 +596,14 @@ Run `wavexis --help` for the full list.
 ## Documentation
 
 Full docs at [mathiaspaulenko.github.io/wavexis](https://mathiaspaulenko.github.io/wavexis/).
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, testing, and release guidelines.
+
+## Security
+
+To report a security vulnerability, see [SECURITY.md](SECURITY.md).
 
 ## License
 

@@ -23,7 +23,7 @@ wavexis is a command-line tool for browser automation. It wraps the cdpwave (Chr
 
 - **CLI-first** — screenshot, PDF, eval, scrape from the command line
 - **Multi-backend** — CDP (cdpwave) or WebDriver BiDi (bidiwave), switch with `--backend`
-- **Full parity** — both backends implement all 100+ methods (BiDi uses native + JS + CDP bridge)
+- **Full parity** — both backends expose the same public API across 60 CDP domains and 12 BiDi modules (BiDi uses native + JS + CDP bridge)
 - **Multi-action** — batch multiple actions from a single YAML config with `--watch` for iterative development
 - **Serve mode** — HTTP API server powered by aiohttp
 - **Auth profiles** — save and reuse browser credentials
@@ -47,10 +47,22 @@ wavexis is a command-line tool for browser automation. It wraps the cdpwave (Chr
 - **Fully typed** — `mypy --strict` across the entire codebase
 - **MIT licensed** — permissive, compatible with any use
 
+## Requirements
+
+- Python 3.11 or higher
+- A Chromium-based browser (Chrome, Edge, Brave, or Chromium) already installed
+
 ## Install
 
 ```bash
+# CDP backend (default, recommended)
 pip install wavexis[cdp]
+
+# BiDi backend
+pip install wavexis[bidi]
+
+# Serve mode + image extras
+pip install wavexis[cdp,serve,image]
 ```
 
 ## Quick start
