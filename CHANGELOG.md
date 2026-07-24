@@ -2,6 +2,17 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.16.15 — 2026-07-24
+
+### CI / Testing
+
+- **Honest coverage reporting** — removed `omit` list for `wavexis/backend/bidi.py`, `wavexis/backend/cdp.py`, and `wavexis/cli/_debug.py`; lowered CI `cov-fail-under` from 80 % to 72 % to match the real baseline.
+- **BiDi smoke tests** — added 80 unit tests in `tests/unit/test_bidi_method_bodies_extras.py` covering BiDiBackend methods used by actions and the debug CLI.
+
+### Repository hygiene
+
+- Cleaned generated artifacts from the repository root and `ref/` directory (`dist`, `.mypy_cache`, `.pytest_cache`, `.ruff_cache`, `ref/output`, `ref/scripts`, etc.).
+
 ## v2.16.14 — 2026-07-24
 
 ### CI / Tooling
