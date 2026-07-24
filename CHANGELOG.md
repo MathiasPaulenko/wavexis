@@ -2,7 +2,7 @@
 
 All notable changes to wavexis are documented in this file.
 
-## Unreleased
+## v2.16.16 — 2026-07-25
 
 ### Documentation & repository presentation
 
