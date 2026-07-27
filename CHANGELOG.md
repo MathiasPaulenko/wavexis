@@ -2,6 +2,20 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.17.0 — 2026-07-27
+
+### Fixed
+
+- **Cache Storage stability** — `cache_storage_list`, `cache_storage_entries`, `cache_storage_delete`, and `cache_storage_request_cache_names` now use Chrome's `storageKey` parameter (with a frame-aware fallback) instead of the deprecated `securityOrigin`. Calls on `about:blank` or opaque-origin frames now return empty results instead of crashing with `No frame found for given storage key`.
+- **Media messages** — `media_get_messages` collects messages by listening to `Media.playerMessagesAdded` events, because `Media.getPlayerMessages` is no longer exposed by current Chrome versions.
+- **Service worker operations** — `sw_list`, `sw_unregister`, and `sw_update` now use `navigator.serviceWorker` JavaScript fallbacks for broader browser compatibility.
+- **IndexedDB data retrieval** — `indexeddb_get_data` uses `IndexedDB.requestData` and normalizes CDP `RemoteObject` keys with the new `_remote_object_value` helper.
+
+### Changed
+
+- **axe audit** — improved script injection robustness and returns the audit result by value.
+- **CSS rules** — `css_get_rules` falls back to a JavaScript-based stylesheet walker when `CSS.getStyleSheetText` fails or when a numeric stylesheet index is provided.
+
 ## v2.16.16 — 2026-07-25
 
 ### Documentation & repository presentation

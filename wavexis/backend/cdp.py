@@ -68,6 +68,24 @@ def _safe_json_loads(value: Any, default: Any = None) -> Any:
         return default
 
 
+def _remote_object_value(obj: Any) -> Any:
+    """Extract a primitive value from a CDP Runtime.RemoteObject.
+
+    CDP returns typed values as dicts with ``type``/``value``/``description``.
+    For primitive remote objects we return the ``value`` field; for objects we
+    try to return the preview properties as a dict so callers can compare by
+    string representation.
+    """
+    if not isinstance(obj, dict):
+        return obj
+    if "value" in obj:
+        return obj["value"]
+    preview = obj.get("preview")
+    if isinstance(preview, dict) and "properties" in preview:
+        return {p.get("name"): p.get("value") for p in preview["properties"]}
+    return obj
+
+
 def _b64decode(data: Any) -> bytes:
     """Decode base64 data safely, returning empty bytes for missing/invalid values."""
     if not data:
@@ -278,11 +296,15 @@ class CDPBackend(AbstractBackend):
                         non_blank = [
                             p
                             for p in pages
-                            if p.url and not p.url.startswith("devtools://") and p.url != "about:blank"
+                            if p.url
+                            and not p.url.startswith("devtools://")
+                            and p.url != "about:blank"
                         ]
                         target = non_blank[0] if non_blank else pages[0]
                         # TargetInfo uses ``target_id``, not ``id``.
-                        target_id = getattr(target, "target_id", None) or getattr(target, "id", None)
+                        target_id = getattr(target, "target_id", None) or getattr(
+                            target, "id", None
+                        )
                         if not target_id:
                             raise WavexisError(
                                 "Could not determine target id of the existing page. "
@@ -296,7 +318,9 @@ class CDPBackend(AbstractBackend):
                     self._session = await client.new_page()
 
                 if options.user_agent:
-                    await self._session.emulation.set_user_agent_override(user_agent=options.user_agent)
+                    await self._session.emulation.set_user_agent_override(
+                        user_agent=options.user_agent
+                    )
 
                 if options.extra_headers:
                     await self._session.network.set_extra_http_headers(options.extra_headers)
@@ -3355,22 +3379,26 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
 
         axe_js = (
-            "if (typeof axe === 'undefined') { "
-            "  import('https://unpkg.com/axe-core@4.9.1/axe.min.js')"
-            "    .then(m => { window.axe = m.default || m; }); "
-            "} "
-            "await new Promise(r => setTimeout(r, 2000)); "
-            "if (typeof axe === 'undefined') { "
-            "  const s = document.createElement('script'); "
-            "  s.src = 'https://unpkg.com/axe-core@4.9.1/axe.min.js'; "
-            "  document.head.appendChild(s); "
-            "  await new Promise(r => s.onload = r); "
-            "} "
-            "await axe.run(document, { "
-            "  resultTypes: ['violations', 'passes', 'incomplete', 'inapplicable'] "
-            "})"
+            "(async () => {"
+            "  if (typeof axe === 'undefined') {"
+            "    try {"
+            "      const m = await import('https://unpkg.com/axe-core@4.9.1/axe.min.js');"
+            "      window.axe = m.default || m;"
+            "    } catch (e) {}"
+            "  }"
+            "  await new Promise(r => setTimeout(r, 2000));"
+            "  if (typeof axe === 'undefined') {"
+            "    const s = document.createElement('script');"
+            "    s.src = 'https://unpkg.com/axe-core@4.9.1/axe.min.js';"
+            "    document.head.appendChild(s);"
+            "    await new Promise(r => s.onload = r);"
+            "  }"
+            "  return await axe.run(document, {"
+            "    resultTypes: ['violations', 'passes', 'incomplete', 'inapplicable']"
+            "  });"
+            "})()"
         )
-        result = await session.runtime.evaluate(axe_js, await_promise=True)
+        result = await session.runtime.evaluate(axe_js, return_by_value=True, await_promise=True)
         value = (result or {}).get("result", {}).get("value")
         if isinstance(value, dict):
             return value
@@ -4321,7 +4349,9 @@ class CDPBackend(AbstractBackend):
         except Exception as exc:
             if isinstance(exc, WavexisError):
                 raise
-            logger.debug("CSS.getComputedStyleForNode failed for %s, falling back to JS: %s", selector, exc)
+            logger.debug(
+                "CSS.getComputedStyleForNode failed for %s, falling back to JS: %s", selector, exc
+            )
             escaped = json.dumps(selector)
             computed = await session.runtime.evaluate(
                 expression=(
@@ -4369,23 +4399,46 @@ class CDPBackend(AbstractBackend):
         """Get CSS rules from a specific stylesheet.
 
         Args:
-            stylesheet_id: The styleSheetId from css_get_stylesheets.
+            stylesheet_id: The styleSheetId from css_get_stylesheets, which may
+                be a CDP styleSheetId or a numeric index from the JS fallback.
 
         Returns:
             List of CSS rule dicts.
         """
         session = self._require_session()
         await session.send("CSS.enable", {})
-        result = await session.send("CSS.getStyleSheetText", {"styleSheetId": stylesheet_id})
-        text = result.get("text", "")
-        rules: list[dict[str, Any]] = []
-        import re
 
-        for match in re.finditer(r"([^{}]+)\{([^}]*)\}", text):
-            selector_text = match.group(1).strip()
-            body = match.group(2).strip()
-            rules.append({"selectorText": selector_text, "cssText": body})
-        return rules
+        try:
+            result = await session.send("CSS.getStyleSheetText", {"styleSheetId": stylesheet_id})
+            text = result.get("text", "")
+        except Exception:
+            text = ""
+
+        if text:
+            rules: list[dict[str, Any]] = []
+            import re
+
+            for match in re.finditer(r"([^{}]+)\{([^}]*)\}", text):
+                selector_text = match.group(1).strip()
+                body = match.group(2).strip()
+                rules.append({"selectorText": selector_text, "cssText": body})
+            return rules
+
+        # Fallback: retrieve rules via JS so numeric indices from
+        # css_get_stylesheets work even when CSS.getStyleSheetText is unavailable.
+        escaped = json.dumps(stylesheet_id)
+        js = (
+            "(function(){ "
+            "const sheets = Array.from(document.styleSheets); "
+            f"const idx = Number({escaped}); "
+            f"const sheet = !isNaN(idx) ? sheets[idx] : sheets.find(s => (s.href || '') === {escaped}); "
+            "if (!sheet) return []; "
+            "return Array.from(sheet.cssRules || []).map(r => ({selectorText: r.selectorText || '', cssText: r.cssText || ''})); "
+            "})()"
+        )
+        result = await session.runtime.evaluate(expression=js, return_by_value=True)
+        value = result.get("result", {}).get("value", [])
+        return [dict(r) for r in value] if value else []
 
     async def css_get_computed(self, selector: str) -> dict[str, Any]:
         """Get computed styles for an element by CSS selector.
@@ -5802,6 +5855,46 @@ class CDPBackend(AbstractBackend):
             return f"{parsed.scheme}://{parsed.netloc}"
         return ""
 
+    async def _get_cache_storage_key(self, session: CDPSession) -> str:
+        """Return the storage key for CacheStorage operations.
+
+        Chrome prefers ``storageKey`` over the legacy ``securityOrigin``
+        parameter for CacheStorage commands. We first ask the browser for the
+        exact serialized storage key of the main frame; if that fails we fall
+        back to the page origin, normalised with a trailing slash so it can be
+        used as a valid ``storageKey``.
+        """
+        try:
+            frame_tree = await session.send("Page.getFrameTree", {})
+            frame = frame_tree.get("frameTree", {}).get("frame", {})
+            frame_id = frame.get("id")
+            if frame_id:
+                result = await session.send("Storage.getStorageKey", {"frameId": frame_id})
+                storage_key = result.get("storageKey")
+                if storage_key:
+                    return str(storage_key)
+        except Exception:
+            logger.debug("Could not retrieve storage key, falling back to origin")
+
+        origin = self._get_origin()
+        if origin and not origin.endswith("/"):
+            origin += "/"
+        return origin or ""
+
+    async def _request_cache_names(self, session: CDPSession, storage_key: str) -> dict[str, Any]:
+        """Request cache names, returning an empty result when the frame/storage key
+        is not usable (e.g. the page is ``about:blank`` or an error page).
+        """
+        try:
+            return await session.send(
+                "CacheStorage.requestCacheNames",
+                {"storageKey": storage_key},
+            )
+        except Exception as exc:
+            if "No frame found for given storage key" in str(exc):
+                return {}
+            raise
+
     async def _get_storage_id(self, storage_type: str) -> dict[str, Any]:
         """Get a DOMStorage.StorageId with the current page's security origin."""
         if storage_type not in ("local", "session"):
@@ -5915,10 +6008,8 @@ class CDPBackend(AbstractBackend):
             List of cache names.
         """
         session = self._require_session()
-        result = await session.send(
-            "CacheStorage.requestCacheNames",
-            {"securityOrigin": self._get_origin()},
-        )
+        storage_key = await self._get_cache_storage_key(session)
+        result = await self._request_cache_names(session, storage_key)
         caches: list[str] = []
         for cache in result.get("caches", []):
             name = cache.get("cacheName", "")
@@ -5938,10 +6029,8 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
 
         # First, get the actual cacheId for the given cache_name
-        caches_result = await session.send(
-            "CacheStorage.requestCacheNames",
-            {"securityOrigin": self._get_origin()},
-        )
+        storage_key = await self._get_cache_storage_key(session)
+        caches_result = await self._request_cache_names(session, storage_key)
 
         # Find the cacheId for the requested cache_name
         cache_id = None
@@ -5971,10 +6060,8 @@ class CDPBackend(AbstractBackend):
         session = self._require_session()
 
         # First, get the actual cacheId for the given cache_name
-        caches_result = await session.send(
-            "CacheStorage.requestCacheNames",
-            {"securityOrigin": self._get_origin()},
-        )
+        storage_key = await self._get_cache_storage_key(session)
+        caches_result = await self._request_cache_names(session, storage_key)
 
         # Find the cacheId for the requested cache_name
         cache_id = None
@@ -6014,7 +6101,7 @@ class CDPBackend(AbstractBackend):
     async def cache_storage_request_cache_names(
         self, security_origin: str | None = None
     ) -> list[dict[str, Any]]:
-        """Request cache names for a security origin.
+        """Request cache names for a storage key.
 
         Args:
             security_origin: Optional security origin. If None, uses the current page.
@@ -6023,12 +6110,8 @@ class CDPBackend(AbstractBackend):
             List of cache info dicts with cacheId and cacheName.
         """
         session = self._require_session()
-        params: dict[str, Any] = {}
-        if security_origin is not None:
-            params["securityOrigin"] = security_origin
-        else:
-            params["securityOrigin"] = self._get_origin()
-        result = await session.send("CacheStorage.requestCacheNames", params)
+        storage_key = security_origin or await self._get_cache_storage_key(session)
+        result = await self._request_cache_names(session, storage_key)
         return [dict(c) for c in result.get("caches", [])] if result else []
 
     async def cache_storage_request_cached_response(
@@ -6102,24 +6185,21 @@ class CDPBackend(AbstractBackend):
             The stored data, or list of all entries if key is empty.
         """
         session = self._require_session()
-        result = await session.send(
-            "IndexedDB.requestObjectStoreData",
-            {
-                "securityOrigin": self._get_origin(),
-                "databaseName": database,
-                "objectStoreName": store,
-                "indexName": "",
-                "skipCount": 0,
-                "pageSize": 1000,
-                "keyRange": None,
-            },
-        )
+        params: dict[str, Any] = {
+            "securityOrigin": self._get_origin(),
+            "databaseName": database,
+            "objectStoreName": store,
+            "skipCount": 0,
+            "pageSize": 1000,
+        }
+        result = await session.send("IndexedDB.requestData", params)
         entries: list[dict[str, Any]] = []
         for entry in result.get("objectStoreDataEntries", []):
             entries.append(dict(entry))
         if key:
             for entry in entries:
-                if str(entry.get("key", "")) == key:
+                entry_key = _remote_object_value(entry.get("key"))
+                if str(entry_key) == key:
                     return entry
             return None
         return entries
@@ -6360,36 +6440,66 @@ class CDPBackend(AbstractBackend):
         """List registered service workers.
 
         Returns:
-            List of service worker target dicts.
+            List of service worker registration dicts (scope, script_url, state).
         """
         session = self._require_session()
-        await session.send("ServiceWorker.enable", {})
-        result = await session.send("Target.getTargets", {})
-        registrations: list[dict[str, Any]] = []
-        for target in result.get("targetInfos", []):
-            if target.get("type") == "service_worker":
-                registrations.append(dict(target))
-        return registrations
+        js = (
+            "(async () => {"
+            "  const regs = await navigator.serviceWorker.getRegistrations();"
+            "  return regs.map(r => {"
+            "    const worker = r.active || r.waiting || r.installing;"
+            "    return {"
+            "      scope: r.scope,"
+            "      script_url: worker ? worker.scriptURL : (r.scriptURL || ''),"
+            "      state: r.active ? 'activated' : (r.installing ? 'installing' : 'waiting')"
+            "    };"
+            "  });"
+            "})()"
+        )
+        result = await session.runtime.evaluate(js, return_by_value=True, await_promise=True)
+        value = result.get("result", {}).get("value", [])
+        return [dict(r) for r in value] if isinstance(value, list) else []
 
-    async def sw_unregister(self, registration_id: str) -> None:
-        """Unregister a service worker by registration ID.
+    async def sw_unregister(self, registration_id: str) -> bool:
+        """Unregister a service worker by its scope URL.
 
         Args:
-            registration_id: The service worker registration ID.
+            registration_id: The service worker registration scope URL.
+
+        Returns:
+            True if the registration was found and unregistered.
         """
         session = self._require_session()
-        await session.send("ServiceWorker.enable", {})
-        await session.send("ServiceWorker.unregister", {"registrationId": registration_id})
+        js = (
+            f"(async () => {{"
+            f"  const reg = await navigator.serviceWorker.getRegistration({json.dumps(registration_id)});"
+            f"  if (!reg) return false;"
+            f"  return await reg.unregister();"
+            f"}})()"
+        )
+        result = await session.runtime.evaluate(js, return_by_value=True, await_promise=True)
+        return bool(result.get("result", {}).get("value"))
 
-    async def sw_update(self, registration_id: str) -> None:
-        """Trigger an update for a service worker registration.
+    async def sw_update(self, registration_id: str) -> bool:
+        """Trigger an update for a service worker registration by scope URL.
 
         Args:
-            registration_id: The service worker registration ID.
+            registration_id: The service worker registration scope URL.
+
+        Returns:
+            True if the registration was found and updated.
         """
         session = self._require_session()
-        await session.send("ServiceWorker.enable", {})
-        await session.send("ServiceWorker.updateRegistration", {"registrationId": registration_id})
+        js = (
+            f"(async () => {{"
+            f"  const reg = await navigator.serviceWorker.getRegistration({json.dumps(registration_id)});"
+            f"  if (!reg) return false;"
+            f"  await reg.update();"
+            f"  return true;"
+            f"}})()"
+        )
+        result = await session.runtime.evaluate(js, return_by_value=True, await_promise=True)
+        return bool(result.get("result", {}).get("value"))
 
     async def sw_enable(self) -> None:
         """Enable the ServiceWorker domain."""
@@ -6796,10 +6906,26 @@ class CDPBackend(AbstractBackend):
         return [dict(p) for p in value] if isinstance(value, list) else []
 
     async def media_get_messages(self, player_id: str) -> list[dict[str, Any]]:
-        """Get messages for a specific media player via CDP Media domain."""
+        """Get messages for a specific media player via CDP Media domain events.
+
+        The legacy ``Media.getPlayerMessages`` command is not exposed by current
+        Chrome versions, so messages are collected by listening to
+        ``Media.playerMessagesAdded`` events for a short window.
+        """
         session = self._require_session()
-        result = await session.send("Media.getPlayerMessages", {"playerId": player_id})
-        return list(result.get("messages", []))
+        messages: list[dict[str, Any]] = []
+
+        def on_message(event: dict[str, Any]) -> None:
+            if event.get("playerId") == player_id:
+                messages.extend(event.get("messages", []))
+
+        await session.send("Media.enable", {})
+        session.on("Media.playerMessagesAdded", on_message)
+        try:
+            await asyncio.sleep(0.5)
+        finally:
+            session.off("Media.playerMessagesAdded", on_message)
+        return [dict(m) for m in messages]
 
     # ── Cast (experimental) ────────────────────────────────
 
