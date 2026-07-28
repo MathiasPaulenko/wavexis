@@ -2,6 +2,12 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.17.2 — 2026-07-27
+
+### Fixed
+
+- **Conditional PyYAML import** — `wavexis/output.py` now explicitly types the `_yaml` fallback as `Any`, so mypy passes both when `types-PyYAML` stubs are present (typed `yaml` module) and when they are not.
+
 ## v2.17.1 — 2026-07-27
 
 ### Fixed
