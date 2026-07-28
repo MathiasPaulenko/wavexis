@@ -285,6 +285,9 @@ class BrowserOptions:
             wss://connect.browserbase.com?token=XXX).
         stealth: Enable anti-bot stealth mode (hides navigator.webdriver,
             fakes plugins, languages, chrome runtime, permissions).
+        browser: Browser engine for BiDi backend (``"chrome"`` or ``"firefox"``).
+            Only used by the BiDi backend to select the WebDriver implementation.
+            Defaults to ``"chrome"``.
     """
 
     headless: bool = True
@@ -298,6 +301,7 @@ class BrowserOptions:
     browser_url: str | None = None
     remote_url: str | None = None
     stealth: bool = False
+    browser: str = "chrome"
 
     def __post_init__(self) -> None:
         """Validate browser launch options."""
@@ -310,6 +314,8 @@ class BrowserOptions:
             _validate_url(self.browser_url, schemes=_BROWSER_SCHEMES, name="browser_url")
         if self.remote_url is not None:
             _validate_url(self.remote_url, schemes=_REMOTE_SCHEMES, name="remote_url")
+        if self.browser not in ("chrome", "firefox"):
+            raise ValueError(f"browser must be 'chrome' or 'firefox', got {self.browser!r}")
 
 
 @dataclass

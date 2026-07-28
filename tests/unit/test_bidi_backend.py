@@ -1411,3 +1411,110 @@ class TestBiDiBackend:
                 await backend.webextension_install("base64data")
             with pytest.raises(SessionNotInitializedError, match="not launched"):
                 await backend.webextension_uninstall("ext1")
+
+
+@pytest.mark.unit
+class TestBiDiFirefoxLaunch:
+    """Tests for Firefox/geckodriver support in BiDiBackend.launch()."""
+
+    def test_browser_options_default_is_chrome(self) -> None:
+        """BrowserOptions.browser defaults to 'chrome'."""
+        opts = BrowserOptions()
+        assert opts.browser == "chrome"
+
+    def test_browser_options_accepts_firefox(self) -> None:
+        """BrowserOptions.browser accepts 'firefox'."""
+        opts = BrowserOptions(browser="firefox")
+        assert opts.browser == "firefox"
+
+    def test_browser_options_rejects_invalid(self) -> None:
+        """BrowserOptions.browser rejects invalid values."""
+        with pytest.raises(ValueError, match="browser must be"):
+            BrowserOptions(browser="safari")
+
+    async def test_launch_firefox_uses_geckodriver_port(self) -> None:
+        """launch() with browser='firefox' tries port 4444 by default."""
+        from wavexis.backend.bidi import BiDiBackend
+
+        backend = BiDiBackend()
+        connect_calls: list[str] = []
+
+        async def fake_connect(url: str, config: object = None) -> object:
+            connect_calls.append(url)
+            raise OSError("connection refused")
+
+        with (
+            patch("wavexis.backend.bidi.BiDiClient", MagicMock()),
+            patch("wavexis.backend.bidi.asyncio.wait_for", side_effect=fake_connect),
+            patch("wavexis.backend.bidi.shutil.which", return_value=None),
+        ):
+            from wavexis.exceptions import WavexisError
+
+            with pytest.raises(WavexisError, match="geckodriver"):
+                await backend.launch(BrowserOptions(browser="firefox"))
+
+    async def test_launch_chrome_uses_chromedriver_port(self) -> None:
+        """launch() with browser='chrome' tries port 9222 by default."""
+        from wavexis.backend.bidi import BiDiBackend
+
+        backend = BiDiBackend()
+        connect_calls: list[str] = []
+
+        async def fake_connect(url: str, config: object = None) -> object:
+            connect_calls.append(url)
+            raise OSError("connection refused")
+
+        with (
+            patch("wavexis.backend.bidi.BiDiClient", MagicMock()),
+            patch("wavexis.backend.bidi.asyncio.wait_for", side_effect=fake_connect),
+            patch("wavexis.backend.bidi.shutil.which", return_value=None),
+        ):
+            from wavexis.exceptions import WavexisError
+
+            with pytest.raises(WavexisError, match="chromedriver"):
+                await backend.launch(BrowserOptions(browser="chrome"))
+
+    async def test_auto_launch_fires_when_driver_available(self) -> None:
+        """launch() auto-launches the driver binary when found in PATH."""
+        from unittest.mock import AsyncMock
+
+        from wavexis.backend.bidi import BiDiBackend
+
+        backend = BiDiBackend()
+        mock_client = MagicMock()
+        mock_client.session.new = AsyncMock()
+        mock_client.browsing.create_context = AsyncMock(return_value="ctx")
+        mock_client.browsing.set_viewport = AsyncMock()
+        mock_client.browsing.close = AsyncMock()
+        mock_client.close = AsyncMock()
+
+        mock_proc = MagicMock()
+        mock_proc.pid = 12345
+        mock_proc.terminate = MagicMock()
+        mock_proc.wait = AsyncMock(return_value=0)
+
+        async def fake_create_subprocess(*args, **kwargs):
+            return mock_proc
+
+        # First call to _try_connect fails (no driver running), second succeeds.
+        connect_results = [OSError("refused"), mock_client]
+
+        async def fake_connect(url, config=None):
+            result = connect_results.pop(0)
+            if isinstance(result, Exception):
+                raise result
+            return result
+
+        mock_bidi = MagicMock()
+        mock_bidi.connect = fake_connect
+
+        with (
+            patch("wavexis.backend.bidi.BiDiClient", mock_bidi),
+            patch("wavexis.backend.bidi.shutil.which", return_value="/usr/bin/geckodriver"),
+            patch("wavexis.backend.bidi.asyncio.create_subprocess_exec", side_effect=fake_create_subprocess),
+            patch("wavexis.backend.bidi.asyncio.sleep", return_value=None),
+        ):
+            await backend.launch(BrowserOptions(browser="firefox", headless=True))
+            assert backend._client is mock_client
+            assert backend._driver_process is mock_proc
+            await backend.close()
