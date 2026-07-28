@@ -2,6 +2,12 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.17.1 — 2026-07-27
+
+### Fixed
+
+- **Mypy typecheck failures** — `sw_unregister` and `sw_update` in `wavexis/backend/cdp.py` now return `None` to match the `ServiceWorkerBackend` abstract interface, and an unused `type: ignore` in `wavexis/output.py` was removed.
+
 ## v2.17.0 — 2026-07-27
 
 ### Fixed
