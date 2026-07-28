@@ -2,6 +2,14 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.18.0 — 2026-07-28
+
+### Added
+
+- **Firefox support via BiDi** — `BrowserOptions.browser` field accepts `"chrome"` (default) or `"firefox"`. When `browser="firefox"`, the BiDi backend uses geckodriver on port 4444 instead of chromedriver on port 9222.
+- **Auto-launch WebDriver subprocess** — `BiDiBackend.launch()` now auto-launches chromedriver or geckodriver from PATH when no driver is running. The driver subprocess is cleaned up on `close()`.
+- **Headless mode via capabilities** — When auto-launching, headless mode is passed via session capabilities (`moz:firefoxOptions` for Firefox, `goog:chromeOptions` for Chrome).
+
 ## v2.17.3 — 2026-07-28
 
 ### Added
