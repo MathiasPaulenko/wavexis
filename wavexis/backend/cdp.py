@@ -6460,14 +6460,11 @@ class CDPBackend(AbstractBackend):
         value = result.get("result", {}).get("value", [])
         return [dict(r) for r in value] if isinstance(value, list) else []
 
-    async def sw_unregister(self, registration_id: str) -> bool:
+    async def sw_unregister(self, registration_id: str) -> None:
         """Unregister a service worker by its scope URL.
 
         Args:
             registration_id: The service worker registration scope URL.
-
-        Returns:
-            True if the registration was found and unregistered.
         """
         session = self._require_session()
         js = (
@@ -6478,16 +6475,14 @@ class CDPBackend(AbstractBackend):
             f"}})()"
         )
         result = await session.runtime.evaluate(js, return_by_value=True, await_promise=True)
-        return bool(result.get("result", {}).get("value"))
+        if not result.get("result", {}).get("value"):
+            logger.warning("Service worker registration not found for scope: %s", registration_id)
 
-    async def sw_update(self, registration_id: str) -> bool:
+    async def sw_update(self, registration_id: str) -> None:
         """Trigger an update for a service worker registration by scope URL.
 
         Args:
             registration_id: The service worker registration scope URL.
-
-        Returns:
-            True if the registration was found and updated.
         """
         session = self._require_session()
         js = (
@@ -6499,7 +6494,8 @@ class CDPBackend(AbstractBackend):
             f"}})()"
         )
         result = await session.runtime.evaluate(js, return_by_value=True, await_promise=True)
-        return bool(result.get("result", {}).get("value"))
+        if not result.get("result", {}).get("value"):
+            logger.warning("Service worker registration not found for scope: %s", registration_id)
 
     async def sw_enable(self) -> None:
         """Enable the ServiceWorker domain."""

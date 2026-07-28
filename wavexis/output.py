@@ -73,7 +73,7 @@ def validate_path(path: str | Path, *, base_dir: str | Path | None = None) -> Pa
 try:
     import yaml as _yaml
 except ImportError:
-    _yaml = None  # type: ignore[assignment]
+    _yaml = None
 
 try:
     from rich.console import Console
