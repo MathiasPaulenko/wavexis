@@ -25,24 +25,32 @@ async def test_overlay_highlight(
     backend: CDPBackend, browser_opts: BrowserOptions, local_http_server: str
 ) -> None:
     """Test overlay highlight."""
-    params = OverlayParams(
-        url=local_http_server,
-        action="highlight",
-        selector="body",
-        wait=WaitStrategy(strategy="load"),
-        browser=browser_opts,
-    )
-    await OverlayAction(params).execute(backend)
+    try:
+        await backend.launch(browser_opts)
+        params = OverlayParams(
+            url=local_http_server,
+            action="highlight",
+            selector="body",
+            wait=WaitStrategy(strategy="load"),
+            browser=browser_opts,
+        )
+        await OverlayAction(params).execute(backend)
+    finally:
+        await backend.close()
 
 
 async def test_overlay_clear(
     backend: CDPBackend, browser_opts: BrowserOptions, local_http_server: str
 ) -> None:
     """Test overlay clear."""
-    params = OverlayParams(
-        url=local_http_server,
-        action="clear",
-        wait=WaitStrategy(strategy="load"),
-        browser=browser_opts,
-    )
-    await OverlayAction(params).execute(backend)
+    try:
+        await backend.launch(browser_opts)
+        params = OverlayParams(
+            url=local_http_server,
+            action="clear",
+            wait=WaitStrategy(strategy="load"),
+            browser=browser_opts,
+        )
+        await OverlayAction(params).execute(backend)
+    finally:
+        await backend.close()
