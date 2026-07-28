@@ -734,3 +734,76 @@ class TestRecordAction:
         # The click event must be present even though sleep was interrupted.
         assert "#btn" in result
         assert "click" in result
+
+    async def test_record_events_does_not_launch_backend(self) -> None:
+        """record_events must not call backend.launch — the caller manages lifecycle."""
+        from wavexis.actions.record import record_events
+
+        backend = MockBackend()
+        backend.launch = AsyncMock()
+        backend.navigate = AsyncMock()
+        backend.eval = AsyncMock(return_value="[]")
+        backend.close = AsyncMock()
+
+        events = await record_events(backend, "https://example.com", duration=0)
+        backend.launch.assert_not_awaited()
+        backend.navigate.assert_awaited_once()
+        assert events == []
+
+    async def test_record_events_returns_captured_events(self) -> None:
+        """record_events returns the list of events from the page."""
+        from wavexis.actions.record import record_events
+
+        backend = MockBackend()
+        backend.navigate = AsyncMock()
+
+        recorded = json.dumps(
+            [
+                {"type": "click", "selector": "#login", "text": "Login"},
+                {
+                    "type": "input",
+                    "selector": "#email",
+                    "value": "user@example.com",
+                    "tag": "input",
+                },
+            ]
+        )
+
+        async def fake_eval(expr: str, await_promise: bool = False) -> Any:
+            if "__wavexis_record_events" in expr:
+                return recorded
+            return ""
+
+        backend.eval = AsyncMock(side_effect=fake_eval)
+
+        with patch("wavexis.actions.record.asyncio.sleep", new_callable=AsyncMock):
+            events = await record_events(backend, "https://example.com", duration=5)
+
+        assert len(events) == 2
+        assert events[0]["type"] == "click"
+        assert events[1]["type"] == "input"
+
+    def test_events_to_yaml_scroll_skipped(self) -> None:
+        """Scroll events should be skipped in YAML conversion."""
+        from wavexis.actions.record import events_to_yaml
+
+        events = [
+            {"type": "scroll", "scrollX": 0, "scrollY": 500},
+            {"type": "click", "selector": "#btn"},
+        ]
+        yaml_str = events_to_yaml(events, "https://example.com")
+        assert "scroll" not in yaml_str
+        assert "click" in yaml_str
+
+    def test_events_to_yaml_spa_navigation_dedup(self) -> None:
+        """Navigations to the same URL should not be duplicated."""
+        from wavexis.actions.record import events_to_yaml
+
+        events = [
+            {"type": "navigate", "url": "https://example.com"},
+            {"type": "navigate", "url": "https://example.com/page2"},
+            {"type": "navigate", "url": "https://example.com/page2"},  # dup
+        ]
+        yaml_str = events_to_yaml(events, "https://example.com")
+        # Initial navigate + 1 unique SPA nav (the duplicate is skipped).
+        assert yaml_str.count("example.com/page2") == 1

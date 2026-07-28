@@ -2,6 +2,18 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.17.3 — 2026-07-28
+
+### Added
+
+- **`record_events()` function** — New function in `wavexis/actions/record.py` that navigates, injects the recording script, and collects events without launching the backend. Suitable for MCP servers and other orchestration layers that manage the backend lifecycle externally.
+
+### Improved
+
+- **Recording script enhanced** — Now captures scroll events (throttled), SPA navigations via History API (`pushState`/`replaceState`), single-character keypresses, and uses `nth-child` path fallback for selectors when no ID/class/testid is available.
+- **`events_to_yaml()` deduplicates** consecutive navigations to the same URL and skips scroll events.
+- **`record_session()` refactored** — Now delegates to `record_events()` + `events_to_yaml()` instead of duplicating logic.
+
 ## v2.17.2 — 2026-07-27
 
 ### Fixed
