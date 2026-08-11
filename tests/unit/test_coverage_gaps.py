@@ -783,8 +783,8 @@ class TestRecordAction:
         assert events[0]["type"] == "click"
         assert events[1]["type"] == "input"
 
-    def test_events_to_yaml_scroll_skipped(self) -> None:
-        """Scroll events should be skipped in YAML conversion."""
+    def test_events_to_yaml_scroll_converted(self) -> None:
+        """Scroll events should be converted to scroll actions in YAML."""
         from wavexis.actions.record import events_to_yaml
 
         events = [
@@ -792,7 +792,7 @@ class TestRecordAction:
             {"type": "click", "selector": "#btn"},
         ]
         yaml_str = events_to_yaml(events, "https://example.com")
-        assert "scroll" not in yaml_str
+        assert "scroll" in yaml_str
         assert "click" in yaml_str
 
     def test_events_to_yaml_spa_navigation_dedup(self) -> None:
