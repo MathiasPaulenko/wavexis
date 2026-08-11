@@ -149,3 +149,42 @@ class TestDebugDirectCommands:
             result = runner.invoke(app, ["target", "list"])
         assert result.exit_code == 0
         backend.target_get_targets.assert_awaited_once()
+
+    def test_css_direct_passes_wait_strategy(self, backend: AsyncMock) -> None:
+        """Regression: _css_direct must pass _wait_strategy() to navigate."""
+        with patch("wavexis.cli._debug._get_backend", return_value=backend):
+            result = runner.invoke(
+                app, ["css", "enable", "https://example.com"]
+            )
+        assert result.exit_code == 0
+        backend.navigate.assert_awaited_once()
+        call_args = backend.navigate.call_args
+        assert len(call_args.args) >= 2 or "wait" in call_args.kwargs
+        wait_arg = call_args.args[1] if len(call_args.args) >= 2 else call_args.kwargs.get("wait")
+        assert wait_arg is not None
+
+    def test_debug_direct_passes_wait_strategy(self, backend: AsyncMock) -> None:
+        """Regression: _debug_direct must pass _wait_strategy() to navigate."""
+        with patch("wavexis.cli._debug._get_backend", return_value=backend):
+            result = runner.invoke(
+                app, ["runtime", "evaluate", "https://example.com", "1+1"]
+            )
+        assert result.exit_code == 0
+        backend.navigate.assert_awaited_once()
+        call_args = backend.navigate.call_args
+        assert len(call_args.args) >= 2 or "wait" in call_args.kwargs
+        wait_arg = call_args.args[1] if len(call_args.args) >= 2 else call_args.kwargs.get("wait")
+        assert wait_arg is not None
+
+    def test_dom_direct_passes_wait_strategy(self, backend: AsyncMock) -> None:
+        """Regression: _dom_node_direct must pass _wait_strategy() to navigate."""
+        with patch("wavexis.cli._debug._get_backend", return_value=backend):
+            result = runner.invoke(
+                app, ["dom", "document", "https://example.com"]
+            )
+        assert result.exit_code == 0
+        backend.navigate.assert_awaited_once()
+        call_args = backend.navigate.call_args
+        assert len(call_args.args) >= 2 or "wait" in call_args.kwargs
+        wait_arg = call_args.args[1] if len(call_args.args) >= 2 else call_args.kwargs.get("wait")
+        assert wait_arg is not None

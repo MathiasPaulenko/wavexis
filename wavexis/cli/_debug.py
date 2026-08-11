@@ -787,7 +787,7 @@ async def _css_direct(url: str, action_fn: Any) -> Any:
     backend = _get_backend()
     try:
         await backend.launch(_browser_options())
-        await backend.navigate(url)
+        await backend.navigate(url, _wait_strategy())
         await backend.dom_get_document()
         return await action_fn(backend)
     finally:
@@ -1325,7 +1325,7 @@ async def _debug_direct(url: str, action_fn: Any) -> Any:
     backend = _get_backend()
     try:
         await backend.launch(_browser_options())
-        await backend.navigate(url)
+        await backend.navigate(url, _wait_strategy())
         return await action_fn(backend)
     finally:
         await _close_backend(backend)
@@ -1476,7 +1476,7 @@ async def _dom_debugger_direct(url: str, action: str, **kwargs: Any) -> Any:
     backend = _get_backend()
     try:
         await backend.launch(_browser_options())
-        await backend.navigate(url)
+        await backend.navigate(url, _wait_strategy())
         await backend.dom_get_document()
         if action == "get_event_listeners":
             return await backend.dom_debugger_get_event_listeners(
@@ -1897,7 +1897,7 @@ async def _overlay_direct(url: str, action_fn: Any) -> Any:
     backend = _get_backend()
     try:
         await backend.launch(_browser_options())
-        await backend.navigate(url)
+        await backend.navigate(url, _wait_strategy())
         await backend.dom_get_document()
         return await action_fn(backend)
     finally:
@@ -2194,7 +2194,7 @@ async def _runtime_direct(url: str, action_fn: Any) -> Any:
     backend = _get_backend()
     try:
         await backend.launch(_browser_options())
-        await backend.navigate(url)
+        await backend.navigate(url, _wait_strategy())
         return await action_fn(backend)
     finally:
         await _close_backend(backend)
@@ -2721,7 +2721,7 @@ async def _target_direct(url: str, action_fn: Any) -> Any:
     backend = _get_backend()
     try:
         await backend.launch(_browser_options())
-        await backend.navigate(url)
+        await backend.navigate(url, _wait_strategy())
         return await action_fn(backend)
     finally:
         await _close_backend(backend)
@@ -3304,7 +3304,7 @@ async def _dom_node_direct(url: str, action: str, **kwargs: Any) -> Any:
     backend = _get_backend()
     try:
         await backend.launch(_browser_options())
-        await backend.navigate(url)
+        await backend.navigate(url, _wait_strategy())
         await backend.dom_get_document()
         if action == "describe":
             return await backend.dom_describe_node(kwargs["node_id"])
@@ -3964,7 +3964,7 @@ async def _emulation_direct(url: str, action: str, **kwargs: Any) -> Any:
     backend = _get_backend()
     try:
         await backend.launch(_browser_options())
-        await backend.navigate(url)
+        await backend.navigate(url, _wait_strategy())
         return await _emulation_action(backend, action, **kwargs)
     finally:
         await _close_backend(backend)

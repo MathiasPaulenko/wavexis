@@ -285,7 +285,7 @@ async def _storage_direct(url: str, action_fn: Any) -> Any:
     backend = _get_backend()
     try:
         await backend.launch(_browser_options())
-        await backend.navigate(url)
+        await backend.navigate(url, _wait_strategy())
         return await action_fn(backend)
     finally:
         await _close_backend(backend)

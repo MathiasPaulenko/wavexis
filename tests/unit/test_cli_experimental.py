@@ -249,3 +249,16 @@ class TestExperimentalStorageDirectCommands:
             )
         assert result.exit_code == 0
         backend.storage_override_quota_for_origin.assert_awaited_once()
+
+    def test_storage_direct_passes_wait_strategy(self, backend: AsyncMock) -> None:
+        """Regression: _storage_direct must pass _wait_strategy() to navigate."""
+        with patch("wavexis.cli._experimental._get_backend", return_value=backend):
+            result = runner.invoke(
+                app, ["storage-clear-origin", "https://example.com"]
+            )
+        assert result.exit_code == 0
+        backend.navigate.assert_awaited_once()
+        call_args = backend.navigate.call_args
+        assert len(call_args.args) >= 2 or "wait" in call_args.kwargs
+        wait_arg = call_args.args[1] if len(call_args.args) >= 2 else call_args.kwargs.get("wait")
+        assert wait_arg is not None
