@@ -266,6 +266,9 @@ def _screenshot_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
             url=params.get("url", ""),
             full_page=params.get("full_page", True),
             format=params.get("format", "png"),
+            quality=params.get("quality", 80),
+            selector=params.get("selector"),
+            device=params.get("device"),
             wait=WaitStrategy(strategy="load"),
         )
     )
@@ -279,6 +282,10 @@ def _pdf_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
         PDFParams(
             url=params.get("url", ""),
             paper=params.get("paper", "letter"),
+            landscape=params.get("landscape", False),
+            margin=params.get("margin", "0.4in"),
+            no_header_footer=params.get("no_header_footer", False),
+            media=params.get("media", "print"),
             wait=WaitStrategy(strategy="load"),
         )
     )
@@ -293,6 +300,8 @@ def _scrape_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
         ScrapeParams(
             urls=urls,
             expression=params.get("expression", "document.title"),
+            output_format=params.get("output_format", "json"),
+            selector=params.get("selector"),
             wait=WaitStrategy(strategy="load"),
         )
     )
@@ -306,6 +315,7 @@ def _eval_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
         EvalParams(
             url=params.get("url", ""),
             expression=params.get("expression", ""),
+            await_promise=params.get("await_promise", False),
             wait=WaitStrategy(strategy="load"),
         )
     )
@@ -320,6 +330,10 @@ def _dom_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
             url=params.get("url", ""),
             action=params.get("action", "get"),
             selector=params.get("selector", ""),
+            outer=params.get("outer", True),
+            all=params.get("all", False),
+            attribute=params.get("attribute"),
+            value=params.get("value"),
             wait=WaitStrategy(strategy="load"),
         )
     )
@@ -327,8 +341,19 @@ def _dom_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
 
 def _navigate_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
     from wavexis.actions.navigate import NavigateAction, NavigateParams
+    from wavexis.config import WaitStrategy
 
-    return NavigateAction(NavigateParams(url=params.get("url", "")))
+    wait = None
+    wait_params = params.get("wait")
+    if isinstance(wait_params, dict):
+        wait = WaitStrategy(
+            strategy=wait_params.get("strategy", "load"),
+            selector=wait_params.get("selector"),
+            url_pattern=wait_params.get("url_pattern"),
+            timeout=wait_params.get("timeout", 30000),
+        )
+
+    return NavigateAction(NavigateParams(url=params.get("url", ""), wait=wait))
 
 
 def _click_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
@@ -340,6 +365,8 @@ def _click_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
             url=params.get("url", ""),
             action="click",
             selector=params.get("selector", ""),
+            button=params.get("button", "left"),
+            click_count=params.get("click_count", 1),
             wait=WaitStrategy(strategy="load"),
         )
     )
@@ -355,6 +382,7 @@ def _type_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
             action="type",
             selector=params.get("selector", ""),
             text=params.get("text", ""),
+            delay=params.get("delay", 0),
             wait=WaitStrategy(strategy="load"),
         )
     )
@@ -520,6 +548,9 @@ def _cookies_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
             value=cookie_data.get("value", ""),
             domain=cookie_data.get("domain", ""),
             path=cookie_data.get("path", "/"),
+            secure=cookie_data.get("secure", True),
+            http_only=cookie_data.get("http_only", False),
+            same_site=cookie_data.get("same_site", "Lax"),
         )
     else:
         cookie_obj = CookieParams()

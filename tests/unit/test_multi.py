@@ -588,3 +588,219 @@ class TestActionFactories:
         assert action.params.action == "scroll"
         assert action.params.scroll_x == 0
         assert action.params.scroll_y == 0
+
+    def test_screenshot_factory_passes_selector(self) -> None:
+        """_screenshot_factory passes selector param from YAML."""
+        from wavexis.multi import _screenshot_factory
+
+        action = _screenshot_factory({"url": "https://x.com", "selector": "#chart"})
+        assert action.params.selector == "#chart"
+
+    def test_screenshot_factory_passes_quality(self) -> None:
+        """_screenshot_factory passes quality param from YAML."""
+        from wavexis.multi import _screenshot_factory
+
+        action = _screenshot_factory({"url": "https://x.com", "quality": 50})
+        assert action.params.quality == 50
+
+    def test_screenshot_factory_passes_device(self) -> None:
+        """_screenshot_factory passes device param from YAML."""
+        from wavexis.multi import _screenshot_factory
+
+        action = _screenshot_factory({"url": "https://x.com", "device": "iphone-15"})
+        assert action.params.device == "iphone-15"
+
+    def test_screenshot_factory_defaults(self) -> None:
+        """_screenshot_factory defaults selector/quality/device when missing."""
+        from wavexis.multi import _screenshot_factory
+
+        action = _screenshot_factory({"url": "https://x.com"})
+        assert action.params.selector is None
+        assert action.params.quality == 80
+        assert action.params.device is None
+
+    def test_pdf_factory_passes_landscape(self) -> None:
+        """_pdf_factory passes landscape param from YAML."""
+        from wavexis.multi import _pdf_factory
+
+        action = _pdf_factory({"url": "https://x.com", "landscape": True})
+        assert action.params.landscape is True
+
+    def test_pdf_factory_passes_margin(self) -> None:
+        """_pdf_factory passes margin param from YAML."""
+        from wavexis.multi import _pdf_factory
+
+        action = _pdf_factory({"url": "https://x.com", "margin": "1in"})
+        assert action.params.margin == "1in"
+
+    def test_pdf_factory_passes_media(self) -> None:
+        """_pdf_factory passes media param from YAML."""
+        from wavexis.multi import _pdf_factory
+
+        action = _pdf_factory({"url": "https://x.com", "media": "screen"})
+        assert action.params.media == "screen"
+
+    def test_pdf_factory_passes_no_header_footer(self) -> None:
+        """_pdf_factory passes no_header_footer param from YAML."""
+        from wavexis.multi import _pdf_factory
+
+        action = _pdf_factory({"url": "https://x.com", "no_header_footer": True})
+        assert action.params.no_header_footer is True
+
+    def test_eval_factory_passes_await_promise(self) -> None:
+        """_eval_factory passes await_promise param from YAML."""
+        from wavexis.multi import _eval_factory
+
+        action = _eval_factory({
+            "url": "https://x.com",
+            "expression": "fetch('/api')",
+            "await_promise": True,
+        })
+        assert action.params.await_promise is True
+
+    def test_eval_factory_defaults_await_promise_false(self) -> None:
+        """_eval_factory defaults await_promise to False."""
+        from wavexis.multi import _eval_factory
+
+        action = _eval_factory({"url": "https://x.com", "expression": "document.title"})
+        assert action.params.await_promise is False
+
+    def test_dom_factory_passes_outer(self) -> None:
+        """_dom_factory passes outer param from YAML."""
+        from wavexis.multi import _dom_factory
+
+        action = _dom_factory({"url": "https://x.com", "action": "get", "outer": False})
+        assert action.params.outer is False
+
+    def test_dom_factory_passes_all(self) -> None:
+        """_dom_factory passes all param from YAML."""
+        from wavexis.multi import _dom_factory
+
+        action = _dom_factory({"url": "https://x.com", "action": "query", "all": True})
+        assert action.params.all is True
+
+    def test_dom_factory_passes_attribute_and_value(self) -> None:
+        """_dom_factory passes attribute and value params from YAML."""
+        from wavexis.multi import _dom_factory
+
+        action = _dom_factory({
+            "url": "https://x.com",
+            "action": "attr",
+            "selector": "#el",
+            "attribute": "data-id",
+            "value": "123",
+        })
+        assert action.params.attribute == "data-id"
+        assert action.params.value == "123"
+
+    def test_scrape_factory_passes_output_format(self) -> None:
+        """_scrape_factory passes output_format param from YAML."""
+        from wavexis.multi import _scrape_factory
+
+        action = _scrape_factory({"url": "https://x.com", "output_format": "csv"})
+        assert action.params.output_format == "csv"
+
+    def test_scrape_factory_passes_selector(self) -> None:
+        """_scrape_factory passes selector param from YAML."""
+        from wavexis.multi import _scrape_factory
+
+        action = _scrape_factory({"url": "https://x.com", "selector": "#content"})
+        assert action.params.selector == "#content"
+
+    def test_navigate_factory_passes_wait_strategy(self) -> None:
+        """_navigate_factory passes wait strategy from YAML."""
+        from wavexis.multi import _navigate_factory
+
+        action = _navigate_factory({
+            "url": "https://x.com",
+            "wait": {"strategy": "networkidle", "timeout": 60000},
+        })
+        assert action.params.wait is not None
+        assert action.params.wait.strategy == "networkidle"
+        assert action.params.wait.timeout == 60000
+
+    def test_navigate_factory_defaults_wait_none(self) -> None:
+        """_navigate_factory defaults wait to None when not specified."""
+        from wavexis.multi import _navigate_factory
+
+        action = _navigate_factory({"url": "https://x.com"})
+        assert action.params.wait is None
+
+    def test_click_factory_passes_button(self) -> None:
+        """_click_factory passes button param from YAML."""
+        from wavexis.multi import _click_factory
+
+        action = _click_factory({"url": "https://x.com", "selector": "#btn", "button": "right"})
+        assert action.params.button == "right"
+
+    def test_click_factory_passes_click_count(self) -> None:
+        """_click_factory passes click_count param from YAML."""
+        from wavexis.multi import _click_factory
+
+        action = _click_factory({"url": "https://x.com", "selector": "#btn", "click_count": 2})
+        assert action.params.click_count == 2
+
+    def test_click_factory_defaults(self) -> None:
+        """_click_factory defaults button to left and click_count to 1."""
+        from wavexis.multi import _click_factory
+
+        action = _click_factory({"url": "https://x.com", "selector": "#btn"})
+        assert action.params.button == "left"
+        assert action.params.click_count == 1
+
+    def test_type_factory_passes_delay(self) -> None:
+        """_type_factory passes delay param from YAML."""
+        from wavexis.multi import _type_factory
+
+        action = _type_factory({
+            "url": "https://x.com",
+            "selector": "#input",
+            "text": "hi",
+            "delay": 50,
+        })
+        assert action.params.delay == 50
+
+    def test_type_factory_defaults_delay_zero(self) -> None:
+        """_type_factory defaults delay to 0."""
+        from wavexis.multi import _type_factory
+
+        action = _type_factory({"url": "https://x.com", "selector": "#input", "text": "hi"})
+        assert action.params.delay == 0
+
+    def test_cookies_factory_passes_all_cookie_attrs(self) -> None:
+        """_cookies_factory passes secure, http_only, same_site from YAML."""
+        from wavexis.multi import _cookies_factory
+
+        action = _cookies_factory({
+            "url": "https://x.com",
+            "action": "set",
+            "cookie": {
+                "name": "session",
+                "value": "abc123",
+                "domain": "x.com",
+                "path": "/",
+                "secure": False,
+                "http_only": True,
+                "same_site": "Strict",
+            },
+        })
+        assert action.params.cookie.secure is False
+        assert action.params.cookie.http_only is True
+        assert action.params.cookie.same_site == "Strict"
+
+    def test_cookies_factory_defaults_cookie_attrs(self) -> None:
+        """_cookies_factory defaults secure=True, http_only=False, same_site='Lax'."""
+        from wavexis.multi import _cookies_factory
+
+        action = _cookies_factory({
+            "url": "https://x.com",
+            "action": "set",
+            "cookie": {
+                "name": "session",
+                "value": "abc123",
+                "domain": "x.com",
+            },
+        })
+        assert action.params.cookie.secure is True
+        assert action.params.cookie.http_only is False
+        assert action.params.cookie.same_site == "Lax"
