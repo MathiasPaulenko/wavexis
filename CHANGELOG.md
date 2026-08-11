@@ -2,6 +2,24 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.19.0 — 2026-08-11
+
+### Added
+
+- **`record --headless` flag** — `record_session()` now accepts a `headless` parameter, and the CLI `record` command exposes `--headless` to run interactive recording without a visible browser window.
+- **Scroll events in recording** — `events_to_yaml()` now converts scroll events to `scroll` actions instead of silently skipping them.
+- **Single-character keypress with selector** — `events_to_yaml()` now includes the selector for single-character keypress events, so replay targets the correct element.
+
+### Fixed
+
+- **Network action validation** — `NetworkAction` now raises `ActionError` when `headers` or `user_agent` params are missing for the respective `set-headers` and `set-user-agent` actions, instead of silently doing nothing.
+- **Multi-action factory params passthrough** — `_screenshot_factory`, `_pdf_factory`, `_scrape_factory`, `_eval_factory`, `_dom_factory`, `_click_factory`, `_type_factory`, and `_navigate_factory` in `wavexis/multi.py` now correctly pass all supported parameters (quality, selector, device, landscape, margin, no_header_footer, media, output_format, await_promise, outer, all, attribute, value, button, click_count, delay, wait) from the YAML config to the action params, preventing silent parameter drops.
+- **Multi-action cookies factory** — `_cookies_factory` in `wavexis/multi.py` now correctly passes `secure`, `http_only`, and `same_site` attributes from the cookie dict to `CookieParams`.
+- **CLI wait strategy passthrough** — 10 helper functions in `wavexis/cli/_debug.py` (`_css_direct`, `_debug_direct`, `_dom_debugger_direct`, `_overlay_direct`, `_runtime_direct`, `_target_direct`, `_dom_node_direct`, `_emulation_direct`) and `wavexis/cli/_experimental.py` (`_storage_direct`) now pass `_wait_strategy()` to `backend.navigate()`, ensuring the `--timeout` and `--wait-strategy` CLI flags are respected.
+- **Navigate action URL validation** — `NavigateParams` now validates the URL in `__post_init__`, catching invalid URLs early.
+- **Serve WebSocket error handling** — WebSocket command loop in `serve.py` now wraps individual actions in try/except to send error responses instead of crashing the connection. Removed unused `_release_backend` function.
+- **Signal handler cleanup** — `cleanup.py` signal handler no longer calls `_cleanup_sync()` directly (which raced with the event loop), instead exits cleanly so `atexit` can run cleanup after the loop stops.
+
 ## v2.18.0 — 2026-07-28
 
 ### Added

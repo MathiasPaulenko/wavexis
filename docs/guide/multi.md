@@ -131,7 +131,12 @@ actions:
         value: abc123
         domain: .example.com
         path: /
+        secure: true
+        http_only: true
+        same_site: Strict
 ```
+
+Optional cookie fields: `secure` (bool), `http_only` (bool), `same_site` (`Strict`, `Lax`, or `None`).
 
 ### Delete a cookie
 
