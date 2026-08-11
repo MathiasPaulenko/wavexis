@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from wavexis.actions.base import BaseAction
 from wavexis.backend.base import AbstractBackend
-from wavexis.config import WaitStrategy
+from wavexis.config import WaitStrategy, _validate_url
 from wavexis.exceptions import ActionError
 
 
@@ -21,6 +21,10 @@ class NavigateParams:
 
     url: str = ""
     wait: WaitStrategy | None = None
+
+    def __post_init__(self) -> None:
+        """Validate navigation parameters."""
+        _validate_url(self.url, allow_empty=True, name="url")
 
 
 class NavigateAction(BaseAction[NavigateParams, None]):

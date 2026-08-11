@@ -72,13 +72,15 @@ class NetworkAction(BaseAction[NetworkParams, Any]):
             return None
 
         if params.action == "headers":
-            if params.headers:
-                await backend.set_headers(params.headers)
+            if not params.headers:
+                raise ActionError("headers is required for headers action")
+            await backend.set_headers(params.headers)
             return None
 
         if params.action == "user_agent":
-            if params.user_agent:
-                await backend.set_user_agent(params.user_agent)
+            if not params.user_agent:
+                raise ActionError("user_agent is required for user_agent action")
+            await backend.set_user_agent(params.user_agent)
             return None
 
         raise ActionError(f"Unknown network action: {params.action}")

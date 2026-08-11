@@ -566,6 +566,30 @@ class TestNetworkAction:
         with pytest.raises(ValueError, match="domain is required"):
             await action.execute(backend)
 
+    @pytest.mark.unit
+    async def test_headers_missing_raises(self, backend: FakeBackend):
+        """Test headers action with no headers raises ActionError."""
+        from wavexis.actions.network import NetworkAction
+        from wavexis.config import NetworkParams
+        from wavexis.exceptions import ActionError
+
+        params = NetworkParams(action="headers")
+        action = NetworkAction(params)
+        with pytest.raises(ActionError, match="headers is required"):
+            await action.execute(backend)
+
+    @pytest.mark.unit
+    async def test_user_agent_missing_raises(self, backend: FakeBackend):
+        """Test user_agent action with no user_agent raises ActionError."""
+        from wavexis.actions.network import NetworkAction
+        from wavexis.config import NetworkParams
+        from wavexis.exceptions import ActionError
+
+        params = NetworkParams(action="user_agent")
+        action = NetworkAction(params)
+        with pytest.raises(ActionError, match="user_agent is required"):
+            await action.execute(backend)
+
 
 class TestBrowserAction:
     """Tests for BrowserAction."""
@@ -637,3 +661,32 @@ class TestBrowserAction:
         result = await action.execute(backend)
         assert result is None
         backend.set_window_bounds.assert_called_once_with(1920, 1080, 10, 20)
+
+
+@pytest.mark.unit
+class TestNavigateParamsValidation:
+    """Test NavigateParams URL validation."""
+
+    def test_valid_url_accepted(self) -> None:
+        """NavigateParams should accept a valid HTTPS URL."""
+        params = NavigateParams(url="https://example.com")
+        assert params.url == "https://example.com"
+
+    def test_empty_url_accepted(self) -> None:
+        """NavigateParams should accept an empty URL (for multi-step configs)."""
+        params = NavigateParams(url="")
+        assert params.url == ""
+
+    def test_file_scheme_rejected(self) -> None:
+        """NavigateParams should reject file:// scheme."""
+        from wavexis.exceptions import ActionError
+
+        with pytest.raises(ActionError, match="scheme"):
+            NavigateParams(url="file:///etc/passwd")
+
+    def test_javascript_scheme_rejected(self) -> None:
+        """NavigateParams should reject javascript: scheme."""
+        from wavexis.exceptions import ActionError
+
+        with pytest.raises(ActionError, match="scheme"):
+            NavigateParams(url="javascript:alert(1)")
