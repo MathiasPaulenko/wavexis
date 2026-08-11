@@ -62,8 +62,14 @@ class TestSignalHandler:
         cleanup_mod._cleanup_done = False
         cleanup_mod._registered_backends.clear()
 
-    def test_signal_handler_calls_cleanup_and_exits(self) -> None:
-        """_signal_handler should run cleanup and call sys.exit with 128+signum."""
+    def test_signal_handler_exits_without_direct_cleanup(self) -> None:
+        """_signal_handler should call sys.exit without calling _cleanup_sync.
+
+        Cleanup is deferred to the atexit handler, which runs after the
+        event loop has stopped.  This prevents a race where
+        asyncio.ensure_future is cancelled by sys.exit before the
+        cleanup coroutine can execute.
+        """
         import signal as signal_mod
 
         from wavexis.cleanup import _signal_handler
@@ -75,8 +81,9 @@ class TestSignalHandler:
         with pytest.raises(SystemExit) as exc_info:
             _signal_handler(signal_mod.SIGINT, None)
         assert exc_info.value.code == 128 + signal_mod.SIGINT
-        # Cleanup should have closed the backend
-        backend.close.assert_called_once()
+        # Backend should NOT be closed by the signal handler directly;
+        # atexit will handle cleanup after the loop has stopped.
+        backend.close.assert_not_called()
 
     def test_signal_handler_unknown_signal_name(self) -> None:
         """_signal_handler uses str(signum) for unknown signals."""

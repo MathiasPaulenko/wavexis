@@ -88,13 +88,22 @@ def _cleanup_sync() -> None:
 
 
 def _signal_handler(signum: int, frame: Any) -> None:
-    """Handle signals by cleaning up and re-raising.
+    """Handle signals by exiting so atexit can clean up.
+
+    Previously this called _cleanup_sync() directly, but when the event
+    loop is running in the same thread, the fire-and-forget
+    asyncio.ensure_future would be cancelled by the subsequent
+    sys.exit() before the cleanup could execute.  Setting _cleanup_done
+    to True prematurely also prevented the atexit handler from running.
+
+    Now we just exit — the atexit handler will call _cleanup_sync()
+    after the loop has stopped, at which point asyncio.run() can
+    properly close all registered backends.
 
     Args:
         signum: Signal number received.
         frame: Current stack frame.
     """
-    _cleanup_sync()
     name = _SIGNAL_NAMES.get(signum, str(signum))
     sys.stderr.write(f"\nwavexis: received {name}, cleaning up…\n")
     sys.exit(128 + signum)
