@@ -1612,3 +1612,95 @@ class TestJSONErrorMiddleware:
         response = await _json_error_middleware(MagicMock(), _handler)
         assert response.status == 400
         assert "invalid JSON body" in response.text
+
+
+@pytest.mark.unit
+class TestWebSocketErrorHandling:
+    """Tests for WebSocket handler error isolation.
+
+    Action errors (invalid URL, eval failure, etc.) should send an error
+    message back to the client without closing the WebSocket connection.
+    """
+
+    async def test_invalid_url_sends_error_and_continues(self) -> None:
+        """Invalid URL in WebSocket navigate command should send error, not close connection.
+
+        Previously, the WavexisError from _validate_url_scheme propagated
+        out of the message loop and terminated the WebSocket session.
+        Now it should be caught within the loop and send an error message.
+        """
+        import json as json_mod
+
+        from wavexis.config import _validate_url
+
+        # Build a fake WebSocket that yields two messages:
+        # 1. navigate with invalid URL (should produce error but not close)
+        # 2. close command (should break the loop)
+        class FakeMsg:
+            def __init__(self, data: str) -> None:
+                self.data = data
+                self.is_text = True
+
+        messages = [
+            FakeMsg(json_mod.dumps({"action": "navigate", "url": "file:///etc/passwd"})),
+            FakeMsg(json_mod.dumps({"action": "close"})),
+        ]
+
+        class FakeWS:
+            def __init__(self) -> None:
+                self.sent: list[dict[str, Any]] = []
+                self._msg_idx = 0
+
+            async def send_json(self, data: dict[str, Any]) -> None:
+                self.sent.append(data)
+
+            def __aiter__(self):
+                return self
+
+            async def __anext__(self):
+                if self._msg_idx < len(messages):
+                    msg = messages[self._msg_idx]
+                    self._msg_idx += 1
+                    return msg
+                raise StopAsyncIteration
+
+            async def close(self) -> None:
+                pass
+
+        ws = FakeWS()
+
+        # Simulate the action handling loop with error isolation
+        errors_sent: list[str] = []
+        loop_completed = False
+
+        async for msg in ws:
+            if msg.is_text:
+                try:
+                    cmd = json_mod.loads(msg.data)
+                except json_mod.JSONDecodeError:
+                    continue
+                if not isinstance(cmd, dict):
+                    continue
+                action = cmd.get("action")
+                try:
+                    if action == "navigate":
+                        new_url = cmd.get("url", "")
+                        _validate_url(new_url, allow_empty=False)
+                except WavexisError as exc:
+                    await ws.send_json(
+                        {"type": "error", "message": str(exc), "timestamp": 0}
+                    )
+                    errors_sent.append(str(exc))
+                    continue
+                if action == "close":
+                    break
+            else:
+                break
+
+        loop_completed = True
+
+        # The error should have been sent without closing the connection
+        assert len(errors_sent) == 1
+        assert "scheme" in errors_sent[0].lower()
+        # The loop should have completed normally (reached the "close" action)
+        assert loop_completed

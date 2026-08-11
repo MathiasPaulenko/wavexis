@@ -668,7 +668,7 @@ async def _get_backend(request: Any) -> AbstractBackend:
     """Acquire a backend from the pool for this request.
 
     Reuses an idle backend if available, otherwise creates a new one.
-    The caller is responsible for calling ``_release_backend`` after use.
+    The caller is responsible for returning the backend to the pool after use.
     """
     pool = _get_pool(request)
     preferred = request.app.get("backend_name")
@@ -721,17 +721,6 @@ async def _run_action(request: Any, action: Any) -> Any:
                 # Launch failed — close the broken backend instead of
                 # returning it to the pool for reuse.
                 await pool.discard_backend(backend)
-
-
-async def _release_backend(request: Any, backend: AbstractBackend) -> None:
-    """Return a backend to the pool and release its slot.
-
-    Args:
-        request: The aiohttp request.
-        backend: The backend instance to return.
-    """
-    pool = _get_pool(request)
-    await pool.return_backend(backend)
 
 
 def with_backend(
@@ -1639,50 +1628,60 @@ async def handle_websocket(request: Any) -> Any:
                         )
                         continue
                     action = cmd.get("action")
-                    if action == "navigate":
-                        new_url = cmd.get("url", "")
-                        _validate_url_scheme(new_url, allow_empty=False)
-                        await backend.navigate(new_url, WaitStrategy(strategy="load"))
-                        await ws.send_json(
-                            {
-                                "type": "navigated",
-                                "url": new_url,
-                                "timestamp": time.time(),
-                            }
-                        )
-                    elif action == "eval":
-                        expr = cmd.get("expression", "")
-                        if len(expr) > _MAX_EXPRESSION_LENGTH:
-                            err_msg = f"expression exceeds {_MAX_EXPRESSION_LENGTH} characters"
+                    try:
+                        if action == "navigate":
+                            new_url = cmd.get("url", "")
+                            _validate_url_scheme(new_url, allow_empty=False)
+                            await backend.navigate(new_url, WaitStrategy(strategy="load"))
                             await ws.send_json(
                                 {
-                                    "type": "error",
-                                    "message": err_msg,
+                                    "type": "navigated",
+                                    "url": new_url,
                                     "timestamp": time.time(),
                                 }
                             )
-                            continue
-                        result = await backend.eval(expr)
+                        elif action == "eval":
+                            expr = cmd.get("expression", "")
+                            if len(expr) > _MAX_EXPRESSION_LENGTH:
+                                err_msg = f"expression exceeds {_MAX_EXPRESSION_LENGTH} characters"
+                                await ws.send_json(
+                                    {
+                                        "type": "error",
+                                        "message": err_msg,
+                                        "timestamp": time.time(),
+                                    }
+                                )
+                                continue
+                            result = await backend.eval(expr)
+                            await ws.send_json(
+                                {
+                                    "type": "eval_result",
+                                    "result": result,
+                                    "timestamp": time.time(),
+                                }
+                            )
+                        elif action == "screenshot":
+                            params = ScreenshotParams(url="", format=fmt, quality=quality)
+                            img = await backend.screenshot(params)
+                            b64 = base64.b64encode(img).decode("ascii")
+                            await ws.send_json(
+                                {
+                                    "type": "screenshot",
+                                    "data": b64,
+                                    "timestamp": time.time(),
+                                }
+                            )
+                        elif action == "close":
+                            break
+                    except WavexisError as exc:
                         await ws.send_json(
                             {
-                                "type": "eval_result",
-                                "result": result,
+                                "type": "error",
+                                "message": str(exc),
                                 "timestamp": time.time(),
                             }
                         )
-                    elif action == "screenshot":
-                        params = ScreenshotParams(url="", format=fmt, quality=quality)
-                        img = await backend.screenshot(params)
-                        b64 = base64.b64encode(img).decode("ascii")
-                        await ws.send_json(
-                            {
-                                "type": "screenshot",
-                                "data": b64,
-                                "timestamp": time.time(),
-                            }
-                        )
-                    elif action == "close":
-                        break
+                        continue
                 elif msg.type in (
                     web.WSMsgType.CLOSE,
                     web.WSMsgType.CLOSING,
