@@ -174,8 +174,8 @@ def events_to_yaml(events: list[dict[str, Any]], initial_url: str) -> str:
             selector = event.get("selector", "")
             if key == "Enter" and selector:
                 actions.append({"click": {"selector": selector}})
-            elif key and len(key) == 1:
-                actions.append({"type": {"text": key}})
+            elif key and len(key) == 1 and selector:
+                actions.append({"type": {"selector": selector, "text": key}})
             else:
                 actions.append({"keypress": {"key": key}})
 
@@ -186,8 +186,9 @@ def events_to_yaml(events: list[dict[str, Any]], initial_url: str) -> str:
                 last_url = url
 
         elif etype == "scroll":
-            # Scroll is not a standard multi-action type; skip.
-            pass
+            scroll_x = int(event.get("scrollX", 0))
+            scroll_y = int(event.get("scrollY", 0))
+            actions.append({"scroll": {"x": scroll_x, "y": scroll_y}})
 
     config = {"actions": actions}
     return str(yaml.dump(config, default_flow_style=False, sort_keys=False, allow_unicode=True))
@@ -243,11 +244,12 @@ async def record_session(
     backend: AbstractBackend,
     url: str,
     duration: int = 60,
+    headless: bool = False,
 ) -> str:
     """Record browser interactions and return a wavexis YAML config.
 
-    Launches a non-headless browser, injects event listeners, and
-    collects interactions until the duration expires or the page is closed.
+    Launches a browser, injects event listeners, and collects interactions
+    until the duration expires or the user presses Ctrl+C.
 
     This is a convenience wrapper that launches the backend, calls
     :func:`record_events`, and converts the result to YAML.  For use cases
@@ -258,10 +260,18 @@ async def record_session(
         backend: A browser backend instance.
         url: URL to navigate to for recording.
         duration: Maximum recording duration in seconds.
+        headless: If True, run browser in headless mode (no visible window).
 
     Returns:
         YAML string representing the recorded actions.
+
+    Raises:
+        ActionError: If the URL is invalid.
     """
-    await backend.launch(BrowserOptions(headless=False))
+    from wavexis.config import _validate_url
+
+    _validate_url(url, allow_empty=False, name="url")
+
+    await backend.launch(BrowserOptions(headless=headless))
     events = await record_events(backend, url, duration)
     return events_to_yaml(events, url)

@@ -511,6 +511,11 @@ def record(
             "(clicks, inputs, navigations)"
         ),
     ),
+    headless: bool = typer.Option(
+        False,
+        "--headless",
+        help="Run interactive recording in headless mode (no visible window)",
+    ),
     duration: int = typer.Option(
         60, "--duration", "-d", help="Recording duration in seconds (interactive mode)"
     ),
@@ -525,9 +530,12 @@ def record(
 
         backend = _get_backend()
 
+        if not headless:
+            _echo("Recording started. Interact with the page and press Ctrl+C to stop.")
+
         async def _record_and_close() -> str | None:
             try:
-                return await record_session(backend, url, duration)
+                return await record_session(backend, url, duration, headless=headless)
             finally:
                 await _close_backend(backend)
 

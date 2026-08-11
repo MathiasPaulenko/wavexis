@@ -7,9 +7,9 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 import yaml
 
-from wavexis.actions.record import events_to_yaml
+from wavexis.actions.record import events_to_yaml, record_session
 from wavexis.backend.base import AbstractBackend
-from wavexis.exceptions import WavexisError
+from wavexis.exceptions import ActionError, WavexisError
 from wavexis.record import Recorder, record_to_yaml, replay_from_yaml
 
 
@@ -238,7 +238,72 @@ class TestEventsToYaml:
 
     def test_unknown_event_type_skipped(self) -> None:
         """Unknown event types should be skipped silently."""
-        events = [{"type": "scroll", "x": 100, "y": 200}]
+        events = [{"type": "hover", "selector": "#elem"}]
         yaml_str = events_to_yaml(events, "https://example.com")
         data = yaml.safe_load(yaml_str)
         assert len(data["actions"]) == 1
+
+    def test_scroll_event(self) -> None:
+        """Test scroll event conversion produces a scroll action with x/y."""
+        events = [{"type": "scroll", "scrollX": 0, "scrollY": 500}]
+        yaml_str = events_to_yaml(events, "https://example.com")
+        data = yaml.safe_load(yaml_str)
+        assert data["actions"][1] == {"scroll": {"x": 0, "y": 500}}
+
+    def test_scroll_event_missing_coords_defaults_to_zero(self) -> None:
+        """Scroll events with missing coordinates should default to 0."""
+        events = [{"type": "scroll"}]
+        yaml_str = events_to_yaml(events, "https://example.com")
+        data = yaml.safe_load(yaml_str)
+        assert data["actions"][1] == {"scroll": {"x": 0, "y": 0}}
+
+    def test_keypress_single_char_with_selector(self) -> None:
+        """Single-char keypress with selector should produce a type action with selector."""
+        events = [{"type": "keypress", "selector": "#input", "key": "a"}]
+        yaml_str = events_to_yaml(events, "https://example.com")
+        data = yaml.safe_load(yaml_str)
+        assert data["actions"][1] == {"type": {"selector": "#input", "text": "a"}}
+
+    def test_keypress_single_char_without_selector(self) -> None:
+        """Single-char keypress without selector should fall through to keypress action."""
+        events = [{"type": "keypress", "selector": "", "key": "a"}]
+        yaml_str = events_to_yaml(events, "https://example.com")
+        data = yaml.safe_load(yaml_str)
+        assert data["actions"][1] == {"keypress": {"key": "a"}}
+
+
+@pytest.mark.unit
+class TestRecordSession:
+    """Test suite for record_session."""
+
+    async def test_invalid_url_raises_action_error(self) -> None:
+        """record_session should raise ActionError for an invalid URL."""
+        backend = MagicMock(spec=AbstractBackend)
+        backend.launch = AsyncMock()
+        with pytest.raises(ActionError, match="url"):
+            await record_session(backend, "not-a-url", duration=1)
+
+    async def test_empty_url_raises_action_error(self) -> None:
+        """record_session should raise ActionError for an empty URL."""
+        backend = MagicMock(spec=AbstractBackend)
+        backend.launch = AsyncMock()
+        with pytest.raises(ActionError, match="url is required"):
+            await record_session(backend, "", duration=1)
+
+    async def test_headless_param_passed_to_launch(self) -> None:
+        """record_session should pass headless flag to BrowserOptions."""
+        backend = MagicMock(spec=AbstractBackend)
+        backend.launch = AsyncMock()
+        backend.navigate = AsyncMock()
+        backend.eval = AsyncMock(return_value="[]")
+        backend.close = AsyncMock()
+
+        from unittest.mock import patch
+
+        with patch("wavexis.actions.record.record_events", new_callable=AsyncMock, return_value=[]):
+            await record_session(backend, "https://example.com", duration=1, headless=True)
+
+        backend.launch.assert_called_once()
+        call_args = backend.launch.call_args
+        browser_opts = call_args[0][0] if call_args[0] else call_args[1].get("browser_options")
+        assert browser_opts.headless is True
