@@ -9,8 +9,8 @@ class FedCmBackend(ABC):
     """Federated Credential Management operations."""
 
     @abstractmethod
-    async def fed_cm_click_dialog_button(self, dialog_id: str, button_index: int) -> None:
-        """Click a button in a FedCm dialog."""
+    async def fed_cm_click_dialog_button(self, dialog_id: str, dialog_button: str) -> None:
+        """Click a button in a FedCm dialog (CDP ``dialogButton`` enum)."""
 
     @abstractmethod
     async def fed_cm_disable(self) -> None:

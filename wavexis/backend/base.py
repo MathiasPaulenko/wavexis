@@ -138,7 +138,7 @@ class AbstractBackend(
         - :class:`EmulationBackend` - device, viewport, geolocation, sensors
         - :class:`PerformanceBackend` - metrics, traces, coverage
         - :class:`DebugBackend` - breakpoints, stepping, pause/resume
-    - :class:`DOMDebuggerBackend` - DOM breakpoints, event listener breakpoints, XHR breakpoints
+        - :class:`DOMDebuggerBackend` - DOM breakpoints, event listener breakpoints, XHR breakpoints
         - :class:`CSSBackend` - styles, stylesheets, overlay highlights
         - :class:`StorageBackend` - DOM storage, Cache Storage, IndexedDB
         - :class:`EventsBackend` - event subscription, console, logs
@@ -152,3 +152,20 @@ class AbstractBackend(
 
         Implementations include CDPBackend (via cdpwave) and BiDiBackend (via bidiwave).
     """
+
+    @property
+    def is_connected(self) -> bool:
+        """Whether the backend's underlying client connection is alive.
+
+        Used by the serve backend pool to avoid reusing dead backends.
+        """
+        client = getattr(self, "_client", None)
+        if client is None:
+            return False
+        is_conn = getattr(client, "is_connected", None)
+        if is_conn is not None:
+            return bool(is_conn)
+        conn = getattr(client, "_connection", None)
+        if conn is not None:
+            return not getattr(conn, "_closed", False)
+        return True

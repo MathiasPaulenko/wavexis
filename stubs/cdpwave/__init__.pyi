@@ -1,6 +1,6 @@
-"""Type stubs for cdpwave package (v3.2.1)."""
+"""Type stubs for cdpwave package (v3.3.0)."""
 
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 class Subscription:
@@ -89,7 +89,11 @@ class CDPSession:
 
 
 class CDPClient:
-    """Type stub for CDPClient."""
+    """Type stub for CDPClient.
+
+    ``launch`` and ``connect`` return an awaitable launch context
+    (awaitable -> CDPClient, also usable as an async context manager).
+    """
 
     browser: Any
     is_closed: bool
@@ -97,19 +101,30 @@ class CDPClient:
     sessions: list[CDPSession]
 
     @classmethod
-    async def launch(
+    def launch(
         cls,
         headless: bool = ...,
+        browser_path: str | None = ...,
+        port: int = ...,
+        user_data_dir: str | None = ...,
         extra_args: list[str] | None = ...,
-    ) -> CDPClient: ...
+        timeout: float = ...,
+        max_retries: int = ...,
+        backoff_base: float = ...,
+        backoff_max: float = ...,
+        pipe: bool = ...,
+    ) -> Awaitable[CDPClient]: ...
 
     @classmethod
-    async def connect(
+    def connect(
         cls,
         host: str = ...,
         port: int = ...,
         ws_url: str | None = ...,
-    ) -> CDPClient: ...
+        max_retries: int = ...,
+        backoff_base: float = ...,
+        backoff_max: float = ...,
+    ) -> Awaitable[CDPClient]: ...
 
     async def new_page(
         self, url: str = ..., auto_attach: bool = False

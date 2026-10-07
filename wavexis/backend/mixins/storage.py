@@ -109,14 +109,14 @@ class StorageBackend(ABC):
 
     @abstractmethod
     async def cache_storage_request_cached_response(
-        self, cache_id: str, request_url: str, request_headers: list[dict[str, str]] | None = None
+        self, cache_id: str, request_url: str, request_headers: list[dict[str, Any]]
     ) -> dict[str, Any]:
         """Request a cached response for a specific request.
 
         Args:
             cache_id: The CDP cache identifier.
             request_url: The request URL.
-            request_headers: Optional list of request header dicts.
+            request_headers: List of request header dicts.
 
         Returns:
             The cached response dict.
@@ -124,17 +124,22 @@ class StorageBackend(ABC):
 
     @abstractmethod
     async def cache_storage_request_entries(
-        self, cache_id: str, skip_count: int = 0, page_size: int = 100
-    ) -> list[dict[str, Any]]:
+        self,
+        cache_id: str,
+        skip_count: int | None = None,
+        page_size: int | None = None,
+        path_filter: str | None = None,
+    ) -> dict[str, Any]:
         """Request entries from a cache.
 
         Args:
             cache_id: The CDP cache identifier.
             skip_count: Number of entries to skip.
             page_size: Maximum number of entries to return.
+            path_filter: Optional path filter for entries.
 
         Returns:
-            List of cache entry dicts.
+            The command result with ``cacheDataEntries`` and ``returnCount``.
         """
 
     @abstractmethod

@@ -11,6 +11,10 @@ class DigitalCredentialsBackend(ABC):
 
     @abstractmethod
     async def digital_credentials_set_virtual_wallet_behavior(
-        self, behavior: dict[str, Any]
+        self,
+        action: str,
+        protocol: str | None = None,
+        response: dict[str, Any] | None = None,
+        frame_id: str | None = None,
     ) -> None:
         """Set the virtual wallet behavior for digital credentials."""

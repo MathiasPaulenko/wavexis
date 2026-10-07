@@ -54,8 +54,13 @@ class HeapProfilerBackend(ABC):
         """Stop heap sampling and return the profile."""
 
     @abstractmethod
-    async def heap_profiler_stop_tracking_heap_objects(self, report_progress: bool = False) -> None:
-        """Stop tracking heap objects."""
+    async def heap_profiler_stop_tracking_heap_objects(
+        self,
+        report_progress: bool = False,
+        capture_numeric_value: bool = False,
+        expose_internals: bool = False,
+    ) -> dict[str, Any]:
+        """Stop tracking heap objects and return the sampling profile."""
 
     @abstractmethod
     async def heap_profiler_take_heap_snapshot(self, report_progress: bool = False) -> None:

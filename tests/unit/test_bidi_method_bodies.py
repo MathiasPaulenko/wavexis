@@ -434,7 +434,7 @@ class TestBiDiMethodBodies:
         mock.on_request = MagicMock(side_effect=["sub-1", "sub-2"])
         await backend.block_requests(["*://a.example.com/*"])
         await backend.block_requests(["*://b.example.com/*"])
-        assert mock.network.remove_intercept.await_args.kwargs["intercept_id"] == "intercept-1"
+        assert mock.network.remove_intercept.await_args.args[0] == "intercept-1"
         assert mock.off.call_args[0][0] == "sub-1"
         assert mock.network.add_intercept.await_count == 2
 
@@ -444,7 +444,7 @@ class TestBiDiMethodBodies:
         mock.on_request = MagicMock(side_effect=["sub-1", "sub-2"])
         await backend.modify_request({"urlPattern": "*"}, {"method": "POST"})
         await backend.modify_request({"urlPattern": "*"}, {"method": "GET"})
-        assert mock.network.remove_intercept.await_args.kwargs["intercept_id"] == "intercept-1"
+        assert mock.network.remove_intercept.await_args.args[0] == "intercept-1"
         assert mock.off.call_args[0][0] == "sub-1"
 
     async def test_modify_response_cleans_previous_intercept(self) -> None:
@@ -453,7 +453,7 @@ class TestBiDiMethodBodies:
         mock.on_response_started = MagicMock(side_effect=["sub-1", "sub-2"])
         await backend.modify_response({"urlPattern": "*"}, {"status": 200, "body": "a"})
         await backend.modify_response({"urlPattern": "*"}, {"status": 200, "body": "b"})
-        assert mock.network.remove_intercept.await_args.kwargs["intercept_id"] == "intercept-1"
+        assert mock.network.remove_intercept.await_args.args[0] == "intercept-1"
         assert mock.off.call_args[0][0] == "sub-1"
 
     async def test_handle_auth_cleans_previous_intercept(self) -> None:
@@ -462,7 +462,7 @@ class TestBiDiMethodBodies:
         mock.on_auth_required = MagicMock(side_effect=["sub-1", "sub-2"])
         await backend.handle_auth("https://a.example.com", "user", "pass")
         await backend.handle_auth("https://b.example.com", "user", "pass")
-        assert mock.network.remove_intercept.await_args.kwargs["intercept_id"] == "intercept-1"
+        assert mock.network.remove_intercept.await_args.args[0] == "intercept-1"
         assert mock.off.call_args[0][0] == "sub-1"
 
     async def test_close_cleans_network_intercepts(self) -> None:
@@ -471,7 +471,7 @@ class TestBiDiMethodBodies:
         mock.on_request = MagicMock(return_value="sub-1")
         await backend.block_requests(["*://ads.example.com/*"])
         await backend.close()
-        assert mock.network.remove_intercept.await_args.kwargs["intercept_id"] == "intercept-1"
+        assert mock.network.remove_intercept.await_args.args[0] == "intercept-1"
         assert mock.off.call_args[0][0] == "sub-1"
 
     async def test_replay_har(self, tmp_path: Any) -> None:

@@ -22,12 +22,12 @@ class LayerTreeBackend(ABC):
         """Enable the LayerTree domain."""
 
     @abstractmethod
-    async def layer_tree_load_snapshot(self, snapshots: list[dict[str, Any]]) -> dict[str, Any]:
-        """Load a layer tree snapshot."""
+    async def layer_tree_load_snapshot(self, tiles: list[dict[str, Any]]) -> str:
+        """Load a layer tree snapshot and return the snapshot ID."""
 
     @abstractmethod
-    async def layer_tree_make_snapshot(self, layer_id: str) -> dict[str, Any]:
-        """Make a snapshot of a layer."""
+    async def layer_tree_make_snapshot(self, layer_id: str) -> str:
+        """Make a snapshot of a layer and return the snapshot ID."""
 
     @abstractmethod
     async def layer_tree_profile_snapshot(self, snapshot_id: str) -> dict[str, Any]:

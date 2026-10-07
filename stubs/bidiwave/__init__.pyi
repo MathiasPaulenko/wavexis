@@ -1,4 +1,4 @@
-"""Type stubs for bidiwave package (v1.8.1)."""
+"""Type stubs for bidiwave package (v2.0.0)."""
 
 from collections.abc import Callable
 from typing import Any
@@ -7,6 +7,30 @@ class Subscription:
     """Type stub for event subscription handle."""
 
     def unsubscribe(self) -> None: ...
+
+class ClientConfig:
+    """Type stub for ClientConfig."""
+
+    def __init__(
+        self,
+        timeout: float = ...,
+        max_retries: int = ...,
+        retry_delay: float = ...,
+        retry_backoff: float = ...,
+        log_level: str = ...,
+    ) -> None: ...
+
+class BrowsingContext:
+    """Type stub for BrowsingContext (create_context result)."""
+
+    id: str
+    user_context: str | None
+    client: Any
+
+class InterceptResult:
+    """Type stub for InterceptResult (add_intercept result)."""
+
+    intercept: str
 
 class BiDiClient:
     """Type stub for BiDiClient."""
@@ -24,15 +48,19 @@ class BiDiClient:
     _connection: Any
 
     @classmethod
-    async def connect(cls, ws_url: str) -> BiDiClient: ...
+    async def connect(
+        cls, url: str, config: ClientConfig | None = ...
+    ) -> BiDiClient: ...
 
     async def close(self) -> None: ...
-    async def send(self, method: str, params: dict[str, Any] | None = ...) -> dict[str, Any]: ...
+    async def send_command(
+        self, method: str, params: dict[str, Any] | None = ...
+    ) -> dict[str, Any]: ...
     def off(self, subscription: Subscription) -> None: ...
 
-    # Event subscription helpers
+    # Event subscription helpers (synchronous in v2.x)
     def on(self, event_type: str, handler: Callable[..., Any]) -> Subscription: ...
-    async def on_log_entry(self, handler: Callable[..., Any]) -> Subscription: ...
+    def on_log_entry(self, handler: Callable[..., Any]) -> Subscription: ...
     def on_navigation_started(self, handler: Callable[..., Any]) -> Subscription: ...
     def on_navigation_committed(self, handler: Callable[..., Any]) -> Subscription: ...
     def on_navigation_completed(self, handler: Callable[..., Any]) -> Subscription: ...

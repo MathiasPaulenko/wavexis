@@ -18,11 +18,11 @@ class SystemInfoBackend(ABC):
         """
 
     @abstractmethod
-    async def system_info_get_process_info(self) -> list[dict[str, Any]]:
+    async def system_info_get_process_info(self) -> dict[str, Any]:
         """Get process info for the browser.
 
         Returns:
-            List of process info dicts.
+            The command result with a ``processInfo`` list.
         """
 
     @abstractmethod

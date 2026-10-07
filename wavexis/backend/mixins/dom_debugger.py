@@ -34,8 +34,8 @@ class DOMDebuggerBackend(ABC):
         """Remove an XHR breakpoint for a URL substring."""
 
     @abstractmethod
-    async def dom_debugger_set_break_on_csp_violation(self, enabled: bool) -> None:
-        """Set whether to break on CSP violations."""
+    async def dom_debugger_set_break_on_csp_violation(self, violation_types: list[str]) -> None:
+        """Set which CSP violation types to break on."""
 
     @abstractmethod
     async def dom_debugger_set_dom_breakpoint(self, node_id: int, type: str) -> None:

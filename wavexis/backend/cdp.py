@@ -12,7 +12,7 @@ import os
 import re
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from wavexis import __version__
 from wavexis.backend._trace import extract_trace_events, read_trace_stream
@@ -272,7 +272,7 @@ class CDPBackend(AbstractBackend):
                 launch_timeout = 30.0 if os.environ.get("CI") else 10.0
                 self._client = await CDPClient.launch(
                     headless=options.headless,
-                    user_data_dir=options.user_data_dir,  # type: ignore[call-arg]
+                    user_data_dir=options.user_data_dir,
                     extra_args=extra_args if extra_args else None,
                     timeout=launch_timeout,
                 )
@@ -1822,8 +1822,8 @@ class CDPBackend(AbstractBackend):
         if not isinstance(suggestions, list) or not suggestions:
             raise ElementNotFoundError(selector)
         if all:
-            return suggestions
-        return suggestions[0]
+            return cast("list[str]", suggestions)
+        return cast("str", suggestions[0])
 
     @staticmethod
     def _suggest_locator_js(escaped: str) -> str:
@@ -1893,8 +1893,8 @@ class CDPBackend(AbstractBackend):
         if not isinstance(selectors, list) or not selectors:
             raise ElementNotFoundError(query)
         if all:
-            return selectors
-        return selectors[0]
+            return cast("list[str]", selectors)
+        return cast("str", selectors[0])
 
     async def nl_click(self, query: str, auto_wait: bool = True) -> None:
         """Click an element found by natural language text query.
@@ -5094,71 +5094,15 @@ class CDPBackend(AbstractBackend):
 
     # ── DOMDebugger ────────────────────────────────────────
 
-    async def dom_debugger_get_event_listeners(
-        self, object_id: str, depth: int = 0, pierce: bool = False
-    ) -> list[dict[str, Any]]:
-        """Get event listeners for an object by its remote object ID."""
-        session = self._require_session()
-        result = await session.send(
-            "DOMDebugger.getEventListeners",
-            {"objectId": object_id, "depth": depth, "pierce": pierce},
-        )
-        return list(result.get("listeners", [])) if result else []
 
-    async def dom_debugger_remove_dom_breakpoint(self, node_id: int, type: str) -> None:
-        """Remove a DOM breakpoint from a node by ID."""
-        session = self._require_session()
-        await session.send("DOMDebugger.removeDOMBreakpoint", {"nodeId": node_id, "type": type})
 
-    async def dom_debugger_remove_event_listener_breakpoint(
-        self, event_name: str, target_name: str | None = None
-    ) -> None:
-        """Remove an event listener breakpoint."""
-        session = self._require_session()
-        params: dict[str, Any] = {"eventName": event_name}
-        if target_name is not None:
-            params["targetName"] = target_name
-        await session.send("DOMDebugger.removeEventListenerBreakpoint", params)
 
-    async def dom_debugger_remove_instrumentation_breakpoint(self, event_name: str) -> None:
-        """Remove an instrumentation breakpoint."""
-        session = self._require_session()
-        await session.send("DOMDebugger.removeInstrumentationBreakpoint", {"eventName": event_name})
 
-    async def dom_debugger_remove_xhr_breakpoint(self, url: str) -> None:
-        """Remove an XHR breakpoint for a URL substring."""
-        session = self._require_session()
-        await session.send("DOMDebugger.removeXHRBreakpoint", {"url": url})
 
-    async def dom_debugger_set_break_on_csp_violation(self, enabled: bool) -> None:
-        """Set whether to break on CSP violations."""
-        session = self._require_session()
-        await session.send("DOMDebugger.setBreakOnCSPViolation", {"enabled": enabled})
 
-    async def dom_debugger_set_dom_breakpoint(self, node_id: int, type: str) -> None:
-        """Set a DOM breakpoint on a node by ID."""
-        session = self._require_session()
-        await session.send("DOMDebugger.setDOMBreakpoint", {"nodeId": node_id, "type": type})
 
-    async def dom_debugger_set_event_listener_breakpoint(
-        self, event_name: str, target_name: str | None = None
-    ) -> None:
-        """Set an event listener breakpoint."""
-        session = self._require_session()
-        params: dict[str, Any] = {"eventName": event_name}
-        if target_name is not None:
-            params["targetName"] = target_name
-        await session.send("DOMDebugger.setEventListenerBreakpoint", params)
 
-    async def dom_debugger_set_instrumentation_breakpoint(self, event_name: str) -> None:
-        """Set an instrumentation breakpoint."""
-        session = self._require_session()
-        await session.send("DOMDebugger.setInstrumentationBreakpoint", {"eventName": event_name})
 
-    async def dom_debugger_set_xhr_breakpoint(self, url: str) -> None:
-        """Set an XHR breakpoint for a URL substring."""
-        session = self._require_session()
-        await session.send("DOMDebugger.setXHRBreakpoint", {"url": url})
 
     # ── DOM Snapshot ───────────────────────────────────────
 
@@ -6076,86 +6020,10 @@ class CDPBackend(AbstractBackend):
                 {"cacheId": cache_id},
             )
 
-    async def cache_storage_delete_cache(self, cache_id: str) -> None:
-        """Delete a cache by its CDP cache ID.
 
-        Args:
-            cache_id: The CDP cache identifier.
-        """
-        session = self._require_session()
-        await session.send("CacheStorage.deleteCache", {"cacheId": cache_id})
 
-    async def cache_storage_delete_entry(self, cache_id: str, request: str) -> None:
-        """Delete a specific entry from a cache.
 
-        Args:
-            cache_id: The CDP cache identifier.
-            request: The request URL of the entry to delete.
-        """
-        session = self._require_session()
-        await session.send(
-            "CacheStorage.deleteEntry",
-            {"cacheId": cache_id, "request": request},
-        )
 
-    async def cache_storage_request_cache_names(
-        self, security_origin: str | None = None
-    ) -> list[dict[str, Any]]:
-        """Request cache names for a storage key.
-
-        Args:
-            security_origin: Optional security origin. If None, uses the current page.
-
-        Returns:
-            List of cache info dicts with cacheId and cacheName.
-        """
-        session = self._require_session()
-        storage_key = security_origin or await self._get_cache_storage_key(session)
-        result = await self._request_cache_names(session, storage_key)
-        return [dict(c) for c in result.get("caches", [])] if result else []
-
-    async def cache_storage_request_cached_response(
-        self, cache_id: str, request_url: str, request_headers: list[dict[str, str]] | None = None
-    ) -> dict[str, Any]:
-        """Request a cached response for a specific request.
-
-        Args:
-            cache_id: The CDP cache identifier.
-            request_url: The request URL.
-            request_headers: Optional list of request header dicts.
-
-        Returns:
-            The cached response dict.
-        """
-        session = self._require_session()
-        params: dict[str, Any] = {"cacheId": cache_id, "requestURL": request_url}
-        if request_headers is not None:
-            params["requestHeaders"] = request_headers
-        return dict(await session.send("CacheStorage.requestCachedResponse", params))
-
-    async def cache_storage_request_entries(
-        self, cache_id: str, skip_count: int = 0, page_size: int = 100
-    ) -> list[dict[str, Any]]:
-        """Request entries from a cache.
-
-        Args:
-            cache_id: The CDP cache identifier.
-            skip_count: Number of entries to skip.
-            page_size: Maximum number of entries to return.
-
-        Returns:
-            List of cache entry dicts.
-        """
-        session = self._require_session()
-        result = await session.send(
-            "CacheStorage.requestEntries",
-            {
-                "cacheId": cache_id,
-                "skipCount": skip_count,
-                "pageSize": page_size,
-            },
-        )
-        return [dict(e) for e in result.get("cacheDataEntries", [])] if result else []
 
     async def indexeddb_list(self) -> list[dict[str, Any]]:
         """List all IndexedDB databases.
@@ -6324,13 +6192,13 @@ class CDPBackend(AbstractBackend):
         """Get storage key for a frame."""
         session = self._require_session()
         result = await session.send("Storage.getStorageKey", {"frameId": frame_id})
-        return result.get("storageKey", "")
+        return str(result.get("storageKey", ""))
 
     async def storage_get_storage_key_for_frame(self, frame_id: str) -> str:
         """Get storage key for a frame (alternative endpoint)."""
         session = self._require_session()
         result = await session.send("Storage.getStorageKeyForFrame", {"frameId": frame_id})
-        return result.get("storageKey", "")
+        return str(result.get("storageKey", ""))
 
     async def storage_reset_shared_storage_budget(self, owner_origin: str) -> None:
         """Reset shared storage budget for an owner origin."""
@@ -6558,7 +6426,7 @@ class CDPBackend(AbstractBackend):
         """
         session = self._require_session()
         result = await session.send("ServiceWorker.getMessages", {"workerId": worker_id})
-        return result.get("messages", [])
+        return list(result.get("messages", []))
 
     async def sw_inspect_worker(self, worker_id: str) -> None:
         """Inspect a service worker by opening a DevTools window.
@@ -7125,25 +6993,9 @@ class CDPBackend(AbstractBackend):
 
     # ── DeviceAccess ────────────────────────────────────────
 
-    async def device_access_cancel_prompt(self, id: str) -> None:
-        """Cancel a device access prompt by ID."""
-        session = self._require_session()
-        await session.send("DeviceAccess.cancelPrompt", {"id": id})
 
-    async def device_access_disable(self) -> None:
-        """Disable the DeviceAccess domain."""
-        session = self._require_session()
-        await session.send("DeviceAccess.disable", {})
 
-    async def device_access_enable(self) -> None:
-        """Enable the DeviceAccess domain."""
-        session = self._require_session()
-        await session.send("DeviceAccess.enable", {})
 
-    async def device_access_select_prompt(self, id: str, device_id: str) -> None:
-        """Select a device in a device access prompt."""
-        session = self._require_session()
-        await session.send("DeviceAccess.selectPrompt", {"id": id, "deviceId": device_id})
 
     # ── DeviceOrientation ───────────────────────────────────
 
@@ -7164,102 +7016,22 @@ class CDPBackend(AbstractBackend):
 
     # ── DigitalCredentials ──────────────────────────────────
 
-    async def digital_credentials_set_virtual_wallet_behavior(
-        self, behavior: dict[str, Any]
-    ) -> None:
-        """Set the virtual wallet behavior for digital credentials."""
-        session = self._require_session()
-        await session.send("DigitalCredentials.setVirtualWalletBehavior", {"behavior": behavior})
 
     # ── DOMSnapshot ─────────────────────────────────────────
 
-    async def dom_snapshot_capture_snapshot(
-        self,
-        computed_styles: list[str] | None = None,
-        include_paint_order: bool = False,
-        include_dom_rects: bool = False,
-        include_blended_background_colors: bool = False,
-        include_text_color_opacity: bool = False,
-    ) -> dict[str, Any]:
-        """Capture a DOM snapshot of the current page.
 
-        Bug #7: ``DOMSnapshot.captureSnapshot`` requires ``computedStyles``
-        to be present as an array (even empty). Previously we omitted the
-        key when ``computed_styles`` was None, which caused
-        ``[-32602] Invalid parameters``. We now default to an empty list.
-        """
-        session = self._require_session()
-        params: dict[str, Any] = {"computedStyles": computed_styles or []}
-        if include_paint_order:
-            params["includePaintOrder"] = True
-        if include_dom_rects:
-            params["includeDOMRects"] = True
-        if include_blended_background_colors:
-            params["includeBlendedBackgroundColor"] = True
-        if include_text_color_opacity:
-            params["includeTextColorOpacity"] = True
-        result = await session.send("DOMSnapshot.captureSnapshot", params)
-        return dict(result) if result else {}
 
-    async def dom_snapshot_disable(self) -> None:
-        """Disable the DOMSnapshot domain."""
-        session = self._require_session()
-        await session.send("DOMSnapshot.disable", {})
 
-    async def dom_snapshot_enable(self) -> None:
-        """Enable the DOMSnapshot domain."""
-        session = self._require_session()
-        await session.send("DOMSnapshot.enable", {})
-
-    async def dom_snapshot_get_snapshot(
-        self,
-        computed_styles: list[str] | None = None,
-        include_paint_order: bool = False,
-        include_dom_rects: bool = False,
-        include_blended_background_colors: bool = False,
-        include_text_color_opacity: bool = False,
-    ) -> dict[str, Any]:
-        """Get a DOM snapshot of the current page.
-
-        Bug #8: ``DOMSnapshot.getSnapshot`` requires ``computedStyles``
-        as an array (even empty). Previously we omitted the key when
-        ``computed_styles`` was None, causing
-        ``[-32602] Invalid parameters``. We now default to an empty list.
-        """
-        session = self._require_session()
-        params: dict[str, Any] = {"computedStyles": computed_styles or []}
-        if include_paint_order:
-            params["includePaintOrder"] = True
-        if include_dom_rects:
-            params["includeDOMRects"] = True
-        if include_blended_background_colors:
-            params["includeBlendedBackgroundColor"] = True
-        if include_text_color_opacity:
-            params["includeTextColorOpacity"] = True
-        result = await session.send("DOMSnapshot.getSnapshot", params)
-        return dict(result) if result else {}
 
     # ── DOMStorage ──────────────────────────────────────────
 
-    async def dom_storage_clear(self, storage_id: dict[str, Any]) -> None:
-        """Clear all entries in a DOM storage."""
-        session = self._require_session()
-        await session.send("DOMStorage.clear", {"storageId": storage_id})
 
     async def dom_storage_clear_items(self, storage_id: dict[str, Any]) -> None:
         """Clear all items in a DOM storage (alias)."""
         session = self._require_session()
         await session.send("DOMStorage.clear", {"storageId": storage_id})
 
-    async def dom_storage_disable(self) -> None:
-        """Disable the DOMStorage domain."""
-        session = self._require_session()
-        await session.send("DOMStorage.disable", {})
 
-    async def dom_storage_enable(self) -> None:
-        """Enable the DOMStorage domain."""
-        session = self._require_session()
-        await session.send("DOMStorage.enable", {})
 
     async def dom_storage_get_items(self, storage_id: dict[str, Any]) -> list[dict[str, Any]]:
         """Get all items in a DOM storage."""
@@ -7281,40 +7053,9 @@ class CDPBackend(AbstractBackend):
 
     # ── EventBreakpoints ────────────────────────────────────
 
-    async def event_breakpoints_clear_instrumentation_breakpoint(
-        self, instrumentation_name: str
-    ) -> None:
-        """Clear an instrumentation breakpoint for events."""
-        session = self._require_session()
-        await session.send(
-            "EventBreakpoints.clearInstrumentationBreakpoint",
-            {"instrumentationName": instrumentation_name},
-        )
 
-    async def event_breakpoints_disable(self) -> None:
-        """Disable the EventBreakpoints domain."""
-        session = self._require_session()
-        await session.send("EventBreakpoints.disable", {})
 
-    async def event_breakpoints_remove_instrumentation_breakpoint(
-        self, instrumentation_name: str
-    ) -> None:
-        """Remove an instrumentation breakpoint for events."""
-        session = self._require_session()
-        await session.send(
-            "EventBreakpoints.removeInstrumentationBreakpoint",
-            {"instrumentationName": instrumentation_name},
-        )
 
-    async def event_breakpoints_set_instrumentation_breakpoint(
-        self, instrumentation_name: str
-    ) -> None:
-        """Set an instrumentation breakpoint for events."""
-        session = self._require_session()
-        await session.send(
-            "EventBreakpoints.setInstrumentationBreakpoint",
-            {"instrumentationName": instrumentation_name},
-        )
 
     # ── Extensions ──────────────────────────────────────────
 
@@ -7356,46 +7097,12 @@ class CDPBackend(AbstractBackend):
 
     # ── FedCm ───────────────────────────────────────────────
 
-    async def fed_cm_click_dialog_button(self, dialog_id: str, button_index: int) -> None:
-        """Click a button in a FedCm dialog."""
-        session = self._require_session()
-        await session.send(
-            "FedCm.clickDialogButton", {"dialogId": dialog_id, "buttonIndex": button_index}
-        )
 
-    async def fed_cm_disable(self) -> None:
-        """Disable the FedCm domain."""
-        session = self._require_session()
-        await session.send("FedCm.disable", {})
 
-    async def fed_cm_dismiss_dialog(self, dialog_id: str) -> None:
-        """Dismiss a FedCm dialog."""
-        session = self._require_session()
-        await session.send("FedCm.dismissDialog", {"dialogId": dialog_id})
 
-    async def fed_cm_enable(self) -> None:
-        """Enable the FedCm domain."""
-        session = self._require_session()
-        await session.send("FedCm.enable", {})
 
-    async def fed_cm_open_url(self, dialog_id: str, account_index: int, url: str) -> None:
-        """Open a URL from a FedCm dialog."""
-        session = self._require_session()
-        await session.send(
-            "FedCm.openUrl", {"dialogId": dialog_id, "accountIndex": account_index, "url": url}
-        )
 
-    async def fed_cm_reset_cooldown(self) -> None:
-        """Reset the FedCm cooldown."""
-        session = self._require_session()
-        await session.send("FedCm.resetCooldown", {})
 
-    async def fed_cm_select_account(self, dialog_id: str, account_index: int) -> None:
-        """Select an account in a FedCm dialog."""
-        session = self._require_session()
-        await session.send(
-            "FedCm.selectAccount", {"dialogId": dialog_id, "accountIndex": account_index}
-        )
 
     # ── Fetch ───────────────────────────────────────────────
 
@@ -7510,44 +7217,11 @@ class CDPBackend(AbstractBackend):
 
     # ── FileSystem ──────────────────────────────────────────
 
-    async def file_system_get_directory(self, origin: str, type: str) -> dict[str, Any]:
-        """Get a file system directory by origin and type."""
-        session = self._require_session()
-        result = await session.send("FileSystem.getDirectory", {"origin": origin, "type": type})
-        return dict(result) if result else {}
 
     # ── HeadlessExperimental ────────────────────────────────
 
-    async def headless_experimental_begin_frame(
-        self,
-        frame_time_ticks: float | None = None,
-        interval: float | None = None,
-        no_display_updates: bool = False,
-        screenshot: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
-        """Begin a new frame in headless mode."""
-        session = self._require_session()
-        params: dict[str, Any] = {}
-        if frame_time_ticks is not None:
-            params["frameTimeTicks"] = frame_time_ticks
-        if interval is not None:
-            params["interval"] = interval
-        if no_display_updates:
-            params["noDisplayUpdates"] = True
-        if screenshot is not None:
-            params["screenshot"] = screenshot
-        result = await self._send_cdp(session, "HeadlessExperimental.beginFrame", params)
-        return dict(result) if result else {}
 
-    async def headless_experimental_disable(self) -> None:
-        """Disable the HeadlessExperimental domain."""
-        session = self._require_session()
-        await self._send_cdp(session, "HeadlessExperimental.disable", {})
 
-    async def headless_experimental_enable(self) -> None:
-        """Enable the HeadlessExperimental domain."""
-        session = self._require_session()
-        await self._send_cdp(session, "HeadlessExperimental.enable", {})
 
     # ── Inspector ───────────────────────────────────────────
 
@@ -7703,248 +7377,39 @@ class CDPBackend(AbstractBackend):
 
     # ── HeapProfiler ───────────────────────────────────────
 
-    async def heap_profiler_add_inspected_heap_object(self, heap_object_id: str) -> None:
-        """Add an inspected heap object."""
-        session = self._require_session()
-        await session.send("HeapProfiler.addInspectedHeapObject", {"heapObjectId": heap_object_id})
 
-    async def heap_profiler_collect_garbage(self) -> None:
-        """Collect garbage."""
-        session = self._require_session()
-        await session.send("HeapProfiler.collectGarbage", {})
 
-    async def heap_profiler_disable(self) -> None:
-        """Disable the HeapProfiler domain."""
-        session = self._require_session()
-        await session.send("HeapProfiler.disable", {})
 
-    async def heap_profiler_enable(self) -> None:
-        """Enable the HeapProfiler domain."""
-        session = self._require_session()
-        await session.send("HeapProfiler.enable", {})
 
-    async def heap_profiler_get_heap_object_id(self, object_id: str) -> str:
-        """Get the heap object ID for a remote object."""
-        session = self._require_session()
-        result = await session.send("HeapProfiler.getHeapObjectId", {"objectId": object_id})
-        return str(result.get("heapSnapshotObjectId", "")) if result else ""
 
-    async def heap_profiler_get_object_by_heap_object_id(
-        self, object_id: str, object_group: str = ""
-    ) -> dict[str, Any]:
-        """Get an object by heap object ID."""
-        session = self._require_session()
-        params: dict[str, Any] = {"objectId": object_id}
-        if object_group:
-            params["objectGroup"] = object_group
-        result = await session.send("HeapProfiler.getObjectByHeapObjectId", params)
-        return dict(result) if result else {}
 
-    async def heap_profiler_get_sampling_profile(self) -> dict[str, Any]:
-        """Get the current sampling profile."""
-        session = self._require_session()
-        result = await session.send("HeapProfiler.getSamplingProfile", {})
-        return dict(result) if result else {}
 
-    async def heap_profiler_start_sampling(self, sampling_interval: int = 0) -> None:
-        """Start heap sampling."""
-        session = self._require_session()
-        params: dict[str, Any] = {}
-        if sampling_interval:
-            params["samplingInterval"] = sampling_interval
-        await session.send("HeapProfiler.startSampling", params)
 
-    async def heap_profiler_start_tracking_heap_objects(
-        self, track_allocations: bool = False
-    ) -> None:
-        """Start tracking heap objects."""
-        session = self._require_session()
-        await session.send(
-            "HeapProfiler.startTrackingHeapObjects", {"trackAllocations": track_allocations}
-        )
 
-    async def heap_profiler_stop_sampling(self) -> dict[str, Any]:
-        """Stop heap sampling and return the profile."""
-        session = self._require_session()
-        result = await session.send("HeapProfiler.stopSampling", {})
-        return dict(result) if result else {}
 
-    async def heap_profiler_stop_tracking_heap_objects(self, report_progress: bool = False) -> None:
-        """Stop tracking heap objects."""
-        session = self._require_session()
-        await session.send(
-            "HeapProfiler.stopTrackingHeapObjects", {"reportProgress": report_progress}
-        )
 
-    async def heap_profiler_take_heap_snapshot(self, report_progress: bool = False) -> None:
-        """Take a heap snapshot."""
-        session = self._require_session()
-        await session.send("HeapProfiler.takeHeapSnapshot", {"reportProgress": report_progress})
 
     # ── IndexedDB ──────────────────────────────────────────
 
-    async def indexed_db_clear_object_store(
-        self, security_origin: str, database_name: str, object_store_name: str
-    ) -> None:
-        """Clear all entries in an IndexedDB object store."""
-        session = self._require_session()
-        await session.send(
-            "IndexedDB.clearObjectStore",
-            {
-                "securityOrigin": security_origin,
-                "databaseName": database_name,
-                "objectStoreName": object_store_name,
-            },
-        )
 
-    async def indexed_db_delete_database(self, security_origin: str, database_name: str) -> None:
-        """Delete an IndexedDB database."""
-        session = self._require_session()
-        await session.send(
-            "IndexedDB.deleteDatabase",
-            {"securityOrigin": security_origin, "databaseName": database_name},
-        )
 
-    async def indexed_db_delete_object_store_entries(
-        self,
-        security_origin: str,
-        database_name: str,
-        object_store_name: str,
-        key_range: dict[str, Any],
-    ) -> None:
-        """Delete entries in an IndexedDB object store."""
-        session = self._require_session()
-        await session.send(
-            "IndexedDB.deleteObjectStoreEntries",
-            {
-                "securityOrigin": security_origin,
-                "databaseName": database_name,
-                "objectStoreName": object_store_name,
-                "keyRange": key_range,
-            },
-        )
 
-    async def indexed_db_disable(self) -> None:
-        """Disable the IndexedDB domain."""
-        session = self._require_session()
-        await session.send("IndexedDB.disable", {})
 
-    async def indexed_db_enable(self) -> None:
-        """Enable the IndexedDB domain."""
-        session = self._require_session()
-        await session.send("IndexedDB.enable", {})
 
-    async def indexed_db_get_metadata(
-        self, security_origin: str, database_name: str, object_store_name: str
-    ) -> dict[str, Any]:
-        """Get metadata for an IndexedDB object store."""
-        session = self._require_session()
-        result = await session.send(
-            "IndexedDB.getMetadata",
-            {
-                "securityOrigin": security_origin,
-                "databaseName": database_name,
-                "objectStoreName": object_store_name,
-            },
-        )
-        return dict(result) if result else {}
 
-    async def indexed_db_request_data(
-        self,
-        security_origin: str,
-        database_name: str,
-        object_store_name: str,
-        index_name: str,
-        skip_count: int = 0,
-        page_size: int = 10,
-        key_range: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
-        """Request data from an IndexedDB object store."""
-        session = self._require_session()
-        params: dict[str, Any] = {
-            "securityOrigin": security_origin,
-            "databaseName": database_name,
-            "objectStoreName": object_store_name,
-            "indexName": index_name,
-            "skipCount": skip_count,
-            "pageSize": page_size,
-        }
-        if key_range is not None:
-            params["keyRange"] = key_range
-        result = await session.send("IndexedDB.requestData", params)
-        return dict(result) if result else {}
 
-    async def indexed_db_request_database(
-        self, security_origin: str, database_name: str
-    ) -> dict[str, Any]:
-        """Request an IndexedDB database with its object stores."""
-        session = self._require_session()
-        result = await session.send(
-            "IndexedDB.requestDatabase",
-            {"securityOrigin": security_origin, "databaseName": database_name},
-        )
-        return dict(result) if result else {}
 
-    async def indexed_db_request_database_names(self, security_origin: str) -> dict[str, Any]:
-        """Request the names of all IndexedDB databases for an origin."""
-        session = self._require_session()
-        result = await session.send(
-            "IndexedDB.requestDatabaseNames", {"securityOrigin": security_origin}
-        )
-        return dict(result) if result else {}
 
     # ── LayerTree ──────────────────────────────────────────
 
-    async def layer_tree_compositing_reasons(self, layer_id: str) -> dict[str, Any]:
-        """Get compositing reasons for a layer."""
-        session = self._require_session()
-        result = await session.send("LayerTree.compositingReasons", {"layerId": layer_id})
-        return dict(result) if result else {}
 
-    async def layer_tree_disable(self) -> None:
-        """Disable the LayerTree domain."""
-        session = self._require_session()
-        await session.send("LayerTree.disable", {})
 
-    async def layer_tree_enable(self) -> None:
-        """Enable the LayerTree domain."""
-        session = self._require_session()
-        await session.send("LayerTree.enable", {})
 
-    async def layer_tree_load_snapshot(self, snapshots: list[dict[str, Any]]) -> dict[str, Any]:
-        """Load a layer tree snapshot."""
-        session = self._require_session()
-        result = await session.send("LayerTree.loadSnapshot", {"snapshots": snapshots})
-        return dict(result) if result else {}
 
-    async def layer_tree_make_snapshot(self, layer_id: str) -> dict[str, Any]:
-        """Make a snapshot of a layer."""
-        session = self._require_session()
-        result = await session.send("LayerTree.makeSnapshot", {"layerId": layer_id})
-        return dict(result) if result else {}
 
-    async def layer_tree_profile_snapshot(self, snapshot_id: str) -> dict[str, Any]:
-        """Profile a layer snapshot."""
-        session = self._require_session()
-        result = await session.send("LayerTree.profileSnapshot", {"snapshotId": snapshot_id})
-        return dict(result) if result else {}
 
-    async def layer_tree_release_snapshot(self, snapshot_id: str) -> None:
-        """Release a layer snapshot."""
-        session = self._require_session()
-        await session.send("LayerTree.releaseSnapshot", {"snapshotId": snapshot_id})
 
-    async def layer_tree_replay_snapshot(self, snapshot_id: str) -> dict[str, Any]:
-        """Replay a layer snapshot."""
-        session = self._require_session()
-        result = await session.send("LayerTree.replaySnapshot", {"snapshotId": snapshot_id})
-        return dict(result) if result else {}
 
-    async def layer_tree_snapshot_command_log(self, snapshot_id: str) -> dict[str, Any]:
-        """Get the command log for a layer snapshot."""
-        session = self._require_session()
-        result = await session.send("LayerTree.snapshotCommandLog", {"snapshotId": snapshot_id})
-        return dict(result) if result else {}
 
     # ── Log ─────────────────────────────────────────────────
 
@@ -8069,10 +7534,6 @@ class CDPBackend(AbstractBackend):
 
     # ── CrashReportContext ──────────────────────────────────
 
-    async def crash_report_context_get_entries(self) -> list[dict[str, Any]]:
-        """Get crash report entries."""
-        session = self._require_session()
-        return await session.send("CrashReportContext.getEntries", {})
 
     # ── Input (low-level CDP) ───────────────────────────────
 
@@ -8385,7 +7846,7 @@ class CDPBackend(AbstractBackend):
         """Get the POST data for a request."""
         session = self._require_session()
         result = await session.send("Network.getRequestPostData", {"requestId": request_id})
-        return result.get("postData", "")
+        return str(result.get("postData", ""))
 
     async def network_get_response_body_for_interception(self, interception_id: str) -> str:
         """Get the response body for an interception."""
@@ -8393,7 +7854,7 @@ class CDPBackend(AbstractBackend):
         result = await session.send(
             "Network.getResponseBodyForInterception", {"interceptionId": interception_id}
         )
-        return result.get("body", "")
+        return str(result.get("body", ""))
 
     async def network_get_security_isolation_status(self, frame_id: str = "") -> dict[str, Any]:
         """Get the security isolation status."""
@@ -8636,35 +8097,8 @@ class CDPBackend(AbstractBackend):
 
     # ── System Info ───────────────────────────────────────
 
-    async def system_info_get_info(self) -> dict[str, Any]:
-        """Get system info (OS, GPU, model, etc.) via CDP.
 
-        Bug #18: ``SystemInfo.getInfo`` is only supported on the browser
-        target, not on a page session. Previously this called
-        ``session.send(...)`` which raised
-        ``[-32000] SystemInfo.getInfo is only supported on the browser target``.
-        We now send the command via the browser-level CDPClient.
-        """
-        client = self._require_client()
-        return dict(await client.send("SystemInfo.getInfo", {}))
 
-    async def system_info_get_process_info(self) -> list[dict[str, Any]]:
-        """Get process info for the browser via CDP."""
-        client = self._require_client()
-        result = await client.send("SystemInfo.getProcessInfo", {})
-        return [dict(p) for p in result.get("processInfo", [])] if result else []
-
-    async def system_info_get_feature_state(self, feature_name: str) -> dict[str, Any]:
-        """Get the state of a specific feature via CDP.
-
-        Args:
-            feature_name: The feature name to query.
-
-        Returns:
-            Dict with feature state information.
-        """
-        session = self._require_session()
-        return dict(await session.send("SystemInfo.getFeatureState", {"featureName": feature_name}))
 
     async def __aenter__(self) -> CDPBackend:
         """Enter async context manager, returning self.

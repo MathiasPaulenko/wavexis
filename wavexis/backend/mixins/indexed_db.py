@@ -11,21 +11,34 @@ class IndexedDBBackend(ABC):
 
     @abstractmethod
     async def indexed_db_clear_object_store(
-        self, security_origin: str, database_name: str, object_store_name: str
+        self,
+        database_name: str,
+        object_store_name: str,
+        security_origin: str | None = None,
+        storage_key: str | None = None,
+        storage_bucket: dict[str, Any] | None = None,
     ) -> None:
         """Clear all entries in an IndexedDB object store."""
 
     @abstractmethod
-    async def indexed_db_delete_database(self, security_origin: str, database_name: str) -> None:
+    async def indexed_db_delete_database(
+        self,
+        database_name: str,
+        security_origin: str | None = None,
+        storage_key: str | None = None,
+        storage_bucket: dict[str, Any] | None = None,
+    ) -> None:
         """Delete an IndexedDB database."""
 
     @abstractmethod
     async def indexed_db_delete_object_store_entries(
         self,
-        security_origin: str,
         database_name: str,
         object_store_name: str,
         key_range: dict[str, Any],
+        security_origin: str | None = None,
+        storage_key: str | None = None,
+        storage_bucket: dict[str, Any] | None = None,
     ) -> None:
         """Delete entries in an IndexedDB object store."""
 
@@ -39,29 +52,45 @@ class IndexedDBBackend(ABC):
 
     @abstractmethod
     async def indexed_db_get_metadata(
-        self, security_origin: str, database_name: str, object_store_name: str
+        self,
+        database_name: str,
+        object_store_name: str,
+        security_origin: str | None = None,
+        storage_key: str | None = None,
+        storage_bucket: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Get metadata for an IndexedDB object store."""
 
     @abstractmethod
     async def indexed_db_request_data(
         self,
-        security_origin: str,
         database_name: str,
         object_store_name: str,
-        index_name: str,
+        security_origin: str | None = None,
+        storage_key: str | None = None,
+        index_name: str = "",
         skip_count: int = 0,
         page_size: int = 10,
         key_range: dict[str, Any] | None = None,
+        storage_bucket: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Request data from an IndexedDB object store."""
 
     @abstractmethod
     async def indexed_db_request_database(
-        self, security_origin: str, database_name: str
+        self,
+        database_name: str,
+        security_origin: str | None = None,
+        storage_key: str | None = None,
+        storage_bucket: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Request an IndexedDB database with its object stores."""
 
     @abstractmethod
-    async def indexed_db_request_database_names(self, security_origin: str) -> dict[str, Any]:
+    async def indexed_db_request_database_names(
+        self,
+        security_origin: str | None = None,
+        storage_key: str | None = None,
+        storage_bucket: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Request the names of all IndexedDB databases for an origin."""
