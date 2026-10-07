@@ -2,6 +2,13 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.20.1 — 2026-10-07
+
+### Fixed
+
+- **BiDi launch error reporting** — `BiDiBackend.launch` now raises a clear `WavexisError` when the BiDi session cannot be established, instead of swallowing the `session.new` failure and failing later in `create_context` with `InvalidSessionIdError`.
+- **Changelog structure** — the v2.19.0 release notes were left inside the Unreleased block, producing duplicate `Added`/`Fixed` headings under v2.20.0; they now live under their own `v2.19.0` heading.
+
 ## v2.20.0 — 2026-10-07
 
 ### Added
