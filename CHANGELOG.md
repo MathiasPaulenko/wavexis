@@ -43,6 +43,8 @@ All notable changes to wavexis are documented in this file.
 - **E2E test harness** — subprocess output is decoded as UTF-8 explicitly; `text=True` used the system codec (cp1252 on Windows) and crashed on box-drawing characters in `--help` output.
 - **Dockerfile** — the image now runs Chromium as an unprivileged `wavexis` user; running as root made Chrome exit with "Running as root without --no-sandbox is not supported" and every browser request failed with 500. `CI=true` is set so container-friendly launch flags (`--disable-dev-shm-usage`, `--no-zygote`) are added.
 
+## v2.19.0 — 2026-08-11
+
 ### Added
 
 - **`record --headless` flag** — `record_session()` now accepts a `headless` parameter, and the CLI `record` command exposes `--headless` to run interactive recording without a visible browser window.

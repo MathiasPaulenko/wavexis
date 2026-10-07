@@ -365,7 +365,21 @@ class BiDiBackend(AbstractBackend):
                     # session.new keep the existing session (launch
                     # capabilities such as headless may not apply there).
                     logger.debug("session.new rejected; reusing session from connect()")
-                self._context = self._context_id(await client.browsing.create_context())
+                try:
+                    self._context = self._context_id(
+                        await client.browsing.create_context()
+                    )
+                except Exception as exc:
+                    # No usable session: both connect() and our session.new
+                    # attempt failed. Surface it as a launch error instead of
+                    # a mid-flight InvalidSessionIdError.
+                    if "session" in type(exc).__name__.lower() or "session" in str(
+                        exc
+                    ).lower():
+                        raise WavexisError(
+                            f"BiDi session could not be established on {ws_url}: {exc}"
+                        ) from exc
+                    raise
 
                 if options.width and options.height:
                     await client.browsing.set_viewport(
