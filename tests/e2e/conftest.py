@@ -7,6 +7,7 @@ available.
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import sys
@@ -86,14 +87,21 @@ class CLIRunner:
             A CLIResult with exit code, stdout, and stderr.
         """
         cmd = self._base_cmd + args
+        run_env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
+        if env:
+            run_env.update(env)
         completed = subprocess.run(
             cmd,
             capture_output=True,
-            text=True,
             timeout=timeout,
             cwd=str(cwd) if cwd else None,
-            env=env,
+            env=run_env,
         )
+        # Decode explicitly: the default text mode uses the system codec
+        # (e.g. cp1252 on Windows), which chokes on box-drawing characters
+        # in --help output and JSON escapes.
+        completed.stdout = completed.stdout.decode("utf-8", errors="replace")
+        completed.stderr = completed.stderr.decode("utf-8", errors="replace")
         return CLIResult(completed)
 
 
