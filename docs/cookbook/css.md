@@ -1,11 +1,11 @@
 # CSS Inspection
 
-wavexis can inspect CSS styles, computed values, and stylesheet rules.
+wavexis can inspect CSS styles, computed values, and stylesheet rules via the `css` command group.
 
 ## Get inline styles
 
 ```bash
-wavexis css-styles https://example.com --selector "h1"
+wavexis css styles https://example.com --selector "h1"
 ```
 
 Returns the inline style string for the matched element.
@@ -13,31 +13,26 @@ Returns the inline style string for the matched element.
 ## Get computed styles
 
 ```bash
-wavexis css-computed https://example.com --selector "h1"
+wavexis css computed https://example.com --selector "h1"
 ```
 
 Returns a JSON object with all computed CSS properties.
 
-## Get stylesheet rules
-
-```bash
-wavexis css-rules https://example.com --sheet 0
-```
-
-Returns all CSS rules from the specified stylesheet index.
-
 ## List stylesheets
 
 ```bash
-wavexis eval https://example.com -e "
-  JSON.stringify(
-    Array.from(document.styleSheets).map(s => ({
-      href: s.href,
-      rules: s.cssRules.length
-    }))
-  )
-" --await-promise
+wavexis css stylesheets https://example.com
 ```
+
+Returns the page's stylesheets (ID, source, URL) — use a `stylesheet_id` from this list to get its rules.
+
+## Get stylesheet rules
+
+```bash
+wavexis css rules https://example.com --stylesheet-id <id>
+```
+
+Returns all CSS rules from the specified stylesheet.
 
 ## Overlay highlight
 

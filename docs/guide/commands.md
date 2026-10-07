@@ -209,6 +209,28 @@ wavexis crawl https://example.com --depth 3 --max-pages 100
 wavexis crawl https://example.com --pattern '.*blog.*' -o results.json
 ```
 
+## visual-diff
+
+Compare a live screenshot against a baseline image and report pixel differences.
+
+```bash
+wavexis visual-diff <url> --baseline <file.png> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `-b, --baseline` | Path to baseline screenshot (required) |
+| `--selector` | CSS selector to compare (default: full page) |
+| `--threshold` | Pixel diff threshold 0-255 (default: 10) |
+| `-o, --output` | Output file (- for stdout) |
+
+Requires Pillow (`pip install wavexis[image]`).
+
+```bash
+wavexis screenshot https://example.com -o baseline.png
+wavexis visual-diff https://example.com --baseline baseline.png
+```
+
 ## har
 
 Capture network traffic as HAR 1.2.
@@ -417,12 +439,12 @@ List available backends.
 wavexis backends
 ```
 
-## install_check
+## install-check
 
 Check which backends are installed and their versions.
 
 ```bash
-wavexis install_check
+wavexis install-check
 ```
 
 ## emulation
@@ -521,6 +543,11 @@ wavexis serve [--host 0.0.0.0] [--port 8080] [--rate-limit N]
 | `--port, -p` | Port to listen on (default: 8080) |
 | `--backend` | Preferred backend (cdp or bidi) |
 | `--rate-limit` | Max requests per minute (0 = no limit) |
+| `--api-key` | API key for auth (Bearer token or X-API-Key header); enables `/eval` and `/ws` |
+| `--base-dir` | Restrict `/multi` and `/auth` file paths to a directory |
+| `--cors-origins` | Comma-separated allowed CORS origins |
+| `--max-concurrent` | Max concurrent browser backends (default: 5) |
+| `--max-request-size` | Max request body size in bytes (default: 10485760) |
 
 See [Serve Mode](../cookbook/serve-mode.md) for endpoint documentation.
 
@@ -535,7 +562,7 @@ wavexis cwv <url> [options]
 | Option | Description |
 |--------|-------------|
 | `-o, --output` | Output file path (- for stdout) |
-| `--observe-ms` | Observation period in ms (default: 5000) |
+| `--observe` | Observation period in ms (default: 5000) |
 | `--budget` | JSON budget thresholds, e.g. `{"lcp_ms":2500,"cls":0.1,"inp_ms":200}` |
 
 ```bash
@@ -631,9 +658,9 @@ wavexis events unsubscribe <url>
 Natural language selector — interact with elements using plain English.
 
 ```bash
-wavexis nl click "the login button" <url>
-wavexis nl fill "the email field" "admin@example.com" <url>
-wavexis nl find "the main heading" <url>
+wavexis nl click <url> "the login button"
+wavexis nl fill <url> "the email field" -v "admin@example.com"
+wavexis nl find <url> "the main heading" --all
 ```
 
 ## shadow
@@ -674,52 +701,54 @@ wavexis plugins
 CSS inspection commands.
 
 ```bash
-wavexis css-styles <url> --selector "h1"
-wavexis css-computed <url> --selector "h1"
-wavexis css-rules <url> --sheet 0
+wavexis css styles <url> --selector "h1"
+wavexis css computed <url> --selector "h1"
+wavexis css rules <url> --stylesheet-id <id>
+wavexis css stylesheets <url>
 ```
 
 ## debug
 
-Debugger commands (CDP bridge).
+Debugger commands (CDP bridge, Chrome only).
 
 ```bash
-wavexis debug-break <url> --line 10 [--condition "x > 5"]
-wavexis debug-step over|into|out
-wavexis debug-pause
-wavexis debug-resume
+wavexis debug breakpoint <url> --url <script-url> --line 10 [--condition "x > 5"]
+wavexis debug step-over|step-into|step-out
+wavexis debug pause
+wavexis debug resume
 ```
 
 ## perf
 
-Capture performance metrics from a web page. See [Performance](perf.md) for detailed documentation.
+Performance commands. See [Performance](perf.md) for detailed documentation.
+`perf` is a group of subcommands, each taking a URL:
 
 ```bash
-wavexis perf <url> [options]
+wavexis perf metrics <url> [-o output]
+wavexis perf trace <url> [--duration 5000] [-o output]
+wavexis perf profile <url> [-o output]
+wavexis perf heap <url> [-o output]
+wavexis perf coverage <url> [-o output]
+wavexis perf css-coverage <url> [-o output]
 ```
 
-| Option | Description |
-|--------|-------------|
-| `-m, --metric` | Metric type: metrics, trace, profile, heap-snapshot, coverage, css-coverage |
-| `-f, --format` | Output format: json, yaml |
-| `-o, --output` | Output file path |
-| `-d, --duration` | Duration in ms (for trace and profile) |
+`wavexis perf --url <url>` is a shortcut for `perf metrics`.
 
 ```bash
 # Core Web Vitals (LCP, FCP, CLS, TTFB)
-wavexis perf https://example.com
+wavexis perf metrics https://example.com
 
 # CPU trace (5 seconds)
-wavexis perf https://example.com -m trace -d 5000 -o trace.json
+wavexis perf trace https://example.com --duration 5000 -o trace.json
 
 # JS code coverage
-wavexis perf https://example.com -m coverage -o coverage.json
+wavexis perf coverage https://example.com -o coverage.json
 
 # CSS coverage
-wavexis perf https://example.com -m css-coverage -o css-coverage.json
+wavexis perf css-coverage https://example.com -o css-coverage.json
 
 # Heap snapshot
-wavexis perf https://example.com -m heap-snapshot -o heap.json
+wavexis perf heap https://example.com -o heap.json
 ```
 
 ## sw
@@ -881,7 +910,7 @@ wavexis config <action> [options]
 
 | Option | Description |
 |--------|-------------|
-| `--key` | Config key (`backend`, `headless`, `timeout`, `proxy`) |
+| `--key` | Config key (`backend`, `headless`, `timeout`, `wait_strategy`, `width`, `height`, `user_agent`, `proxy`, `user_data_dir`, `browser_url`, `remote_url`, `stealth`) |
 | `--value` | Value to set |
 
 ```bash

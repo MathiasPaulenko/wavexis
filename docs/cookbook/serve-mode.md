@@ -13,9 +13,9 @@ wavexis serve --host 0.0.0.0 --port 8080
 | GET | `/health` | Health check |
 | GET | `/version` | wavexis version |
 | GET | `/backends` | Available backends |
-| POST | `/screenshot` | Take a screenshot |
+| POST | `/screenshot` | Take a screenshot (PNG/JPEG bytes) |
 | POST | `/pdf` | Generate a PDF |
-| POST | `/eval` | Evaluate JavaScript |
+| POST | `/eval` | Evaluate JavaScript *(requires `--api-key`)* |
 | POST | `/scrape` | Scrape multiple URLs |
 | POST | `/dom/get` | Get DOM HTML |
 | POST | `/dom/query` | Query DOM elements |
@@ -28,10 +28,19 @@ wavexis serve --host 0.0.0.0 --port 8080
 | POST | `/perf/metrics` | Get performance metrics |
 | POST | `/perf/trace` | Capture performance trace |
 | POST | `/cwv` | Core Web Vitals scoring (LCP, CLS, INP) |
+| POST | `/auth` | Apply auth context and navigate *(requires `--base-dir`)* |
+| POST | `/user-agent` | Set the user agent |
+| POST | `/headers` | Set extra HTTP headers |
+| POST | `/device` | Emulate a device |
 | POST | `/modify-request` | Modify requests in-flight |
 | POST | `/modify-response` | Modify responses in-flight |
-| POST | `/multi` | Run multiple actions |
+| POST | `/multi` | Run multiple actions *(requires `--base-dir`)* |
 | GET | `/plugins` | List discovered plugins |
+| GET | `/ws` | WebSocket event streaming *(requires `--api-key`)* |
+
+`/eval` and `/ws` allow arbitrary JavaScript execution and are only registered
+when `--api-key` is set. Authentication accepts an `Authorization: Bearer`
+header or an `X-API-Key` header.
 
 ## Rate limiting
 
@@ -93,9 +102,24 @@ curl -X POST http://localhost:8080/navigate \
   -d '{"url": "https://example.com"}'
 ```
 
+## Server options
+
+Besides `--host`/`--port`/`--api-key`/`--rate-limit`, `serve` accepts:
+
+| Option | Description |
+|--------|-------------|
+| `--backend` | Preferred backend (`cdp` or `bidi`, falls back automatically) |
+| `--base-dir` | Restrict file-based endpoints (`/multi`, `/auth`) to a directory |
+| `--cors-origins` | Comma-separated allowed CORS origins |
+| `--max-concurrent` | Max concurrent browser backends (default: 5) |
+| `--max-request-size` | Max request body size in bytes (default: 10485760) |
+
 ## Architecture
 
-Each request creates a fresh backend instance via `BackendManager.select_with_fallback()`. If the preferred backend fails to initialize, wavexis automatically tries the next available backend. The `_run_action` helper wraps `action.execute()` + `close()` in a try/finally block, ensuring the browser is always cleaned up.
+Backends are pooled via `BackendPool` (bounded by `--max-concurrent`); each
+request checks out a backend, creates it via `BackendManager.select_with_fallback()`
+when the pool is empty, and returns it to the pool when the action finishes.
+Failed backends are discarded and recreated on the next request.
 
 ## WebSocket streaming
 

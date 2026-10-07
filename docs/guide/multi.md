@@ -93,18 +93,34 @@ Dry run is useful for:
 
 | Action | Parameters | Description |
 |--------|------------|-------------|
-| `screenshot` | `url`, `full_page`, `format` | Take a screenshot |
-| `pdf` | `url`, `paper`, `landscape` | Generate a PDF |
+| `screenshot` | `url`, `full_page`, `format`, `quality`, `selector`, `device` | Take a screenshot |
+| `pdf` | `url`, `paper`, `landscape`, `margin`, `no_header_footer`, `media` | Generate a PDF |
 | `eval` | `url`, `expression`, `await_promise` | Evaluate JavaScript |
-| `dom` | `url`, `action`, `selector` | DOM operations |
-| `navigate` | `url` | Navigate to a URL |
-| `scrape` | `urls`, `expression` | Batch scrape multiple URLs |
-| `click` | `url`, `selector` | Click an element |
-| `type` | `url`, `selector`, `text` | Type text into an element |
+| `dom` | `url`, `action`, `selector`, `outer`, `all`, `attribute`, `value` | DOM operations |
+| `navigate` | `url`, `wait` | Navigate to a URL |
+| `scrape` | `urls`, `expression`, `output_format` | Batch scrape multiple URLs |
+| `visual_diff` | `url`, `baseline_path`, `selector`, `threshold` | Compare a screenshot with a baseline image |
+| `click` | `url`, `selector`, `button`, `click_count`, `delay` | Click an element |
+| `type` | `url`, `selector`, `text`, `delay` | Type text into an element |
+| `fill` | `url`, `selector`, `value` | Fill an input element |
+| `select` | `url`, `selector`, `value` | Select an option |
+| `hover` | `url`, `selector` | Hover over an element |
+| `keypress` | `url`, `key` | Press a key |
+| `right_click` | `url`, `selector` | Right-click an element |
+| `double_click` | `url`, `selector` | Double-click an element |
+| `drag` | `url`, `from_selector`, `to_selector` | Drag element to target |
+| `tap` | `url`, `selector` | Tap an element (touch) |
+| `scroll` | `url`, `selector`, `x`, `y` | Scroll the page or an element |
+| `upload` | `url`, `selector`, `file` | Upload a file |
 | `cookies` | `url`, `action`, `cookie`, `name`, `domain` | Cookie operations |
 | `headers` | `url`, `action`, `headers`, `user_agent` | HTTP headers and user agent |
 | `wait` | `strategy`, `selector`, `url_pattern`, `timeout` | Wait for a condition |
+| `har` | `url`, `duration` | Capture network traffic as HAR |
 | `emulation` | `action`, `device`, `width`, `height`, `timezone`, `dark_mode`, ... | Device/viewport/timezone/geolocation/dark mode emulation |
+
+> **Note:** `url` is optional on interaction actions. When provided, the
+> action navigates to that URL first (a fresh page load — any state typed or
+> clicked before is lost). Omit `url` to run the action on the current page.
 
 ## Cookies in multi
 
@@ -314,20 +330,21 @@ actions:
   - navigate:
       url: "{{target_url}}/login"
   - type:
-      url: "{{target_url}}/login"
       selector: "#username"
       text: "{{username}}"
   - type:
-      url: "{{target_url}}/login"
       selector: "#password"
       text: "{{password}}"
   - click:
-      url: "{{target_url}}/login"
       selector: "#submit"
   - screenshot:
       url: "{{target_url}}/dashboard"
       full_page: true
 ```
+
+> `type`, `click` and other interaction actions only get `url` when you want
+> them to navigate — repeating it re-loads the page and loses the state
+> entered by previous actions.
 
 ### Environment variables
 
@@ -340,7 +357,11 @@ actions:
       expression: document.title
 ```
 
+For security, only variables listed in `WAVEXIS_ENV_ALLOWLIST` are
+substituted — the placeholder stays literal otherwise:
+
 ```bash
+export WAVEXIS_ENV_ALLOWLIST=TARGET_URL
 TARGET_URL=https://staging.example.com wavexis multi config.yml
 ```
 

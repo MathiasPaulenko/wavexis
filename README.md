@@ -13,7 +13,7 @@
 [![License](https://img.shields.io/github/license/MathiasPaulenko/wavexis.svg)](https://github.com/MathiasPaulenko/wavexis/blob/main/LICENSE)
 [![Docs](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://mathiaspaulenko.github.io/wavexis/)
 
-> Browser automation CLI — wraps cdpwave and bidiwave. No Node.js, no Chromium download. Uses your existing Chrome/Edge. 130+ top-level CLI commands, 480+ sub-commands, 743 backend methods, full CDP + BiDi parity.
+> Browser automation CLI — wraps cdpwave and bidiwave. No Node.js, no Chromium download. Uses your existing Chrome/Edge. 170+ top-level CLI commands, 480+ sub-commands, 700+ backend methods.
 
 ## Why wavexis?
 
@@ -21,7 +21,7 @@ wavexis is a command-line tool for browser automation. It wraps the [cdpwave](ht
 
 ### Core concepts
 
-- **Backend** — The browser driver that executes commands. wavexis supports two backends with full feature parity: CDP (default, via cdpwave) and BiDi (via bidiwave). Both expose the same public API over 60 CDP domains and 12 BiDi modules, so you can switch with `--backend bidi` without losing functionality.
+- **Backend** — The browser driver that executes commands. wavexis supports two backends: CDP (default, via cdpwave) and BiDi (via bidiwave). Both expose the same public API over 60 CDP domains and 12 BiDi modules. On Chrome, the BiDi backend covers the full surface via the CDP bridge; on Firefox, only native BiDi methods are available.
 - **Action** — A single operation (screenshot, eval, click, etc.). Each action maps to a CLI command or a step in a multi-action YAML config.
 - **Multi-action** — A YAML config that chains multiple actions in sequence on a single browser session. Avoids the overhead of launching a browser per action.
 - **Serve mode** — An HTTP API server that exposes all wavexis commands as REST endpoints with WebSocket streaming for real-time events.
@@ -111,13 +111,13 @@ wavexis> type #username admin@example.com
 wavexis> cookies
 wavexis> url
 wavexis> title
-wavexis> wait 2
+wavexis> wait #dashboard
 wavexis> back
 wavexis> help
 wavexis> exit
 ```
 
-Supported commands: `navigate`, `screenshot`, `eval`, `click`, `type`, `fill`, `hover`, `key`, `cookies`, `url`, `title`, `wait`, `back`, `forward`, `reload`, `help`, `exit`/`quit`.
+Supported commands: `navigate`, `screenshot`, `eval`, `click`, `type`, `fill`, `hover`, `key`, `cookies`, `url`, `title`, `wait <selector>`, `back`, `forward`, `reload`, `help`, `exit`/`quit`.
 
 ## Init wizard
 
@@ -220,25 +220,25 @@ Capture Core Web Vitals and performance data:
 
 ```bash
 # Key metrics (LCP, FCP, CLS, TTFB) with human-readable summary
-wavexis perf https://example.com
+wavexis perf metrics https://example.com
 
 # CPU trace
-wavexis perf https://example.com -m trace -d 5000 -o trace.json
+wavexis perf trace https://example.com --duration 5000 -o trace.json
 
 # CPU profile
-wavexis perf https://example.com -m profile -o profile.json
+wavexis perf profile https://example.com -o profile.json
 
 # JS code coverage
-wavexis perf https://example.com -m coverage -o coverage.json
+wavexis perf coverage https://example.com -o coverage.json
 
 # CSS coverage
-wavexis perf https://example.com -m css-coverage -o css-coverage.json
+wavexis perf css-coverage https://example.com -o css-coverage.json
 
 # Heap snapshot
-wavexis perf https://example.com -m heap-snapshot -o heap.json
+wavexis perf heap https://example.com -o heap.json
 ```
 
-Metrics: `metrics` (default), `trace`, `profile`, `heap-snapshot`, `coverage`, `css-coverage`.
+Sub-commands: `metrics`, `trace`, `profile`, `heap`, `coverage`, `css-coverage`. `wavexis perf --url <url>` is a shortcut for `perf metrics`.
 
 ## Core Web Vitals scoring
 
@@ -413,10 +413,10 @@ actions:
 
 ## Backends
 
-wavexis supports two backends with **full feature parity**:
+wavexis supports two backends with feature parity on Chrome:
 
 - **CDP** (cdpwave) — default, Chrome DevTools Protocol. `pip install wavexis[cdp]`
-- **BiDi** (bidiwave) — WebDriver BiDi protocol, uses BiDi native + JS workarounds + CDP bridge. `pip install wavexis[bidi]`
+- **BiDi** (bidiwave) — WebDriver BiDi protocol, uses BiDi native + JS workarounds + CDP bridge (Chrome only). `pip install wavexis[bidi]`
 
 Select with `--backend`:
 
@@ -440,7 +440,7 @@ wavexis --backend bidi screenshot https://example.com -o out.png
 ### Feature parity
 
 Both backends expose the same public API across 60 CDP domains and 12 BiDi modules. BiDi uses native BiDi commands, JS workarounds
-(`script.evaluate`), or the CDP bridge (`browser.cdp.sendCommand`) when needed.
+(`script.evaluate`), or the CDP bridge (`browser.cdp.sendCommand`) when needed. The CDP bridge requires Chrome — on Firefox only native BiDi methods are available, so methods marked "CDP bridge" below are Chrome-only.
 
 | Category | Methods | BiDi impl |
 |----------|---------|-----------|
@@ -512,28 +512,27 @@ Both backends expose the same public API across 60 CDP domains and 12 BiDi modul
 
 ## Commands
 
-wavexis provides 130+ top-level CLI commands plus 480+ sub-commands organized into categories:
+wavexis provides 170+ top-level CLI commands plus 480+ sub-commands organized into categories:
 
 | Category | Commands |
 |----------|----------|
-| Capture | `screenshot`, `pdf`, `screencast`, `scrape` |
+| Capture | `screenshot`, `pdf`, `screencast`, `scrape`, `dom-snapshot`, `annotate`, `visual-diff` |
 | Navigate | `navigate`, `back`, `forward`, `reload`, `stop`, `tabs` |
-| Console | `console` (with `--capture`, `--format`), `logs` |
+| Console | `console capture`, `console enable`, `console disable`, `console clear-messages`, `logs` |
 | Cookies | `cookies` (get/set/delete/clear) |
-| Network | `headers`, `user-agent`, `block`, `throttle`, `cache`, `intercept`, `mock`, `har` |
-| Browser | `open`, `close`, `version` |
+| Network | `headers`, `user-agent`, `har`, `inspect`, `modify`, `modify-response`, `har-replay` |
+| Browser | `browser` (version/state/new-context/close-context/get-window/set-window) |
 | Emulation | `emulation device`, `emulation viewport`, `emulation geolocation`, `emulation timezone`, `emulation dark-mode`, `emulation media`, `emulation vision-deficiency`, `emulation idle-override`, `emulation disable-js`, `emulation visible-size`, `devices` |
-| Input | `click`, `type`, `fill`, `select`, `hover`, `key`, `drag`, `tap` |
-| CSS | `css get-styles`, `css get-computed`, `css get-rules` |
-| Debug | `debug break`, `debug step`, `debug pause`, `debug resume` |
-| Performance | `perf metrics`, `perf trace`, `perf profile`, `perf coverage`, `perf heap-snapshot`, `perf css-coverage`, `cwv` (Core Web Vitals scoring) |
-| Storage | `storage get`, `storage set`, `storage clear`, `storage list`, `indexeddb` |
+| Input | `input click`, `input type`, `input fill`, `input select`, `input hover`, `input key`, `input drag`, `input tap` |
+| CSS | `css styles`, `css computed`, `css rules`, `css stylesheets` |
+| Debug | `debug breakpoint`, `debug step-over`, `debug step-into`, `debug step-out`, `debug pause`, `debug resume` |
+| Performance | `perf metrics`, `perf trace`, `perf profile`, `perf coverage`, `perf heap`, `perf css-coverage`, `cwv` (Core Web Vitals scoring) |
+| Storage | `storage <action>` (get/set/clear/list/indexeddb-*), `indexed-db` |
 | Advanced | `sw`, `animation`, `record`, `replay`, `webauthn`, `cast`, `bluetooth`, `extension-install`, `extension-uninstall`, `extension-list`, `lighthouse`, `a11y`, `download`, `dialog`, `permissions`, `security` |
 | Preferences | `pref-get`, `pref-set` |
 | Auth | `auth` (apply auth context from JSON file) |
 | Serve | `serve` (HTTP API server) |
 | Interactive | `repl` (live browser REPL), `init` (config wizard) |
-| Network inspection | `inspect`, `modify`, `modify-response`, `har-replay` |
 | Tracing | `trace` (start/stop unified tracing) |
 | Accessibility | `axe` (accessibility audit) |
 | Events | `events` (subscribe/unsubscribe to browser events) |
@@ -541,7 +540,7 @@ wavexis provides 130+ top-level CLI commands plus 480+ sub-commands organized in
 | Shadow DOM | `shadow` (click/fill/eval inside shadow roots) |
 | Batch | `batch` (process multiple URLs from file) |
 | Crawl | `crawl` (crawl website collecting titles and links) |
-| Utility | `multi` (with `--watch`, `--dry-run`, `--parallel`, `--cache-ttl`), `raw`, `backends`, `install_check`, `completions`, `plugins` |
+| Utility | `multi` (with `--watch`, `--dry-run`, `--parallel`, `--cache-ttl`), `raw`, `backends`, `install-check`, `completions`, `plugins`, `config` |
 
 Run `wavexis --help` for the full list.
 

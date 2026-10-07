@@ -1,44 +1,45 @@
 # Debugging
 
-wavexis provides debugger commands via the CDP bridge.
+wavexis provides debugger commands via the `debug` group (CDP — Chrome only).
 
 ## Set a breakpoint
 
 ```bash
-wavexis debug-break https://example.com --line 25
+wavexis debug breakpoint https://example.com --url https://example.com/app.js --line 25
 ```
 
 Set a conditional breakpoint:
 
 ```bash
-wavexis debug-break https://example.com --line 25 --condition "x > 100"
+wavexis debug breakpoint https://example.com \
+  --url https://example.com/app.js --line 25 --condition "x > 100"
 ```
 
 ## Set a function breakpoint
 
 ```bash
-wavexis debug-break https://example.com --function "handleClick"
+wavexis debug function-breakpoint https://example.com --function-name "handleClick"
 ```
 
 ## Stepping
 
 ```bash
-wavexis debug-step over
-wavexis debug-step into
-wavexis debug-step out
+wavexis debug step-over https://example.com
+wavexis debug step-into https://example.com
+wavexis debug step-out https://example.com
 ```
 
 ## Pause and resume
 
 ```bash
-wavexis debug-pause
-wavexis debug-resume
+wavexis debug pause https://example.com
+wavexis debug resume https://example.com
 ```
 
 ## Remove a breakpoint
 
 ```bash
-wavexis debug-break --remove <breakpoint-id>
+wavexis debug remove-breakpoint https://example.com --breakpoint-id <id>
 ```
 
 ## Get event listeners
@@ -51,19 +52,7 @@ wavexis eval https://example.com -e "
 "
 ```
 
-## Combined with serve mode
+## See also
 
-```bash
-# Start serve mode
-wavexis serve --port 8080
-
-# Set breakpoint via API
-curl -X POST http://localhost:8080/debug/breakpoint \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://example.com", "line": 25}'
-
-# Step over
-curl -X POST http://localhost:8080/debug/step \
-  -H "Content-Type: application/json" \
-  -d '{"action": "over"}'
-```
+Run `wavexis debug --help` for the full list of debugger sub-commands
+(callstack, disable, enable, listeners, source, and more).

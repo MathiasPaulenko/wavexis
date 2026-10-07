@@ -12,7 +12,7 @@ wavexis is a command-line tool for browser automation. It wraps the cdpwave (Chr
 
 ### Core concepts
 
-- **Backend** — The browser driver that executes commands. Two backends with full feature parity: CDP (default, via cdpwave) and BiDi (via bidiwave). Switch with `--backend bidi` without losing functionality.
+- **Backend** — The browser driver that executes commands. Two backends: CDP (default, via cdpwave) and BiDi (via bidiwave). On Chrome, the BiDi backend covers the same API via the CDP bridge; on Firefox only native BiDi methods are available.
 - **Action** — A single operation (screenshot, eval, click, etc.). Each action maps to a CLI command or a step in a multi-action YAML config.
 - **Multi-action** — A YAML config that chains multiple actions in sequence on a single browser session. Avoids the overhead of launching a browser per action.
 - **Serve mode** — An HTTP API server that exposes all wavexis commands as REST endpoints with WebSocket streaming for real-time events.
@@ -23,10 +23,10 @@ wavexis is a command-line tool for browser automation. It wraps the cdpwave (Chr
 
 - **CLI-first** — screenshot, PDF, eval, scrape from the command line
 - **Multi-backend** — CDP (cdpwave) or WebDriver BiDi (bidiwave), switch with `--backend`
-- **Full parity** — both backends expose the same public API across 60 CDP domains and 12 BiDi modules (BiDi uses native + JS + CDP bridge)
+- **Parity on Chrome** — both backends expose the same public API across 60 CDP domains and 12 BiDi modules (BiDi uses native + JS + CDP bridge; Firefox is limited to native BiDi)
 - **Multi-action** — batch multiple actions from a single YAML config with `--watch` for iterative development
 - **Serve mode** — HTTP API server powered by aiohttp
-- **Auth profiles** — save and reuse browser credentials
+- **Auth contexts** — apply cookies, headers and basic auth from a JSON file
 - **Record & replay** — record browser sessions and replay them
 - **Interactive REPL** — live browser shell with 16 commands
 - **Config wizard** — generate wavexis.yaml from 7 templates interactively
@@ -89,7 +89,7 @@ wavexis eval https://example.com -e "document.title"
 | `multi` | Execute multiple actions from YAML (with `--watch`, `--dry-run`) |
 | `raw` | Send raw CDP/BiDi protocol commands |
 | `serve` | HTTP API server mode |
-| `auth` | Save, use, list, delete credential profiles |
+| `auth` | Apply an auth context (cookies, headers, basic auth) from JSON |
 | `record` | Record and replay browser sessions |
 | `css` | Inspect styles, computed values, rules |
 | `debug` | Breakpoints, stepping, pause, resume |
@@ -106,7 +106,7 @@ wavexis eval https://example.com -e "document.title"
 | `shadow` | Shadow DOM interaction (click/fill/eval) |
 | `batch` | Process multiple URLs from a file |
 | `crawl` | Crawl a website collecting titles and links |
-| `console` | Capture console messages and browser logs (with `--capture`, `--format`) |
+| `console` | Capture console messages and browser logs (`console capture`) |
 | `repl` | Interactive REPL for live browser sessions |
 | `init` | Generate wavexis.yaml from templates interactively |
 | `sw` | Service worker list, unregister, update |
@@ -131,7 +131,7 @@ wavexis eval https://example.com -e "document.title"
 - [Performance](guide/perf.md) — Core Web Vitals and profiling
 - [Core Web Vitals](guide/cwv.md) — CWV scoring with CI budgets
 - [CI Assertions](guide/assert.md) — pass/fail gates for CI pipelines
-- [Backends](guide/backends.md) — CDP vs BiDi with full parity
+- [Backends](guide/backends.md) — CDP vs BiDi backends
 - [Raw Protocol](guide/raw.md) — escape hatch for direct protocol commands
 - [Stealth Mode](guide/stealth.md) — anti-bot stealth mode for protected sites
 - [Extensions & Prefs](guide/extensions.md) — WebExtension and browser preference management

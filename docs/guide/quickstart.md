@@ -69,7 +69,7 @@ wavexis emulation device https://example.com --device iphone-15 -o mobile.png
 - [Performance](perf.md) — Core Web Vitals and profiling
 - [Core Web Vitals](cwv.md) — CWV scoring with CI budgets
 - [CI Assertions](assert.md) — pass/fail gates for CI pipelines
-- [Backends](backends.md) — CDP vs BiDi with full parity
+- [Backends](backends.md) — CDP vs BiDi backends
 - [Raw Protocol](raw.md) — escape hatch for direct protocol commands
 - [Cookbook: Auth](../cookbook/auth.md) — credential profiles
 - [Cookbook: Record & Replay](../cookbook/record-replay.md) — session recording

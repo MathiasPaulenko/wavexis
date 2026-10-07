@@ -1,46 +1,60 @@
 # Record & Replay
 
-wavexis can record a browser session (clicks, navigation, input) and replay it later.
+wavexis can record a browser session and save it as a YAML config that can be
+replayed later with `replay` or `multi`.
 
 ## Record a session
 
 ```bash
-wavexis record start https://example.com -o session.json
+wavexis record https://example.com -o session.yml
 ```
 
-This launches a browser, navigates to the URL, and records all interactions
-until you close the browser or press Ctrl+C. The session is saved as JSON.
+By default the browser executes a scripted set of actions (`--actions`) and
+records them to a wavexis multi-action YAML file. With `--interactive`, a
+non-headless browser opens instead and real user interactions (clicks, input
+changes, key presses, scrolling, navigations) are captured until the duration
+ends or the session stops.
+
+| Option | Description |
+|--------|-------------|
+| `-o, --output` | Output YAML file (default: `session.yml`) |
+| `--actions` | Comma-separated action types to record (default: `screenshot,eval`) |
+| `--selector` | CSS selector for click/type actions |
+| `--text` | Text for type action |
+| `--expression` | JavaScript expression for eval action |
+| `--interactive` | Capture real interactions in a visible browser |
+| `--headless` | Run interactive recording headless |
+| `-d, --duration` | Recording duration in seconds (interactive, default: 60) |
 
 ## Replay a session
 
 ```bash
-wavexis record replay session.json
+wavexis replay session.yml
 ```
 
-This replays all recorded interactions in sequence. Useful for regression
-testing or repeating complex workflows.
+Replays all recorded actions in sequence — useful for regression testing or
+repeating complex workflows. The file is plain YAML, so you can edit the
+recorded steps before replaying.
 
-## List recorded sessions
+## Recorded YAML is editable
 
-```bash
-wavexis record list
-```
-
-## Record with multi-action
+The output uses the same format as `wavexis multi`:
 
 ```yaml
 actions:
-  - record:
+  - navigate:
       url: https://example.com
-      output: checkout-flow.json
+  - click:
+      selector: "#login"
+  - type:
+      selector: "#username"
+      text: "admin"
   - screenshot:
-      url: https://example.com/checkout
       full_page: true
 ```
 
-```bash
-wavexis multi record-flow.yml
-```
+You can add or reorder steps, then run them with `wavexis replay` or
+`wavexis multi` interchangeably.
 
 ## CI/CD with replay
 
@@ -57,5 +71,5 @@ jobs:
           python-version: "3.11"
       - run: pip install wavexis[cdp]
       - uses: browser-actions/setup-chrome@v1
-      - run: wavexis record replay checkout-flow.json
+      - run: wavexis replay checkout-flow.yml
 ```

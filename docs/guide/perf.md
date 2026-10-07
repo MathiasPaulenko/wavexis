@@ -13,36 +13,38 @@ The `wavexis perf` command captures performance data from web pages using the Ch
 
 ## Usage
 
+`perf` is a group of subcommands — each takes a URL:
+
 ```bash
-wavexis perf <url> [options]
+wavexis perf <subcommand> <url> [options]
 ```
+
+### Sub-commands
+
+| Sub-command | Description | Backend method |
+|-------------|-------------|----------------|
+| `metrics` | Core Web Vitals and timing metrics | `perf_metrics()` |
+| `trace` | Performance trace with timeline events | `perf_trace(duration_ms)` |
+| `profile` | CPU profile with call tree | `perf_profile(duration_ms)` |
+| `heap` | Heap snapshot for memory analysis | `perf_heap_snapshot()` |
+| `coverage` | JavaScript code coverage | `perf_coverage()` |
+| `css-coverage` | CSS rule usage coverage | `perf_css_coverage()` |
+
+`wavexis perf --url <url>` is a shortcut for `perf metrics <url>`.
 
 ### Options
 
 | Option | Description |
 |--------|-------------|
-| `-m, --metric` | Metric type (default: `metrics`) |
 | `-o, --output` | Output file path |
-| `-f, --format` | Output format: `json` or `yaml` |
-| `-d, --duration` | Duration in ms (for `trace` and `profile`) |
-
-### Metric types
-
-| Metric | Description | Backend method |
-|--------|-------------|----------------|
-| `metrics` | Core Web Vitals and timing metrics | `perf_metrics()` |
-| `trace` | Performance trace with timeline events | `perf_trace(duration_ms)` |
-| `profile` | CPU profile with call tree | `perf_profile(duration_ms)` |
-| `heap-snapshot` | Heap snapshot for memory analysis | `perf_heap_snapshot()` |
-| `coverage` | JavaScript code coverage | `perf_coverage()` |
-| `css-coverage` | CSS rule usage coverage | `perf_css_coverage()` |
+| `--duration` | Duration in ms (for `trace` and `profile`, default: 3000) |
 
 ## Core Web Vitals (metrics)
 
 The default metric type captures key performance indicators:
 
 ```bash
-wavexis perf https://example.com
+wavexis perf metrics https://example.com
 ```
 
 Output includes a human-readable summary:
@@ -73,8 +75,7 @@ Performance Summary:
 ### Saving metrics to a file
 
 ```bash
-wavexis perf https://example.com -o metrics.json
-wavexis perf https://example.com -f yaml -o metrics.yaml
+wavexis perf metrics https://example.com -o metrics.json
 ```
 
 ## CPU traces
@@ -82,7 +83,7 @@ wavexis perf https://example.com -f yaml -o metrics.yaml
 Capture a performance trace with timeline events for detailed analysis:
 
 ```bash
-wavexis perf https://example.com -m trace -d 5000 -o trace.json
+wavexis perf trace https://example.com --duration 5000 -o trace.json
 ```
 
 The trace contains detailed event data (paint, layout, script execution, network requests) that can be loaded in Chrome DevTools or analyzed programmatically.
@@ -94,7 +95,7 @@ The `--duration` flag controls how long the trace captures (in milliseconds). De
 Capture a CPU profile to identify JavaScript functions that consume the most time:
 
 ```bash
-wavexis perf https://example.com -m profile -d 5000 -o profile.json
+wavexis perf profile https://example.com --duration 5000 -o profile.json
 ```
 
 The profile contains a call tree with function names, execution counts, and timing. Load it in Chrome DevTools > Performance > Profiles for visualization.
@@ -106,7 +107,7 @@ The profile contains a call tree with function names, execution counts, and timi
 Identify which JavaScript functions were executed and which were not:
 
 ```bash
-wavexis perf https://example.com -m coverage -o coverage.json
+wavexis perf coverage https://example.com -o coverage.json
 ```
 
 Output contains per-function coverage data including URL, line ranges, and execution counts. Useful for identifying dead code or measuring test coverage.
@@ -116,7 +117,7 @@ Output contains per-function coverage data including URL, line ranges, and execu
 Identify which CSS rules were used on the page:
 
 ```bash
-wavexis perf https://example.com -m css-coverage -o css-coverage.json
+wavexis perf css-coverage https://example.com -o css-coverage.json
 ```
 
 Output contains per-rule usage data. Useful for identifying unused CSS and optimizing bundle sizes.
@@ -126,7 +127,7 @@ Output contains per-rule usage data. Useful for identifying unused CSS and optim
 Capture a snapshot of the JavaScript heap for memory analysis:
 
 ```bash
-wavexis perf https://example.com -m heap-snapshot -o heap.json
+wavexis perf heap https://example.com -o heap.json
 ```
 
 The snapshot contains all objects in the heap with their types, sizes, and references. Load it in Chrome DevTools > Memory > Heap snapshots for comparison and leak detection.
@@ -150,7 +151,7 @@ Capture metrics in CI and compare against a baseline:
 
 ```bash
 # Capture current metrics
-wavexis perf https://my-app.com -m metrics -o current-metrics.json
+wavexis perf metrics https://my-app.com -o current-metrics.json
 
 # Compare with baseline (using jq)
 LCP=$(jq '.LargestContentfulPaint' current-metrics.json)
@@ -165,8 +166,8 @@ fi
 Track JavaScript and CSS coverage over time:
 
 ```bash
-wavexis perf https://my-app.com -m coverage -o coverage-$(date +%s).json
-wavexis perf https://my-app.com -m css-coverage -o css-coverage-$(date +%s).json
+wavexis perf coverage https://my-app.com -o coverage-$(date +%s).json
+wavexis perf css-coverage https://my-app.com -o css-coverage-$(date +%s).json
 ```
 
 ## Backend notes

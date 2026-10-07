@@ -41,7 +41,7 @@ The REPL supports 16 commands, each mapping to a backend operation:
 | `cookies` | `cookies` | Get all cookies for the current page |
 | `url` | `url` | Print the current page URL |
 | `title` | `title` | Print the current page title |
-| `wait` | `wait <seconds>` | Wait for a specified duration |
+| `wait` | `wait <selector>` | Wait for an element to appear |
 | `back` | `back` | Navigate back in browser history |
 | `forward` | `forward` | Navigate forward in browser history |
 | `reload` | `reload` | Reload the current page |
@@ -69,7 +69,7 @@ wavexis> navigate https://example.com/login
 wavexis> type #username admin@example.com
 wavexis> type #password secret123
 wavexis> click #login-button
-wavexis> wait 2
+wavexis> wait #dashboard
 wavexis> title
 Dashboard - Example App
 wavexis> screenshot dashboard.png
@@ -89,7 +89,7 @@ wavexis> cookies
 wavexis> navigate https://example.com/search
 wavexis> type #search-input hello world
 wavexis> key Enter
-wavexis> wait 1
+wavexis> wait #results
 wavexis> screenshot results.png
 ```
 

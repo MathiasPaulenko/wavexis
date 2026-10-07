@@ -12,7 +12,7 @@ wavexis cwv <url> [options]
 | Option | Description |
 |--------|-------------|
 | `-o, --output` | Output file path (- for stdout) |
-| `--observe-ms` | Observation period in ms (default: 5000) |
+| `--observe` | Observation period in ms (default: 5000) |
 | `--budget` | JSON budget thresholds |
 
 ## Metrics measured

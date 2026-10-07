@@ -55,7 +55,7 @@ pip install wavexis[bidi]
 1. Must have an `actions` key with a list
 2. Each action is a dict with a single key
 3. Action parameters must be a dict
-4. Action type must be one of: screenshot, pdf, eval, dom, navigate, scrape
+4. Action type must be one of: screenshot, pdf, scrape, eval, dom, navigate, click, type, fill, select, hover, keypress, right_click, double_click, drag, tap, scroll, upload, cookies, headers, wait, har, emulation, visual_diff
 
 ## Exit codes
 

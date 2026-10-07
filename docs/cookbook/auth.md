@@ -1,48 +1,58 @@
-# Auth Profiles
+# Auth Contexts
 
-wavexis can save browser credentials and reuse them for authenticated scraping.
+wavexis can apply an authentication context (cookies, custom headers, HTTP
+basic auth) loaded from a JSON file before navigating to a protected URL.
 
-## Save credentials
+## Create an auth context file
+
+```json
+{
+  "cookies": [
+    {"name": "session_id", "value": "abc123", "domain": ".example.com", "path": "/"}
+  ],
+  "headers": {
+    "X-Custom-Auth": "token-xyz"
+  },
+  "username": "admin",
+  "password": "secret123"
+}
+```
+
+- `cookies` — list of cookie objects (`name` and `value` required)
+- `headers` — extra HTTP headers sent on every request
+- `username`/`password` — HTTP basic auth credentials
+- `target_origin` — optional; rejects navigation to a different origin
+
+> Storing passwords in plain-text JSON is insecure — prefer environment
+> variables or a secrets manager for real credentials.
+
+## Apply the context
 
 ```bash
-wavexis auth save mysite --user admin --pass secret123
+wavexis auth context.json https://example.com/dashboard
 ```
 
-Credentials are stored locally in `~/.wavexis/auth/` encrypted with your system keyring.
+The browser navigates to the URL to establish the origin, applies cookies and
+headers, then navigates again. The result of `document.title` is printed so
+you can verify the page loaded.
 
-## Use credentials
+## Screenshot after auth
 
 ```bash
-wavexis auth use mysite --url https://example.com/login
+wavexis auth context.json https://example.com/dashboard --screenshot -o page.png
 ```
 
-This launches a browser, navigates to the login URL, fills in the credentials,
-and saves the session cookies for reuse.
+## In serve mode
 
-## List saved profiles
+`POST /auth` applies an auth context via the HTTP API (requires `--base-dir`):
 
 ```bash
-wavexis auth list
+wavexis serve --api-key secret --base-dir ./work
+
+curl -X POST http://localhost:8080/auth \
+  -H "Authorization: Bearer secret" \
+  -H "Content-Type: application/json" \
+  -d '{"context": "context.json", "url": "https://example.com/dashboard"}'
 ```
 
-## Delete a profile
-
-```bash
-wavexis auth delete mysite
-```
-
-## Multi-action with auth
-
-```yaml
-actions:
-  - auth:
-      profile: mysite
-      url: https://example.com/login
-  - screenshot:
-      url: https://example.com/dashboard
-      full_page: true
-```
-
-```bash
-wavexis multi auth-screenshot.yml
-```
+The `context` path is resolved relative to `--base-dir`.

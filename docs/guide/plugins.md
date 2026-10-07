@@ -150,5 +150,7 @@ Returns JSON with discovered plugins.
 Custom backends are registered with `BackendManager` and can be selected with `--backend`:
 
 ```bash
-wavexis screenshot https://example.com --backend my-backend
+wavexis --backend my-backend screenshot https://example.com
 ```
+
+Note that `--backend` is a global flag and must come before the sub-command.

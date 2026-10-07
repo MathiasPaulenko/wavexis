@@ -1,6 +1,6 @@
 # Backends
 
-wavexis supports two backends with **full feature parity** as of v1.7.0.
+wavexis supports two backends with feature parity on Chrome.
 
 ## CDP backend (cdpwave)
 
@@ -24,7 +24,9 @@ WebDriver BiDi backend. Uses a combination of:
 pip install wavexis[bidi]
 ```
 
-All 100+ methods are supported. Zero `NotImplementedError`.
+All 100+ methods are implemented. Methods that rely on the CDP bridge only
+work on Chrome — on Firefox, only native BiDi capabilities and JS workarounds
+are available.
 
 ### BiDi implementation strategies
 
@@ -32,7 +34,7 @@ All 100+ methods are supported. Zero `NotImplementedError`.
 |----------|----------|
 | BiDi native | Navigation, screenshots, tabs, cookies, contexts, dialogs, permissions, input, storage |
 | JS workaround | DOM, CSS inspection, overlay, cache storage, service workers, animations |
-| CDP bridge | Performance profiling, accessibility, debug, HAR, IndexedDB, WebAuthn, WebAudio, Media, Cast, Bluetooth, security, downloads, extensions, preferences |
+| CDP bridge (Chrome only) | Performance profiling, accessibility, debug, HAR, IndexedDB, WebAuthn, WebAudio, Media, Cast, Bluetooth, security, downloads, extensions, preferences |
 
 ## Selecting a backend
 
@@ -46,14 +48,14 @@ wavexis --backend bidi screenshot https://example.com -o out.png
 ## Checking installation
 
 ```bash
-wavexis install_check
+wavexis install-check
 ```
 
 Output:
 
 ```text
-  cdp: 2.0.1
-  bidi: 1.7.2
+  cdp: 3.3.0
+  bidi: 2.0.0
 ```
 
 ## Listing available backends

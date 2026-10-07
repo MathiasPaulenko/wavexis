@@ -47,5 +47,5 @@ wavexis completions powershell
 
 ```bash
 wavexis --version
-wavexis install_check
+wavexis install-check
 ```

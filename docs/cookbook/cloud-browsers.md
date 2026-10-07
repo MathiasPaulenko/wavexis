@@ -4,11 +4,12 @@ wavexis supports connecting to cloud browser services like **Browserbase**, **Br
 
 ## Quick start
 
-Pass `--remote-url` with the WebSocket URL provided by your cloud service:
+Pass `--remote-url` (a global flag — it goes before the sub-command) with the
+WebSocket URL provided by your cloud service:
 
 ```bash
-wavexis screenshot https://example.com -o out.png \
-  --remote-url "wss://chrome.browserless.io?token=YOUR_TOKEN"
+wavexis --remote-url "wss://chrome.browserless.io?token=YOUR_TOKEN" \
+  screenshot https://example.com -o out.png
 ```
 
 ## Supported providers
@@ -27,37 +28,37 @@ Any service that exposes a CDP WebSocket endpoint works. Common providers:
 ### Screenshot
 
 ```bash
-wavexis screenshot https://example.com -o out.png \
-  --remote-url "wss://chrome.browserless.io?token=XXX"
+wavexis --remote-url "wss://chrome.browserless.io?token=XXX" \
+  screenshot https://example.com -o out.png
 ```
 
 ### PDF
 
 ```bash
-wavexis pdf https://example.com -o out.pdf \
-  --remote-url "wss://connect.browserbase.com?token=XXX"
+wavexis --remote-url "wss://connect.browserbase.com?token=XXX" \
+  pdf https://example.com -o out.pdf
 ```
 
 ### Scrape multiple URLs
 
 ```bash
-wavexis scrape https://example.com https://example.org \
-  --eval "document.title" \
-  --remote-url "wss://chrome.browserless.io?token=XXX"
+wavexis --remote-url "wss://chrome.browserless.io?token=XXX" \
+  scrape https://example.com https://example.org \
+  --expression "document.title"
 ```
 
 ### Multi-action YAML
 
 ```yaml
 actions:
-  - action: navigate
-    url: https://example.com
-  - action: screenshot
-    output: out.png
+  - navigate:
+      url: https://example.com
+  - screenshot:
+      output: out.png
 ```
 
 ```bash
-wavexis multi config.yml --remote-url "wss://chrome.browserless.io?token=XXX"
+wavexis --remote-url "wss://chrome.browserless.io?token=XXX" multi config.yml
 ```
 
 ## Global config
