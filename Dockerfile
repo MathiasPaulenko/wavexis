@@ -39,7 +39,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /build/dist/*.whl /tmp/
 RUN pip install --no-cache-dir "$(ls /tmp/*.whl)[cdp,serve]" && rm /tmp/*.whl
 
+# Chromium refuses to run as root without --no-sandbox; run unprivileged.
+RUN useradd --create-home --shell /bin/bash wavexis
+USER wavexis
+
 ENV CHROME_PATH=/usr/bin/chromium
+# Lets wavexis add --disable-dev-shm-usage/--no-zygote for container limits.
+ENV CI=true
 
 EXPOSE 8080
 

@@ -102,7 +102,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /build/dist/*.whl /tmp/
 RUN pip install /tmp/*.whl[cdp,serve] && rm /tmp/*.whl
-ENV CHROME_PATH=/usr/bin/chromium
+RUN useradd --create-home wavexis
+USER wavexis
+ENV CHROME_PATH=/usr/bin/chromium CI=true
 EXPOSE 8080
 HEALTHCHECK CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')" || exit 1
 ENTRYPOINT ["wavexis", "serve", "--host", "0.0.0.0", "--port", "8080"]
@@ -110,7 +112,7 @@ ENTRYPOINT ["wavexis", "serve", "--host", "0.0.0.0", "--port", "8080"]
 
 ### CI matrix
 
-CI runs unit tests on Python 3.11, 3.12, and 3.13 with coverage reporting. Serve mode tests and Docker build are verified on every push to `main`.
+CI runs unit tests on Python 3.11–3.14 with coverage reporting. Serve mode tests and Docker build are verified on every push to `main`.
 
 ### Release pipeline
 
