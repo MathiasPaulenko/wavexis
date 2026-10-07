@@ -2,7 +2,46 @@
 
 All notable changes to wavexis are documented in this file.
 
-## v2.19.0 — 2026-08-11
+## v2.20.0 — 2026-10-07
+
+### Added
+
+- **`visual-diff` command and `visual_diff` multi action** — `VisualDiffAction` was implemented but never exposed; it is now available as `wavexis visual-diff <url> --baseline <file>` and as the `visual_diff` action type in multi-action YAML.
+
+### Changed
+
+- **mypy strictness** — the `wavexis.backend.cdp`/`bidi`/`cli._debug` error-code overrides were removed; the codebase now passes strict mypy with no per-module exceptions.
+- **Backend contract cleanup** — 152 dead duplicate method definitions were removed from `CDPBackend`/`BiDiBackend` (the second definition always shadowed the first at runtime). Mixin signatures in `wavexis/backend/mixins/` were aligned with the implementations that were actually live (`indexed_db_*`, `cache_storage_request_*`, `dom_snapshot_get_snapshot`, `file_system_get_directory`, `fed_cm_click_dialog_button`, `dom_debugger_set_break_on_csp_violation`, `digital_credentials_set_virtual_wallet_behavior`, `layer_tree_load/make_snapshot`, `heap_profiler_stop_tracking_heap_objects`, `system_info_get_process_info`).
+- **Serve backend pool** — pooled backends are now checked with `is_connected` before reuse, and dead backends are dropped instead of being handed to the next request.
+- **bidiwave version range** — `wavexis[bidi]` now accepts `bidiwave>=1.8.1,<3.0` so the latest 2.x releases can be installed.
+- **`crawl --depth` help** — corrected the depth semantics (0 = start page only) to match the actual implementation.
+- **Serve auth docs** — `--api-key` help and serve docs now describe the real authentication options (Bearer token or `X-API-Key` header); an `api_key` query parameter is not accepted.
+- **Type stubs** — `stubs/cdpwave` updated to 3.3.0 (`launch`/`connect` return awaitable launch contexts with `browser_path`, `user_data_dir`, `timeout`, etc.) and `stubs/bidiwave` to 2.0.0 (`ClientConfig`, `BrowsingContext`, `InterceptResult`, synchronous event helpers, `send_command`).
+- **Documentation** — README and MkDocs pages updated for real command names and syntax (`css styles`, `debug breakpoint`, `perf <subcommand>`, `console capture`, `install-check`, `indexed-db`, `nl`/`record`/`replay`/`auth`/`completions`), global flag placement (`--backend`, `--remote-url`, `--stealth`), serve endpoints (`/eval` and `/ws` require `--api-key`, `/multi` and `/auth` require `--base-dir`), REPL `wait <selector>`, `WAVEXIS_ENV_ALLOWLIST` for `{{env.X}}`, and accurate backend parity claims (CDP bridge methods are Chrome-only).
+
+### Fixed
+
+- **BiDi backend vs bidiwave 2.0** — `create_context()` results are normalized to context IDs everywhere, `session.new()` is not re-issued after `connect()` (drivers that reject it keep the connect-time session), `on_log_entry` is subscribed synchronously, intercept cleanup uses the new `remove_intercept(intercept)` signature, `add_intercept` results (`InterceptResult`/dict/str) are normalized, `mock_response` uses `provide_response` when available, and `--extra-headers`/`--proxy` use `network.set_extra_headers`/BiDi capabilities instead of non-existent CDP methods. Event handlers accept both dict and pydantic-shaped params.
+- **BiDi navigation** — history navigation uses `browsingContext.traverseHistory` instead of the non-existent `traverse`/`cancelNavigation` commands.
+- **`config set` ignored for some keys** — `backend`, `timeout`, and `wait_strategy` set in `~/.wavexis/config.yml` were overwritten by Typer defaults; only explicit CLI flags override the config now. `wait_strategy` is accepted as a config key.
+- **`auth` printed garbage** — `wavexis auth` without `--screenshot` passed an `EvalParams` object to `backend.eval()`; it now evaluates `document.title` correctly.
+- **`auth` dropped custom headers** — `Authorization` basic-auth headers no longer overwrite custom `headers` from the context; they are merged into one `set_headers` call.
+- **`completions`/`--show-completion` ignored the shell** — `--install-completion`/`--show-completion` were invoked with an argument they ignore; `completions <shell>` now installs via Typer's completion helpers and `--show-completion <shell>` honours the requested shell.
+- **`serve /screenshot` content type** — responses now report `image/jpeg` when `format=jpeg` is requested.
+- **`serve /scrape` CSV** — CSV export collects the union of row keys instead of assuming every row matches the first.
+- **`serve` error handling** — internal `ValueError`/`TypeError` in handlers no longer get misreported as "invalid JSON body"; the real error message is returned with a 400 status.
+- **Recorder replay format** — `Recorder` binds positional args to parameter names so recorded YAML replays correctly through `multi`/`replay`.
+- **`BackendManager.create` error message** — unknown backend names now produce a clear "Unknown backend" error instead of a misleading "not supported by BackendManager backend" message.
+- **`output.write_json` crash** — non-serializable values no longer crash `write_json` (`default=str`).
+- **aiohttp deprecation warnings** — serve app state uses `web.AppKey` instead of string keys.
+- **`css set-stylesheet-text` duplicate** — the command was registered twice (the second registration shadowed the first); only one definition remains.
+- **`indexed-db`/`dom-debugger`/`fed-cm`/`file-system`/`digital-credentials` CLI calls** — several commands passed positional arguments in an order that no longer matched the backend signatures, so parameters landed in the wrong slots; calls now use keyword arguments matching the real signatures.
+- **`crash_report_context_get_entries`** — now returns the entries list instead of the whole command-result dict.
+- **`cache-cached-response` action** — sends `[]` instead of `null` when `request_headers` is not provided.
+- **BiDi `screenshot`/`screenshot_selector`** — `quality` is no longer sent when `format=png`; bidiwave 2.0 rejects it (found against real chromedriver).
+- **BiDi `set_headers`** — replaced the non-existent `Network.setExtraRequestHeaders` CDP-bridge command with `network.setExtraHeaders` using the BiDi `bytesValue` header format; extra headers are now actually sent (verified against a live server).
+- **E2E test harness** — subprocess output is decoded as UTF-8 explicitly; `text=True` used the system codec (cp1252 on Windows) and crashed on box-drawing characters in `--help` output.
+- **Dockerfile** — the image now runs Chromium as an unprivileged `wavexis` user; running as root made Chrome exit with "Running as root without --no-sandbox is not supported" and every browser request failed with 500. `CI=true` is set so container-friendly launch flags (`--disable-dev-shm-usage`, `--no-zygote`) are added.
 
 ### Added
 
