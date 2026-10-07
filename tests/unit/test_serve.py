@@ -44,8 +44,10 @@ class TestServeCreateApp:
         from wavexis.serve import create_app
 
         app = create_app()
+        from wavexis.serve import _app_key
+
         assert app is not None
-        assert "backend_name" in app
+        assert _app_key("backend_name") in app
 
     def test_create_app_has_routes(self) -> None:
         """Test create app has routes."""
@@ -1563,7 +1565,9 @@ class TestServeUtilities:
             max_concurrent=3,
         )
         assert app is not None
-        assert app["backend_name"] == "cdp"
+        from wavexis.serve import _app_key
+
+        assert app[_app_key("backend_name")] == "cdp"
 
     def test_create_app_with_cors_origins(self) -> None:
         from wavexis.serve import create_app
@@ -1603,7 +1607,7 @@ class TestJSONErrorMiddleware:
             await _json_error_middleware(MagicMock(), _handler)
 
     async def test_value_error_returns_400(self) -> None:
-        """Plain ValueError must still produce a 400 JSON response."""
+        """Plain ValueError must still produce a 400 JSON response with its message."""
         from wavexis.serve import _json_error_middleware
 
         async def _handler(request: Any) -> Any:
@@ -1611,7 +1615,7 @@ class TestJSONErrorMiddleware:
 
         response = await _json_error_middleware(MagicMock(), _handler)
         assert response.status == 400
-        assert "invalid JSON body" in response.text
+        assert "plain value error" in response.text
 
 
 @pytest.mark.unit

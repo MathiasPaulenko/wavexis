@@ -306,7 +306,6 @@ async def _request_logging_middleware(request: Any, handler: Any) -> Any:
     status are logged as JSON-structured fields for production correlation.
     """
     request_id = request.headers.get("X-Request-ID", "") or uuid.uuid4().hex[:12]
-    request["request_id"] = request_id
     start = time.monotonic()
     try:
         response = await handler(request)
@@ -355,9 +354,14 @@ async def _json_error_middleware(request: Any, handler: Any) -> Any:
     except (json.JSONDecodeError, ValueError, TypeError) as exc:
         if isinstance(exc, WavexisError):
             raise
+        message = (
+            "invalid JSON body"
+            if isinstance(exc, json.JSONDecodeError)
+            else str(exc) or "invalid request"
+        )
         return web.Response(
             status=400,
-            text='{"error": "invalid JSON body"}',
+            text=json.dumps({"error": message}),
             content_type="application/json",
         )
     except web.HTTPRequestEntityTooLarge:
@@ -528,6 +532,20 @@ def _import_aiohttp() -> Any:
         raise WavexisError("aiohttp is not installed. Run: pip install wavexis[serve]") from exc
 
 
+_app_keys: dict[str, Any] = {}
+
+
+def _app_key(name: str) -> Any:
+    """Return a cached aiohttp web.AppKey for application state storage.
+
+    aiohttp deprecates plain-string keys (NotAppKeyWarning); AppKey instances
+    compare by identity so they must be reused.
+    """
+    if name not in _app_keys:
+        _app_keys[name] = _import_aiohttp().AppKey(name, object)
+    return _app_keys[name]
+
+
 async def _sanitize_backend(backend: AbstractBackend) -> None:
     """Reset browser state before returning a backend to the pool.
 
@@ -588,7 +606,14 @@ class BackendPool:
         await self._semaphore.acquire()
         async with self._lock:
             if not self._pool.empty():
-                return self._pool.get_nowait()
+                backend = self._pool.get_nowait()
+                if backend.is_connected:
+                    return backend
+                # Dead backend (browser crashed between requests): drop it
+                # and fall through to create a fresh one.
+                self._created -= 1
+                with contextlib.suppress(Exception):
+                    await backend.close()
             self._created += 1
         try:
             return await get_manager().select_with_fallback(preferred)
@@ -610,6 +635,15 @@ class BackendPool:
         Args:
             backend: The backend instance to return.
         """
+        # Dead backends must not be returned to the pool.
+        if not backend.is_connected:
+            with contextlib.suppress(Exception):
+                await backend.close()
+            async with self._lock:
+                self._created -= 1
+            self._semaphore.release()
+            return
+
         # If the pool is full, close the backend instead of queueing it.
         if self._pool.full():
             with contextlib.suppress(Exception):
@@ -655,7 +689,7 @@ _backend_pool: BackendPool | None = None
 
 def _get_pool(request: Any) -> BackendPool:
     """Get the backend pool from the app, or return a default."""
-    pool: BackendPool | None = request.app.get("backend_pool")
+    pool: BackendPool | None = request.app.get(_app_key("backend_pool"))
     if pool is not None:
         return pool
     global _backend_pool
@@ -671,7 +705,7 @@ async def _get_backend(request: Any) -> AbstractBackend:
     The caller is responsible for returning the backend to the pool after use.
     """
     pool = _get_pool(request)
-    preferred = request.app.get("backend_name")
+    preferred = request.app.get(_app_key("backend_name"))
     return await pool.get_backend(preferred)
 
 
@@ -690,7 +724,7 @@ async def _run_action(request: Any, action: Any) -> Any:
     backend: AbstractBackend | None = None
     launched = False
     try:
-        backend = await pool.get_backend(request.app.get("backend_name"))
+        backend = await pool.get_backend(request.app.get(_app_key("backend_name")))
         await backend.launch(BrowserOptions())
         launched = True
         return await action.execute(backend)
@@ -747,7 +781,7 @@ def with_backend(
             backend: AbstractBackend | None = None
             launched = False
             try:
-                backend = await pool.get_backend(request.app.get("backend_name"))
+                backend = await pool.get_backend(request.app.get(_app_key("backend_name")))
                 await backend.launch(opts)
                 launched = True
                 return await handler(request, backend)
@@ -793,7 +827,7 @@ def with_backend(
 
 
 async def handle_screenshot(request: Any) -> Any:
-    """Handle POST /screenshot — return PNG bytes."""
+    """Handle POST /screenshot — return image bytes."""
     web = _import_aiohttp()
     data = await _get_json_body(request)
     params = _safe_params(ScreenshotParams, data)
@@ -801,7 +835,8 @@ async def handle_screenshot(request: Any) -> Any:
 
     action = ScreenshotAction(params)
     image_bytes = await _run_action(request, action)
-    return web.Response(body=image_bytes, content_type="image/png")
+    content_type = "image/jpeg" if params.format == "jpeg" else "image/png"
+    return web.Response(body=image_bytes, content_type=content_type)
 
 
 async def handle_pdf(request: Any) -> Any:
@@ -841,8 +876,15 @@ async def handle_scrape(request: Any) -> Any:
         import csv
         import io
 
+        fieldnames: list[str] = []
+        seen_keys: set[str] = set()
+        for row in result:
+            for key in row:
+                if key not in seen_keys:
+                    seen_keys.add(key)
+                    fieldnames.append(key)
         buf = io.StringIO()
-        writer = csv.DictWriter(buf, fieldnames=result[0].keys())
+        writer = csv.DictWriter(buf, fieldnames=fieldnames)
         writer.writeheader()
         for row in result:
             writer.writerow(row)
@@ -1810,9 +1852,9 @@ def create_app(
         client_max_size=max_request_size,
     )
     manager = get_manager()
-    app["backend_name"] = backend_name
-    app["backends"] = manager.list_available()
-    app["backend_pool"] = BackendPool(max_concurrent=max_concurrent)
+    app[_app_key("backend_name")] = backend_name
+    app[_app_key("backends")] = manager.list_available()
+    app[_app_key("backend_pool")] = BackendPool(max_concurrent=max_concurrent)
 
     app.router.add_post("/screenshot", handle_screenshot)
     app.router.add_post("/pdf", handle_pdf)
