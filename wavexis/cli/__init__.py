@@ -1,8 +1,15 @@
 """CLI entry point for wavexis."""
 
+import os
 import sys
 import warnings
 from typing import Any
+
+# Typer's default completion flags (--install-completion/--show-completion)
+# ignore their shell argument and auto-detect the current shell. Enabling
+# the explicit-value mode makes ``wavexis completions <shell>`` and
+# ``--show-completion <shell>`` honour the requested shell.
+os.environ.setdefault("_TYPER_COMPLETE_TEST_DISABLE_SHELL_DETECTION", "1")
 
 from wavexis.cli.app import app
 

@@ -272,10 +272,10 @@ def css_stylesheet_text(
 @css_app.command("set-stylesheet-text")
 def css_set_stylesheet_text(
     url: str = typer.Argument(..., help="URL to navigate to"),
-    stylesheet_id: str = typer.Option(..., "--stylesheet-id", help="Stylesheet ID"),
+    stylesheet_id: str = typer.Argument(..., help="Stylesheet ID"),
     text: str = typer.Argument(..., help="New stylesheet text content"),
 ) -> None:
-    """Set the text content of a stylesheet."""
+    """Set the text content of a stylesheet by ID."""
     _run_async(_css_direct(url, lambda b: b.css_set_style_sheet_text(stylesheet_id, text)))
     _echo("Stylesheet text updated")
 
@@ -712,17 +712,6 @@ def css_set_style_texts(
     if result is None:
         return
     _write_json_output(result, output, "styles")
-
-
-@css_app.command("set-stylesheet-text")
-def css_set_stylesheet_text(
-    url: str = typer.Argument(..., help="URL to navigate to"),
-    stylesheet_id: str = typer.Argument(..., help="Stylesheet ID"),
-    text: str = typer.Argument(..., help="Stylesheet text"),
-) -> None:
-    """Set the text content of a stylesheet by ID (alias)."""
-    _run_async(_css_direct(url, lambda b: b.css_set_stylesheet_text(stylesheet_id, text)))
-    _echo("Stylesheet text updated")
 
 
 @css_app.command("set-supports-text")
@@ -1497,7 +1486,12 @@ async def _dom_debugger_direct(url: str, action: str, **kwargs: Any) -> Any:
             await backend.dom_debugger_remove_xhr_breakpoint(kwargs["url_substring"])
             return None
         if action == "set_break_on_csp_violation":
-            await backend.dom_debugger_set_break_on_csp_violation(kwargs["enabled"])
+            enabled = kwargs["enabled"]
+            await backend.dom_debugger_set_break_on_csp_violation(
+                ["trustedtype-sink-violation", "trustedtype-policy-violation"]
+                if enabled
+                else []
+            )
             return None
         if action == "set_dom_breakpoint":
             await backend.dom_debugger_set_dom_breakpoint(kwargs["node_id"], kwargs["type"])
@@ -4198,7 +4192,20 @@ def digital_credentials_set_virtual_wallet_cmd(
     """Set the virtual wallet behavior for digital credentials."""
 
     beh = _safe_json_loads(behavior, "behavior")
-    _run_async(_debug_direct(url, lambda b: b.digital_credentials_set_virtual_wallet_behavior(beh)))
+    if not isinstance(beh, dict):
+        _handle_error(WavexisError("behavior must be a JSON object with at least 'action'"))
+        return
+    _run_async(
+        _debug_direct(
+            url,
+            lambda b: b.digital_credentials_set_virtual_wallet_behavior(
+                action=beh.get("action", "auto"),
+                protocol=beh.get("protocol"),
+                response=beh.get("response"),
+                frame_id=beh.get("frame_id"),
+            ),
+        )
+    )
     _echo("Virtual wallet behavior set")
 
 
@@ -4508,11 +4515,13 @@ def extensions_trigger_action_cmd(
 def fed_cm_click_dialog_button_cmd(
     url: str = typer.Argument(..., help="URL to navigate to"),
     dialog_id: str = typer.Argument(..., help="Dialog ID"),
-    button_index: int = typer.Argument(..., help="Button index"),
+    dialog_button: str = typer.Argument(
+        ..., help="Button enum (e.g. ConfirmIdpLoginContinue, SignInContinue)"
+    ),
 ) -> None:
     """Click a button in a FedCm dialog."""
-    _run_async(_debug_direct(url, lambda b: b.fed_cm_click_dialog_button(dialog_id, button_index)))
-    _echo(f"Button clicked: {button_index}")
+    _run_async(_debug_direct(url, lambda b: b.fed_cm_click_dialog_button(dialog_id, dialog_button)))
+    _echo(f"Button clicked: {dialog_button}")
 
 
 @fed_cm_app.command("disable")
@@ -4701,12 +4710,22 @@ def fetch_take_response_body_cmd(
 @file_system_app.command("get-directory")
 def file_system_get_directory_cmd(
     url: str = typer.Argument(..., help="URL to navigate to"),
-    origin: str = typer.Argument(..., help="Origin"),
-    fs_type: str = typer.Argument(..., help="File system type"),
+    storage_key: str = typer.Argument(..., help="Storage key"),
+    path_components: str = typer.Argument(..., help="Path components (JSON array)"),
+    bucket_name: str = typer.Option("", "--bucket", help="Storage bucket name"),
     output: str = typer.Option("-", "--output", "-o", help="Output file (- for stdout)"),
 ) -> None:
-    """Get a file system directory by origin and type."""
-    result = _run_async(_debug_direct(url, lambda b: b.file_system_get_directory(origin, fs_type)))
+    """Get a file system directory by storage key and path components."""
+    components = _safe_json_loads(path_components, "path_components")
+    if not isinstance(components, list):
+        _handle_error(WavexisError("path_components must be a JSON array of strings"))
+        return
+    result = _run_async(
+        _debug_direct(
+            url,
+            lambda b: b.file_system_get_directory(storage_key, components, bucket_name),
+        )
+    )
     if result is None:
         return
     _write_json_output(result, output, "File system directory")
@@ -5181,7 +5200,9 @@ def indexed_db_clear_object_store_cmd(
         _debug_direct(
             url,
             lambda b: b.indexed_db_clear_object_store(
-                security_origin, database_name, object_store_name
+                database_name=database_name,
+                object_store_name=object_store_name,
+                security_origin=security_origin,
             ),
         )
     )
@@ -5196,7 +5217,9 @@ def indexed_db_delete_database_cmd(
 ) -> None:
     """Delete an IndexedDB database."""
     _run_async(
-        _debug_direct(url, lambda b: b.indexed_db_delete_database(security_origin, database_name))
+        _debug_direct(url, lambda b: b.indexed_db_delete_database(
+                database_name=database_name, security_origin=security_origin
+            ))
     )
     typer.echo("Database deleted.")
 
@@ -5216,7 +5239,10 @@ def indexed_db_delete_object_store_entries_cmd(
         _debug_direct(
             url,
             lambda b: b.indexed_db_delete_object_store_entries(
-                security_origin, database_name, object_store_name, kr
+                database_name=database_name,
+                object_store_name=object_store_name,
+                key_range=kr,
+                security_origin=security_origin,
             ),
         )
     )
@@ -5253,7 +5279,11 @@ def indexed_db_get_metadata_cmd(
     result = _run_async(
         _debug_direct(
             url,
-            lambda b: b.indexed_db_get_metadata(security_origin, database_name, object_store_name),
+            lambda b: b.indexed_db_get_metadata(
+                database_name=database_name,
+                object_store_name=object_store_name,
+                security_origin=security_origin,
+            ),
         )
     )
     if result is None:
@@ -5280,13 +5310,13 @@ def indexed_db_request_data_cmd(
         _debug_direct(
             url,
             lambda b: b.indexed_db_request_data(
-                security_origin,
-                database_name,
-                object_store_name,
-                index_name,
-                skip_count,
-                page_size,
-                kr,
+                database_name=database_name,
+                object_store_name=object_store_name,
+                security_origin=security_origin,
+                index_name=index_name,
+                skip_count=skip_count,
+                page_size=page_size,
+                key_range=kr,
             ),
         )
     )
@@ -5304,7 +5334,9 @@ def indexed_db_request_database_cmd(
 ) -> None:
     """Request an IndexedDB database with its object stores."""
     result = _run_async(
-        _debug_direct(url, lambda b: b.indexed_db_request_database(security_origin, database_name))
+        _debug_direct(url, lambda b: b.indexed_db_request_database(
+                database_name=database_name, security_origin=security_origin
+            ))
     )
     if result is None:
         return
@@ -5319,7 +5351,7 @@ def indexed_db_request_database_names_cmd(
 ) -> None:
     """Request the names of all IndexedDB databases for an origin."""
     result = _run_async(
-        _debug_direct(url, lambda b: b.indexed_db_request_database_names(security_origin))
+        _debug_direct(url, lambda b: b.indexed_db_request_database_names(security_origin=security_origin))
     )
     if result is None:
         return

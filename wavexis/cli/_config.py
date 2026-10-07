@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 from typing import Any
 
@@ -28,7 +27,6 @@ from wavexis.config import (
     _MAX_TIMEOUT_MS,
     _MAX_VIEWPORT_DIMENSION,
     _REMOTE_SCHEMES,
-    EvalParams,
     ScreenshotParams,
     _validate_int_range,
     _validate_path_string,
@@ -43,51 +41,25 @@ def completions(
 ) -> None:
     """Install shell completions for wavexis.
 
-    Delegates to Typer's built-in ``--install-completion`` mechanism. The
-    previous implementation spawned ``python -m wavexis completion <shell>``,
-    which referenced a non-existent ``completion`` subcommand (bug #7).
+    Installs through Typer's completion helpers for the requested shell.
     """
     shells = {"bash", "zsh", "fish", "powershell"}
     if shell not in shells:
         Output.error(f"Unsupported shell: {shell}. Choose from: {', '.join(sorted(shells))}")
         raise typer.Exit(EXIT_CONFIG_ERROR)
 
-    import os
-    import subprocess  # nosec B404
-
-    env = os.environ.copy()
-    # Force UTF-8 so the child process can print unicode glyphs (e.g. the
-    # checkmark emitted by Typer's --install-completion) on Windows consoles
-    # that default to a legacy codepage (cp1252/cp850). See bug #1.
-    env["PYTHONIOENCODING"] = "utf-8"
+    # Install directly through Typer's completion helpers. Spawning
+    # ``--install-completion <shell>`` does not work: that flag ignores its
+    # argument and auto-detects the current shell instead.
+    from typer._completion_shared import install as _typer_install
 
     try:
-        # Capture stdout/stderr so the child's unicode output does not crash
-        # the parent's legacy Windows console. The child still writes the
-        # completion script to the user's shell profile; we just suppress its
-        # terminal output here and print our own success message.
-        # argv is a fixed list, shell=False, shell from validated allowlist
-        result = subprocess.run(  # nosec B603
-            [sys.executable, "-m", "wavexis", "--install-completion", shell],
-            input="y\n",
-            text=True,
-            env=env,
-            capture_output=True,
-            timeout=30,
-        )
-    except subprocess.TimeoutExpired as e:
-        Output.error("Failed to install completions: timed out")
+        installed_shell, path = _typer_install(shell=shell, prog_name="wavexis")
+    except Exception as e:
+        Output.error(f"Failed to install completions: {e}")
         raise typer.Exit(EXIT_BROWSER_ERROR) from e
 
-    # Typer's --install-completion prints a checkmark (\u2713) which can fail
-    # to encode on legacy Windows consoles. Treat a non-zero exit code with a
-    # successful installation message as success.
-    combined = (result.stdout or "") + (result.stderr or "")
-    if result.returncode != 0 and "installed" not in combined.lower():
-        Output.error(f"Failed to install completions: {combined.strip() or result.returncode}")
-        raise typer.Exit(EXIT_BROWSER_ERROR)
-
-    Output.success(f"Completions installed for {shell}")
+    Output.success(f"Completions installed for {installed_shell} ({path})")
 
 
 @app.command()
@@ -127,13 +99,7 @@ def auth(
                         wait=_wait_strategy(),
                     ),
                 )
-            return await backend.eval(
-                EvalParams(
-                    url=url,
-                    expression="document.title",
-                    wait=_wait_strategy(),
-                ),
-            )
+            return await backend.eval("document.title")
         finally:
             await _close_backend(backend)
 
@@ -177,6 +143,7 @@ _VALID_CONFIG_KEYS = {
     "backend",
     "headless",
     "timeout",
+    "wait_strategy",
     "width",
     "height",
     "user_agent",
@@ -245,6 +212,14 @@ def _validate_config_value(key: str, value: str) -> Any:
             height, "height", min_value=1, max_value=_MAX_VIEWPORT_DIMENSION
         )
         return height
+
+    if key == "wait_strategy":
+        if value not in ("load", "domcontentloaded", "networkidle", "selector", "url", "none"):
+            raise ActionError(
+                f"wait_strategy must be one of load, domcontentloaded, "
+                f"networkidle, selector, url, none; got {value!r}"
+            )
+        return value
 
     if key == "stealth":
         lowered = value.lower()

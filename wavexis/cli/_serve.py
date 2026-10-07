@@ -59,7 +59,7 @@ def serve(
     api_key: str = typer.Option(
         None,
         "--api-key",
-        help="API key for authenticating requests (Bearer token or api_key query param)",
+        help="API key for authenticating requests (Bearer token or X-API-Key header)",
     ),
     cors_origins: str = typer.Option(
         "",

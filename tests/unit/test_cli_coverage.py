@@ -520,16 +520,13 @@ class TestCLIAdvancedCommands:
         assert result.exit_code != 0
         assert "tcsh" in result.output
 
-    @patch("subprocess.run")
-    def test_completions_uses_install_completion_flag(self, mock_run: MagicMock) -> None:
-        """Regression for bug #7: must call --install-completion, not `completion`."""
-        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
-        result = runner.invoke(app, ["completions", "bash"], input="y\n")
+    @patch("typer._completion_shared.install")
+    def test_completions_installs_requested_shell(self, mock_install: MagicMock) -> None:
+        """completions <shell> must install for the requested shell."""
+        mock_install.return_value = ("bash", Path("/home/u/.bashrc"))
+        result = runner.invoke(app, ["completions", "bash"])
         assert result.exit_code == 0, result.output
-        args = mock_run.call_args.args[0]
-        # Must NOT contain the old broken "completion" subcommand.
-        assert "completion" not in args or "--install-completion" in args
-        assert "--install-completion" in args
+        mock_install.assert_called_once_with(shell="bash", prog_name="wavexis")
 
 
 @pytest.mark.unit

@@ -132,6 +132,9 @@ class CLIContext:
     browser_url: str | None = None
     remote_url: str | None = None
     stealth: bool = False
+    width: int | None = None
+    height: int | None = None
+    user_agent: str | None = None
 
 
 _ctx: contextvars.ContextVar[CLIContext | None] = contextvars.ContextVar(
@@ -180,6 +183,12 @@ def _load_global_config() -> None:
             ctx.remote_url = str(raw["remote_url"])
         if "stealth" in raw:
             ctx.stealth = bool(raw["stealth"])
+        if "width" in raw:
+            ctx.width = int(raw["width"])
+        if "height" in raw:
+            ctx.height = int(raw["height"])
+        if "user_agent" in raw:
+            ctx.user_agent = str(raw["user_agent"])
     except ImportError:
         _echo(f"Warning: failed to load config from {config_path}: PyYAML not installed")
     except (OSError, ValueError, TypeError, yaml.YAMLError) as exc:
@@ -196,9 +205,11 @@ def main_callback(
     headed: bool = typer.Option(
         False, "--headed", help="Run browser in headed mode (visible window)"
     ),
-    timeout: int = typer.Option(30000, "--timeout", help="Navigation timeout in milliseconds"),
-    wait_strategy: str = typer.Option(
-        "load",
+    timeout: int | None = typer.Option(
+        None, "--timeout", help="Navigation timeout in milliseconds (default: 30000)"
+    ),
+    wait_strategy: str | None = typer.Option(
+        None,
         "--wait-strategy",
         help="Default navigation wait strategy: load, domcontentloaded, or networkidle",
     ),
@@ -226,15 +237,17 @@ def main_callback(
     """wavexis — browser automation CLI."""
     _load_global_config()
     ctx = _get_ctx()
-    ctx.preferred_backend = backend
+    if backend is not None:
+        ctx.preferred_backend = backend
     ctx.verbose = verbose
     ctx.quiet = quiet
     if headed:
         ctx.headless = False
-    # --timeout now defaults to 30000 at the Typer layer; honour any explicit
-    # value the user passes (including 0 to disable the navigation timeout).
-    ctx.timeout = timeout
-    if wait_strategy:
+    # None means "flag not passed" — keep the value loaded from the
+    # config file; only explicit CLI flags override it.
+    if timeout is not None:
+        ctx.timeout = timeout
+    if wait_strategy is not None:
         ctx.wait_strategy = wait_strategy
     if proxy:
         ctx.proxy = proxy
@@ -447,6 +460,9 @@ def _browser_options() -> BrowserOptions:
     ctx = _get_ctx()
     return BrowserOptions(
         headless=ctx.headless,
+        width=ctx.width if ctx.width is not None else 1280,
+        height=ctx.height if ctx.height is not None else 800,
+        user_agent=ctx.user_agent,
         timeout=ctx.timeout,
         proxy=ctx.proxy or None,
         user_data_dir=ctx.user_data_dir or None,
