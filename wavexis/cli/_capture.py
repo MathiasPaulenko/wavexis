@@ -494,7 +494,10 @@ async def _scrape(
 def crawl(
     url: str = typer.Argument(..., help="Starting URL to crawl"),
     max_depth: int = typer.Option(
-        2, "--depth", "-d", help="Maximum crawl depth (1 = start page only)"
+        2,
+        "--depth",
+        "-d",
+        help="Maximum crawl depth (0 = start page only, 1 = also its direct links)",
     ),
     max_pages: int = typer.Option(50, "--max-pages", help="Maximum number of pages to visit"),
     same_origin: bool = typer.Option(
@@ -676,5 +679,48 @@ async def _dom_snapshot_action(url: str) -> dict[str, Any]:
         await backend.launch(_browser_options())
         act = DOMSnapshotAction(params)
         return await act.execute(backend)
+    finally:
+        await _close_backend(backend)
+
+
+@app.command("visual-diff")
+def visual_diff(
+    url: str = typer.Argument(..., help="URL to navigate to"),
+    baseline: str = typer.Option(
+        ..., "--baseline", "-b", help="Path to baseline screenshot (PNG)"
+    ),
+    selector: str | None = typer.Option(None, "--selector", help="CSS selector to compare"),
+    threshold: int = typer.Option(
+        10, "--threshold", help="Pixel diff threshold (0-255)"
+    ),
+    output: str = typer.Option("-", "--output", "-o", help="Output file (- for stdout)"),
+) -> None:
+    """Compare a live screenshot against a baseline image."""
+    result = _run_async(_visual_diff(url, baseline, selector, threshold))
+    if result is None:
+        return
+    if "error" in result:
+        _handle_error(WavexisError(str(result["error"])))
+        return
+    _write_json_output(result, output, "visual diff")
+
+
+async def _visual_diff(
+    url: str, baseline: str, selector: str | None, threshold: int
+) -> dict[str, Any]:
+    """Async helper for the visual-diff command."""
+    from wavexis.actions.visual_diff import VisualDiffAction, VisualDiffParams
+
+    params = VisualDiffParams(
+        url=url,
+        baseline_path=baseline,
+        selector=selector,
+        threshold=threshold,
+        wait=_wait_strategy(),
+    )
+    backend = _get_backend()
+    try:
+        await backend.launch(_browser_options())
+        return await VisualDiffAction(params).execute(backend)
     finally:
         await _close_backend(backend)

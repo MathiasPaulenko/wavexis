@@ -24,7 +24,7 @@ class CrawlParams:
 
     Attributes:
         start_url: Starting URL for the crawl.
-        max_depth: Maximum crawl depth (1 = start page only, 2 = start + links).
+        max_depth: Maximum crawl depth (0 = start page only, 1 = also its direct links).
         max_pages: Maximum number of pages to visit.
         same_origin: If True, only crawl links on the same origin.
         url_pattern: Regex pattern to filter URLs (empty = all).

@@ -638,10 +638,24 @@ def _emulation_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
     )
 
 
+def _visual_diff_factory(params: dict[str, Any]) -> BaseAction[Any, Any]:
+    from wavexis.actions.visual_diff import VisualDiffAction, VisualDiffParams
+
+    return VisualDiffAction(
+        VisualDiffParams(
+            url=params.get("url", ""),
+            baseline_path=params.get("baseline_path", params.get("baseline", "")),
+            selector=params.get("selector"),
+            threshold=params.get("threshold", 10),
+        )
+    )
+
+
 _ACTION_REGISTRY: dict[str, ActionFactory] = {
     "screenshot": _screenshot_factory,
     "pdf": _pdf_factory,
     "scrape": _scrape_factory,
+    "visual_diff": _visual_diff_factory,
     "eval": _eval_factory,
     "dom": _dom_factory,
     "navigate": _navigate_factory,
