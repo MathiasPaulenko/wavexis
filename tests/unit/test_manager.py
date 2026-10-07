@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from wavexis.backend.manager import BackendManager
-from wavexis.exceptions import BackendNotAvailableError, BackendNotSupportedError
+from wavexis.exceptions import BackendNotAvailableError, WavexisError
 
 
 class FakeBackend:
@@ -508,10 +508,10 @@ class TestBackendManager:
         manager = BackendManager()
         try:
             manager.create("nonexistent")
-        except BackendNotSupportedError:
+        except WavexisError:
             pass
         else:
-            raise AssertionError("Should have raised BackendNotSupportedError")
+            raise AssertionError("Should have raised WavexisError")
 
     def test_select_preferred(self):
         """Test select preferred."""

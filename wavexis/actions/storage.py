@@ -84,7 +84,7 @@ class StorageAction(BaseAction[StorageParams, Any]):
             return await backend.cache_storage_request_cached_response(
                 self.params.cache_id,
                 self.params.request_url,
-                self.params.request_headers,
+                self.params.request_headers or [],
             )
 
         if action == "cache-request-entries":

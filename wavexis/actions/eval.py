@@ -18,7 +18,7 @@ class EvalAction(BaseAction[EvalParams, Any]):
     """Action for evaluating a JavaScript expression on a web page.
 
     Navigates to the URL in params, then evaluates the expression.
-    Supports @file syntax to read expression from a file.
+    Supports reading the expression from a file via the ``file`` param.
     """
 
     async def execute(self, backend: AbstractBackend) -> Any:

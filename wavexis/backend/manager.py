@@ -8,7 +8,7 @@ from wavexis.backend.base import AbstractBackend
 from wavexis.config import BrowserOptions
 from wavexis.exceptions import (
     BackendNotAvailableError,
-    BackendNotSupportedError,
+    WavexisError,
 )
 
 logger = logging.getLogger(__name__)
@@ -177,11 +177,13 @@ class BackendManager:
             An instance of the backend.
 
         Raises:
-            BackendNotSupportedError: If the backend name is not registered.
+            WavexisError: If the backend name is not registered.
         """
         backend_cls = self._registry.get(name)
         if backend_cls is None:
-            raise BackendNotSupportedError(name, "BackendManager")
+            raise WavexisError(
+                f"Unknown backend {name!r}. Available: {', '.join(self._registry)}"
+            )
         return backend_cls()
 
     def register(self, name: str, backend_cls: type[AbstractBackend]) -> None:

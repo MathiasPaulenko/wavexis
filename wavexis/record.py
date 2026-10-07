@@ -18,6 +18,8 @@ actions:
 from __future__ import annotations
 
 import asyncio
+import inspect
+from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Any
 
@@ -29,6 +31,19 @@ from wavexis.multi import execute_actions, parse_yaml
 from wavexis.output import validate_path
 
 __all__ = ["Recorder", "record_to_yaml", "replay_from_yaml"]
+
+
+def _serialize_param(value: Any) -> Any:
+    """Convert a recorded argument into a YAML-replayable value."""
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return value
+    if is_dataclass(value) and not isinstance(value, type):
+        return asdict(value)
+    if isinstance(value, (list, tuple)):
+        return [_serialize_param(v) for v in value]
+    if isinstance(value, dict):
+        return {k: _serialize_param(v) for k, v in value.items()}
+    return str(value)
 
 
 class Recorder:
@@ -86,10 +101,27 @@ class Recorder:
                 Returns:
                     The return value of the original backend method.
                 """
-                params: dict[str, Any] = {}
-                if args:
-                    params["_args"] = list(args)
-                params.update(kwargs)
+                # Bind positional args to parameter names so the recorded
+                # YAML is replayable through the multi-action factories.
+                # VAR_KEYWORD (**kwargs) is flattened into the params dict.
+                try:
+                    sig = inspect.signature(attr)
+                    bound = sig.bind(*args, **kwargs)
+                    params = {}
+                    for pname, param in sig.parameters.items():
+                        if param.kind is inspect.Parameter.VAR_POSITIONAL:
+                            extra = list(bound.arguments.get(pname, ()))
+                            if extra:
+                                params["_args"] = [_serialize_param(a) for a in extra]
+                        elif param.kind is inspect.Parameter.VAR_KEYWORD:
+                            for key, value in bound.arguments.get(pname, {}).items():
+                                params[key] = _serialize_param(value)
+                        elif pname in bound.arguments:
+                            params[pname] = _serialize_param(bound.arguments[pname])
+                except (TypeError, ValueError):
+                    params = dict(kwargs)
+                    if args:
+                        params["_args"] = [repr(a) for a in args]
                 self._actions.append({name: params})
                 return attr(*args, **kwargs)
 

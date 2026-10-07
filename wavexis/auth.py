@@ -253,11 +253,15 @@ async def apply_auth_context(
     if url:
         _validate_auth_origin(url, ctx)
 
-    if ctx.headers:
-        await backend.set_headers(ctx.headers)
+    # Merge into a single set_headers call — backends replace the whole
+    # extra-headers map on each call, so separate calls would lose the
+    # custom headers.
+    combined_headers = dict(ctx.headers)
     if ctx.username and ctx.password:
         cred = base64.b64encode(f"{ctx.username}:{ctx.password}".encode()).decode()
-        await backend.set_headers({"Authorization": f"Basic {cred}"})
+        combined_headers["Authorization"] = f"Basic {cred}"
+    if combined_headers:
+        await backend.set_headers(combined_headers)
     if url:
         await backend.navigate(url, wait)
     cookies_set = False

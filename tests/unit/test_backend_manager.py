@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 
 from wavexis.backend.manager import BackendManager
-from wavexis.exceptions import BackendNotAvailableError, BackendNotSupportedError
+from wavexis.exceptions import BackendNotAvailableError, WavexisError
 
 
 class DummyBackend:
@@ -690,7 +690,7 @@ class TestBackendManager:
     def test_create_unknown(self) -> None:
         """Test create unknown."""
         manager = BackendManager()
-        with pytest.raises(BackendNotSupportedError):
+        with pytest.raises(WavexisError):
             manager.create("nonexistent")
 
     def test_register_custom(self) -> None:

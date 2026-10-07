@@ -141,7 +141,7 @@ class Output:
             data: The data to serialize as JSON.
             path: File path. If None or "-", prints to stdout.
         """
-        text = json.dumps(data, indent=2, ensure_ascii=False)
+        text = json.dumps(data, indent=2, ensure_ascii=False, default=str)
         Output.write_text(text, path)
 
     @staticmethod

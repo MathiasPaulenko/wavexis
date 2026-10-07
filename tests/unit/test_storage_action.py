@@ -391,7 +391,7 @@ class TestStorageAction:
         result = await StorageAction(params).execute(backend)
         assert result == {"body": "resp"}
         backend.cache_storage_request_cached_response.assert_called_once_with(
-            "c1", "https://x.com", None
+            "c1", "https://x.com", []
         )
 
     async def test_cache_cached_response_missing_fields_raises(self) -> None:

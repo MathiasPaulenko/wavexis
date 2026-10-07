@@ -72,7 +72,7 @@ class TestRecorder:
         assert recorder.actions[0]["screenshot"]["url"] == "https://example.com"
 
     def test_getattr_records_args(self) -> None:
-        """Positional args should be recorded in _args list, kwargs as keys."""
+        """Positional args land in _args, kwargs stay keyed."""
         backend = MagicMock(spec=AbstractBackend)
         backend.eval = MagicMock(return_value="title")
         recorder = Recorder(backend)
@@ -82,6 +82,17 @@ class TestRecorder:
         assert "eval" in recorder.actions[0]
         assert recorder.actions[0]["eval"]["_args"] == ["document.title"]
         assert recorder.actions[0]["eval"]["await_promise"] is False
+
+    def test_getattr_records_named_params(self) -> None:
+        """Positional args map to real parameter names on real methods."""
+
+        class _FakeBackend:
+            def navigate(self, url: str, wait: Any = None) -> None:
+                return None
+
+        recorder = Recorder(_FakeBackend())
+        recorder.navigate("https://example.com")
+        assert recorder.actions[0]["navigate"]["url"] == "https://example.com"
 
     def test_getattr_returns_non_callable_attributes(self) -> None:
         """Non-callable attributes should be returned directly without recording."""
