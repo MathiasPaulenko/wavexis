@@ -20,7 +20,7 @@ runs:
   steps:
     - name: Install wavexis
       shell: bash
-      run: pip install wavexis
+      run: pip install "wavexis[bidi]"
 
     - name: Run multi-action workflow
       shell: bash
