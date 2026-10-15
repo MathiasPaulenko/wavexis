@@ -1,0 +1,27 @@
+name: wavexis
+description: Run wavexis browser-automation YAML in CI — screenshots, evals, scrapes with the runner's Chrome.
+author: MathiasPaulenko
+branding:
+  icon: globe
+  color: green
+
+inputs:
+  actions:
+    description: Path to the multi-action YAML file
+    required: false
+    default: actions.yml
+  args:
+    description: 'Extra args for `wavexis multi` (e.g. "--backend bidi --headed")'
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Install wavexis
+      shell: bash
+      run: pip install wavexis
+
+    - name: Run multi-action workflow
+      shell: bash
+      run: wavexis multi "${{ inputs.actions }}" ${{ inputs.args }}
