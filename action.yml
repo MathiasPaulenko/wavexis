@@ -20,7 +20,7 @@ runs:
   steps:
     - name: Install wavexis
       shell: bash
-      run: pip install "wavexis[bidi]"
+      run: pip install "wavexis[cdp,bidi]"
 
     - name: Configure backend
       shell: bash
