@@ -22,6 +22,10 @@ runs:
       shell: bash
       run: pip install "wavexis[bidi]"
 
+    - name: Configure backend
+      shell: bash
+      run: wavexis config set --key backend --value cdp
+
     - name: Run multi-action workflow
       shell: bash
       run: wavexis multi "${{ inputs.actions }}" ${{ inputs.args }}
