@@ -2,6 +2,25 @@
 
 All notable changes to wavexis are documented in this file.
 
+## v2.21.1 — 2026-11-18
+
+### Fixed
+
+- **Serve backend pool slot leaks** — `BackendPool` now releases its concurrency semaphore on every exit path: cancellation during backend acquisition, failed backend creation, sanitization errors and cancelled returns no longer permanently consume slots. Backends that fail sanitization are discarded instead of breaking the return path, and the `_created` accounting is clamped at zero.
+- **Backend `close()` resilience** — `CDPBackend.close()` and `BiDiBackend.close()` now attempt every cleanup step (session/context close, client close, driver termination) best-effort and re-raise the first error, so a failing close cannot leak the underlying connection or the auto-launched driver process.
+- **BiDi driver launch deadlock** — the auto-launched WebDriver subprocess now uses `DEVNULL` for stdout/stderr instead of unread `PIPE`s, which could block the driver once the OS pipe buffer filled.
+- **PDF margin parsing** — CDP and BiDi backends share `_parse_margin_inches`, which honors CSS units (`mm`, `cm`, `px`, `in`) and falls back to the default margin on malformed input instead of crashing (`".."`, `"1.2.3"`) or silently misreading units (`"10mm"` → 10 inches before).
+- **WebSocket subscribe validation** — `/ws` now validates the initial `url` scheme and type, requires `events` to be a list of strings, and rejects NaN/inf `interval` values that previously slipped past the range check into `asyncio.sleep`.
+- **Stream task error reporting** — screenshot/console/navigation/DOM-mutation/perf streams log unexpected exceptions and stop cleanly instead of dying silently.
+- **Scrape CSV output** — `/scrape` only emits CSV when every result row is a dict; other shapes fall back to JSON instead of raising a 500.
+- **Rich markup injection** — `Output.error`/`success`/`info` escape user-controlled text so messages containing `[`/`]` sequences cannot alter formatting or raise `MarkupError` inside error-reporting paths.
+- **Plugin discovery** — entry-point load and plugin registration failures are isolated per plugin; one broken plugin no longer aborts discovery of the rest.
+- **ActionCache index consistency** — removing an entry now drops empty url-index sets and unused per-key locks, so index/lock dicts do not grow without bound on long-lived caches.
+- **Auth context validation** — `load_auth_context` rejects non-string `username`/`password`/`target_origin` values with a clear `ValueError` instead of an incidental `AttributeError`.
+- **Session file validation** — `SessionData.from_json` requires cookie entries to be objects and storage maps to be string→string, so malformed session files fail with `WavexisError` instead of `AttributeError`.
+- **Multi config size limit** — `parse_yaml` rejects config files over 10MB before reading them.
+- **REPL robustness** — command parse errors are now reported, and unexpected command exceptions are surfaced without terminating the interactive session.
+
 ## v2.20.1 — 2026-10-07
 
 ### Fixed
