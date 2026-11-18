@@ -29,6 +29,7 @@ from wavexis.config import (
     SensorParams,
     ThrottleParams,
     WaitStrategy,
+    _parse_margin_inches,
     _validate_url,
 )
 from wavexis.exceptions import (
@@ -337,18 +338,35 @@ class CDPBackend(AbstractBackend):
                 raise
 
     async def close(self) -> None:
-        """Close the browser client and release resources."""
+        """Close the browser client and release resources.
+
+        Each resource is closed best-effort so a failure closing the session
+        cannot leak the underlying client connection. The first error seen is
+        re-raised after all cleanup attempts.
+        """
+        error: Exception | None = None
         if self._session is not None:
             for handlers in self._subscriptions.values():
                 for cdp_event, handler in handlers.items():
                     with contextlib.suppress(Exception):
                         self._session.off(cdp_event, handler)
             self._subscriptions.clear()
-            await self._session.close()
+            try:
+                await self._session.close()
+            except Exception as exc:
+                error = exc
+                logger.debug("session.close() failed during close: %s", exc)
             self._session = None
         if self._client is not None:
-            await self._client.close()
+            try:
+                await self._client.close()
+            except Exception as exc:
+                if error is None:
+                    error = exc
+                logger.debug("client.close() failed during close: %s", exc)
             self._client = None
+        if error is not None:
+            raise error
 
     async def navigate(self, url: str, wait: WaitStrategy | None = None) -> None:
         """Navigate to a URL and optionally wait for a condition.
@@ -1129,8 +1147,7 @@ class CDPBackend(AbstractBackend):
         await session.emulation.set_emulated_media(media=params.media)
 
         paper_dims = PAPER_SIZES.get(params.paper, PAPER_SIZES["letter"])
-        margin_match = re.match(r"([\d.]+)", params.margin)
-        margin_val = float(margin_match.group(1)) if margin_match else 0.4
+        margin_val = _parse_margin_inches(params.margin)
 
         result = await session.page.print_to_pdf(
             landscape=params.landscape,

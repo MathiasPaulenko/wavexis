@@ -604,24 +604,28 @@ class BackendPool:
             A backend instance (may or may not be launched yet).
         """
         await self._semaphore.acquire()
-        async with self._lock:
-            if not self._pool.empty():
-                backend = self._pool.get_nowait()
-                if backend.is_connected:
-                    return backend
-                # Dead backend (browser crashed between requests): drop it
-                # and fall through to create a fresh one.
-                self._created -= 1
-                with contextlib.suppress(Exception):
-                    await backend.close()
-            self._created += 1
+        slot_taken = False
         try:
-            return await get_manager().select_with_fallback(preferred)
-        except Exception:
-            # Creation failed — release the slot and accounting so the pool
-            # doesn't slowly fill with phantom backends.
             async with self._lock:
-                self._created -= 1
+                if not self._pool.empty():
+                    backend = self._pool.get_nowait()
+                    if backend.is_connected:
+                        return backend
+                    # Dead backend (browser crashed between requests): drop it
+                    # and fall through to create a fresh one.
+                    self._created = max(0, self._created - 1)
+                    with contextlib.suppress(Exception):
+                        await backend.close()
+                self._created += 1
+                slot_taken = True
+            return await get_manager().select_with_fallback(preferred)
+        except BaseException:
+            # Covers cancellation and creation failure alike: the semaphore
+            # slot and the ``_created`` accounting must be rolled back no
+            # matter how this method exits, or the pool leaks slots.
+            if slot_taken:
+                async with self._lock:
+                    self._created = max(0, self._created - 1)
             self._semaphore.release()
             raise
 
@@ -635,26 +639,31 @@ class BackendPool:
         Args:
             backend: The backend instance to return.
         """
-        # Dead backends must not be returned to the pool.
-        if not backend.is_connected:
-            with contextlib.suppress(Exception):
-                await backend.close()
-            async with self._lock:
-                self._created -= 1
+        try:
+            # Dead backends must not be returned to the pool; likewise a
+            # backend that fails sanitization is unsafe to reuse.
+            if not backend.is_connected or self._pool.full():
+                with contextlib.suppress(Exception):
+                    await backend.close()
+                async with self._lock:
+                    self._created = max(0, self._created - 1)
+                return
+            try:
+                await _sanitize_backend(backend)
+            except Exception:
+                # Sanitization is called from teardown paths (``finally``
+                # blocks); re-raising could mask an in-flight exception.
+                # Log and treat the backend as discarded instead.
+                logger.warning("Backend sanitization failed; discarding", exc_info=True)
+                with contextlib.suppress(Exception):
+                    await backend.close()
+                async with self._lock:
+                    self._created = max(0, self._created - 1)
+            await self._pool.put(backend)
+        finally:
+            # The acquired slot is always released — even when sanitization
+            # or the queue put is cancelled — or the pool starves.
             self._semaphore.release()
-            return
-
-        # If the pool is full, close the backend instead of queueing it.
-        if self._pool.full():
-            with contextlib.suppress(Exception):
-                await backend.close()
-            async with self._lock:
-                self._created -= 1
-            self._semaphore.release()
-            return
-        await _sanitize_backend(backend)
-        await self._pool.put(backend)
-        self._semaphore.release()
 
     async def discard_backend(self, backend: AbstractBackend) -> None:
         """Close a broken backend and release its slot.
@@ -665,11 +674,13 @@ class BackendPool:
         Args:
             backend: The backend instance to discard.
         """
-        with contextlib.suppress(Exception):
-            await backend.close()
-        async with self._lock:
-            self._created -= 1
-        self._semaphore.release()
+        try:
+            with contextlib.suppress(Exception):
+                await backend.close()
+            async with self._lock:
+                self._created = max(0, self._created - 1)
+        finally:
+            self._semaphore.release()
 
     async def close_all(self) -> None:
         """Close all pooled backends, drain the pool, and reset all slots."""
@@ -872,7 +883,12 @@ async def handle_scrape(request: Any) -> Any:
 
     action = ScrapeAction(params)
     result = await _run_action(request, action)
-    if params.output_format == "csv" and isinstance(result, list) and result:
+    if (
+        params.output_format == "csv"
+        and isinstance(result, list)
+        and result
+        and all(isinstance(row, dict) for row in result)
+    ):
         import csv
         import io
 
@@ -1254,6 +1270,11 @@ async def _stream_screenshots(
             )
         except (ConnectionError, OSError):
             break
+        except Exception:
+            # Backend libraries raise their own exception types; without a
+            # catch-all the stream task dies silently.
+            logger.exception("Unexpected error in screenshot stream; stopping")
+            break
         await asyncio.sleep(interval)
 
 
@@ -1277,7 +1298,12 @@ async def _stream_console(
         try:
             messages = await backend.capture_console()
             for msg in messages:
-                key = json.dumps(msg, sort_keys=True)
+                try:
+                    key = json.dumps(msg, sort_keys=True)
+                except (TypeError, ValueError):
+                    # Mixed-type keys are unsortable; fall back to repr so a
+                    # single weird message can't kill the stream.
+                    key = repr(msg)
                 if len(key) > max_message_size:
                     continue
                 if key not in seen:
@@ -1303,6 +1329,9 @@ async def _stream_console(
                 }
             )
         except (ConnectionError, OSError):
+            break
+        except Exception:
+            logger.exception("Unexpected error in console stream; stopping")
             break
         await asyncio.sleep(interval)
 
@@ -1336,6 +1365,9 @@ async def _stream_navigation(
                 }
             )
         except (ConnectionError, OSError):
+            break
+        except Exception:
+            logger.exception("Unexpected error in navigation stream; stopping")
             break
         await asyncio.sleep(interval)
 
@@ -1405,6 +1437,9 @@ async def _stream_dom_mutations(
             )
         except (ConnectionError, OSError):
             break
+        except Exception:
+            logger.exception("Unexpected error in DOM mutation stream; stopping")
+            break
         await asyncio.sleep(interval)
 
 
@@ -1433,6 +1468,9 @@ async def _stream_perf_metrics(
                 }
             )
         except (ConnectionError, OSError):
+            break
+        except Exception:
+            logger.exception("Unexpected error in perf metrics stream; stopping")
             break
         await asyncio.sleep(interval)
 
@@ -1537,6 +1575,38 @@ async def handle_websocket(request: Any) -> Any:
             await ws.close()
             return ws
 
+        if not isinstance(url, str) or not url:
+            await ws.send_json(
+                {
+                    "type": "error",
+                    "message": "Invalid config: url must be a non-empty string",
+                    "timestamp": time.time(),
+                }
+            )
+            await ws.close()
+            return ws
+        try:
+            _validate_url_scheme(url, allow_empty=False)
+        except ActionError as exc:
+            await ws.send_json(
+                {
+                    "type": "error",
+                    "message": f"Invalid config: {exc}",
+                    "timestamp": time.time(),
+                }
+            )
+            await ws.close()
+            return ws
+        if not isinstance(events, list) or not all(isinstance(e, str) for e in events):
+            await ws.send_json(
+                {
+                    "type": "error",
+                    "message": "Invalid config: events must be a list of strings",
+                    "timestamp": time.time(),
+                }
+            )
+            await ws.close()
+            return ws
         if fmt not in {"png", "jpeg"}:
             await ws.send_json(
                 {
@@ -1557,7 +1627,10 @@ async def handle_websocket(request: Any) -> Any:
             )
             await ws.close()
             return ws
-        if interval <= 0 or interval > 3600:
+        # NaN comparisons are always False, so a plain "interval <= 0 or
+        # interval > 3600" check would let float("nan") through to
+        # asyncio.sleep(). The negated range check rejects NaN too.
+        if not (0 < interval <= 3600):
             await ws.send_json(
                 {
                     "type": "error",
@@ -1806,7 +1879,9 @@ def create_app(
         base_dir: Base directory for validating file paths in requests.
             If None, file path access is disabled.
         api_key: If set, all requests must include this key as a Bearer
-            token or ``api_key`` query parameter.
+            token in the ``Authorization`` header or in the ``X-API-Key``
+            header. Query-string keys are rejected to avoid leaking the
+            token into logs.
         cors_origins: List of allowed CORS origins. Use ["*"] for all.
         max_concurrent: Max number of concurrent browser backends.
         max_request_size: Maximum request body size in bytes (default 10MB).
@@ -1894,6 +1969,31 @@ def create_app(
     return app
 
 
+class _JsonLogFormatter(logging.Formatter):
+    """Format log records as JSON lines.
+
+    Request logs already emit ``json.dumps`` payloads; those are embedded as
+    objects. Any other message is embedded as a JSON string so every line is
+    valid JSON regardless of the caller.
+    """
+
+    def format(self, record: logging.LogRecord) -> str:
+        message = record.getMessage()
+        try:
+            payload: Any = json.loads(message)
+        except (json.JSONDecodeError, TypeError, ValueError):
+            payload = message
+        return json.dumps(
+            {
+                "timestamp": self.formatTime(record, self.datefmt),
+                "level": record.levelname,
+                "logger": record.name,
+                "message": payload,
+            },
+            default=str,
+        )
+
+
 def serve(
     port: int = 8080,
     host: str = "localhost",
@@ -1923,11 +2023,10 @@ def serve(
         BackendNotAvailableError: If no backend is available.
     """
     web = _import_aiohttp()
-    logging.basicConfig(
-        level=logging.INFO,
-        format='{"timestamp":"%(asctime)s","level":"%(levelname)s","logger":"%(name)s","message":%(message)s}',
-        datefmt="%Y-%m-%dT%H:%M:%S",
-    )
+    handler = logging.StreamHandler()
+    formatter = _JsonLogFormatter(datefmt="%Y-%m-%dT%H:%M:%S")
+    handler.setFormatter(formatter)
+    logging.basicConfig(level=logging.INFO, handlers=[handler])
     app = create_app(
         backend,
         rate_limit=rate_limit,

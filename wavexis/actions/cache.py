@@ -148,6 +148,9 @@ class ActionCache:
         count = len(self._store)
         self._store.clear()
         self._url_index.clear()
+        # Locks can only be dropped when no coroutine is holding or waiting
+        # on them; keep the locked ones to avoid split-brain locking.
+        self._locks = {k: lock for k, lock in self._locks.items() if lock.locked()}
         return count
 
     def _remove(self, key: str) -> None:
@@ -157,8 +160,16 @@ class ActionCache:
             key: The cache key to remove.
         """
         self._store.pop(key, None)
-        for keys in self._url_index.values():
+        for url in list(self._url_index):
+            keys = self._url_index[url]
             keys.discard(key)
+            if not keys:
+                del self._url_index[url]
+        # Drop the per-key lock when nobody is using it so the lock dict
+        # doesn't grow without bound on long-running cache lifetimes.
+        lock = self._locks.get(key)
+        if lock is not None and not lock.locked():
+            self._locks.pop(key, None)
 
     @property
     def size(self) -> int:

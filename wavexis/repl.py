@@ -204,7 +204,8 @@ async def repl_loop(
 
         try:
             command, args = parse_command(line)
-        except ValueError:
+        except ValueError as e:
+            output_fn(f"Error: {e}")
             continue
 
         try:
@@ -216,6 +217,11 @@ async def repl_loop(
             output_fn(f"Error: {e}")
             continue
         except OSError as e:
+            output_fn(f"Error: {e}")
+            continue
+        except Exception as e:
+            # A single buggy command (backend TypeError, unexpected response
+            # type, ...) must not kill the interactive session.
             output_fn(f"Error: {e}")
             continue
 

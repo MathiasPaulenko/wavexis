@@ -39,6 +39,7 @@ from wavexis.config import (
     SensorParams,
     ThrottleParams,
     WaitStrategy,
+    _parse_margin_inches,
     _validate_url,
 )
 from wavexis.exceptions import (
@@ -472,10 +473,12 @@ class BiDiBackend(AbstractBackend):
             cmd.append("--allowed-origins=*")
 
         try:
+            # DEVNULL, not PIPE: the driver output is never read, so piping it
+            # would deadlock the driver once the OS pipe buffer fills up.
             self._driver_process = await asyncio.create_subprocess_exec(
                 *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.DEVNULL,
             )
         except Exception as exc:
             logger.warning("Failed to launch %s: %s", driver_name, exc)
@@ -506,7 +509,14 @@ class BiDiBackend(AbstractBackend):
             self._driver_process = None
 
     async def close(self) -> None:
-        """Close the BiDi client and release resources."""
+        """Close the BiDi client and release resources.
+
+        Each cleanup step is best-effort so a failure closing the browsing
+        context cannot leak the underlying client connection or leave the
+        auto-launched driver process running. The first error seen is
+        re-raised after all cleanup attempts.
+        """
+        error: Exception | None = None
         client = self._client
         if client is not None:
             for subscriptions in self._subscriptions.values():
@@ -515,15 +525,32 @@ class BiDiBackend(AbstractBackend):
                         client.off(subscription)
             self._subscriptions.clear()
             for name in list(self._network_intercepts):
-                await self._clear_network_intercept(client, name)
+                try:
+                    await self._clear_network_intercept(client, name)
+                except Exception as exc:
+                    if error is None:
+                        error = exc
+                    logger.debug("failed to clear intercept %s: %s", name, exc)
             self._network_subscriptions.clear()
             self._network_intercepts.clear()
             if self._context is not None:
-                await client.browsing.close(self._context)
+                try:
+                    await client.browsing.close(self._context)
+                except Exception as exc:
+                    if error is None:
+                        error = exc
+                    logger.debug("browsing.close() failed during close: %s", exc)
                 self._context = None
-            await client.close()
+            try:
+                await client.close()
+            except Exception as exc:
+                if error is None:
+                    error = exc
+                logger.debug("client.close() failed during close: %s", exc)
             self._client = None
         await self._kill_driver()
+        if error is not None:
+            raise error
 
     async def navigate(self, url: str, wait: WaitStrategy | None = None) -> None:
         """Navigate to a URL via browsingContext.navigate.
@@ -1287,8 +1314,7 @@ class BiDiBackend(AbstractBackend):
         if params.js:
             await client.script.evaluate(self._context, params.js)
         paper = PAPER_SIZES.get(params.paper, PAPER_SIZES["letter"])
-        margin_match = re.match(r"([\d.]+)", params.margin)
-        margin_val = float(margin_match.group(1)) if margin_match else 0.4
+        margin_val = _parse_margin_inches(params.margin)
         margin_dict = {
             "top": margin_val,
             "bottom": margin_val,

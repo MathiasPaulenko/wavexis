@@ -21,6 +21,7 @@ __all__ = ["parse_yaml", "execute_actions"]
 
 _MAX_SUBSTITUTION_DEPTH = 100
 _MAX_STRING_LENGTH = 1_000_000
+_MAX_CONFIG_BYTES = 10 * 1024 * 1024
 
 
 def _get_allowed_env_vars() -> frozenset[str]:
@@ -98,6 +99,10 @@ def parse_yaml(path: Path) -> list[dict[str, Any]]:
     if not valid_path.exists():
         raise MultiConfigError("file", f"Config file not found: {path}")
     try:
+        if valid_path.stat().st_size > _MAX_CONFIG_BYTES:
+            raise MultiConfigError(
+                "file", f"Config file exceeds {_MAX_CONFIG_BYTES} bytes: {path}"
+            )
         raw = yaml.safe_load(valid_path.read_text(encoding="utf-8"))
     except OSError as e:
         raise MultiConfigError("file", f"Config file not found or unreadable: {e}") from e

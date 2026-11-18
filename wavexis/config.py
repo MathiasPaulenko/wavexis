@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Any
 from urllib.parse import urlparse
@@ -250,6 +251,36 @@ def _validate_choice(value: str, name: str, allowed: set[str]) -> None:
     """
     if value not in allowed:
         raise ActionError(f"Invalid {name} {value!r}; allowed: {', '.join(sorted(allowed))}")
+
+
+_MARGIN_UNIT_TO_INCHES: dict[str, float] = {
+    "in": 1.0,
+    "cm": 1 / 2.54,
+    "mm": 1 / 25.4,
+    "px": 1 / 96.0,
+}
+_MARGIN_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(in|cm|mm|px)?", re.IGNORECASE)
+
+
+def _parse_margin_inches(margin: str, default: float = 0.4) -> float:
+    """Parse a CSS-style margin string into inches.
+
+    Accepts values like ``"0.4in"``, ``"10mm"``, ``"1cm"``, ``"96px"`` or a
+    bare number (interpreted as inches). CDP and BiDi both expect inches.
+
+    Args:
+        margin: The margin string to parse.
+        default: Value returned when the margin cannot be parsed.
+
+    Returns:
+        The margin expressed in inches.
+    """
+    match = _MARGIN_RE.match(margin.strip()) if isinstance(margin, str) else None
+    if match is None:
+        return default
+    value = float(match.group(1))
+    unit = (match.group(2) or "in").lower()
+    return value * _MARGIN_UNIT_TO_INCHES[unit]
 
 
 def _validate_path_string(path: str | None, name: str = "path") -> None:

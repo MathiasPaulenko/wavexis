@@ -68,12 +68,22 @@ class SessionData:
 
         if not isinstance(cookies, list):
             raise WavexisError("Session field 'cookies' must be a list")
+        if not all(isinstance(c, dict) for c in cookies):
+            raise WavexisError("Session field 'cookies' must contain only objects")
         if not isinstance(local_storage, dict):
             raise WavexisError("Session field 'local_storage' must be an object")
         if not isinstance(session_storage, dict):
             raise WavexisError("Session field 'session_storage' must be an object")
         if not isinstance(url, str):
             raise WavexisError("Session field 'url' must be a string")
+        for field_name, mapping in (
+            ("local_storage", local_storage),
+            ("session_storage", session_storage),
+        ):
+            if not all(isinstance(k, str) and isinstance(v, str) for k, v in mapping.items()):
+                raise WavexisError(
+                    f"Session field '{field_name}' must map strings to strings"
+                )
 
         return cls(
             cookies=cookies,

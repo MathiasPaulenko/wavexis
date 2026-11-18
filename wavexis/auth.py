@@ -98,6 +98,10 @@ def load_auth_context(path: str) -> AuthContext:
     headers = data.get("headers", {})
     if not isinstance(headers, dict):
         raise ValueError("'headers' must be a JSON object")
+    for cred_field in ("username", "password", "target_origin"):
+        cred_value = data.get(cred_field)
+        if cred_value is not None and not isinstance(cred_value, str):
+            raise ValueError(f"'{cred_field}' must be a string")
     password = data.get("password")
     if password and not os.environ.get("WAVEXIS_AUTH_NO_WARN"):
         logger.warning(

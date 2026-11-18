@@ -210,20 +210,25 @@ def _discover_entry_points() -> PluginRegistry:
     for ep in eps:
         try:
             obj = ep.load()
-        except (ImportError, AttributeError, ValueError, TypeError) as exc:
+        except Exception as exc:
+            # ep.load() runs arbitrary plugin code; any exception (not just
+            # import errors) must not abort discovery of the remaining plugins.
             logger.warning("Failed to load plugin %s: %s", ep.name, exc)
             continue
 
-        if isinstance(obj, ActionPlugin):
-            registry.register_action(obj)
-        elif isinstance(obj, MiddlewarePlugin):
-            registry.register_middleware(obj)
-        elif isinstance(obj, type) and issubclass(obj, Plugin):
-            registry.register_hooks(obj())
-        elif isinstance(obj, type) and issubclass(obj, AbstractBackend):
-            registry.register_backend(ep.name, obj)
-        else:
-            logger.warning("Plugin %s has unknown type %s, skipping", ep.name, type(obj))
+        try:
+            if isinstance(obj, ActionPlugin):
+                registry.register_action(obj)
+            elif isinstance(obj, MiddlewarePlugin):
+                registry.register_middleware(obj)
+            elif isinstance(obj, type) and issubclass(obj, Plugin):
+                registry.register_hooks(obj())
+            elif isinstance(obj, type) and issubclass(obj, AbstractBackend):
+                registry.register_backend(ep.name, obj)
+            else:
+                logger.warning("Plugin %s has unknown type %s, skipping", ep.name, type(obj))
+        except Exception as exc:
+            logger.warning("Failed to register plugin %s: %s", ep.name, exc)
 
     return registry
 

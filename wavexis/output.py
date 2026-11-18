@@ -7,6 +7,7 @@ import csv
 import io
 import json
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -78,8 +79,10 @@ try:
 except ImportError:
     pass
 
+_escape_markup: Callable[[str], str] | None
 try:
     from rich.console import Console
+    from rich.markup import escape as _escape_markup
 
     # On Windows, the default console encoding (cp1252/cp850) cannot encode
     # many unicode glyphs (e.g. the checkmark U+2713 used in success
@@ -100,8 +103,21 @@ try:
     _console_err: Console | None = Console(stderr=True, legacy_windows=False)
     _console_out: Console | None = Console(legacy_windows=False)
 except ImportError:
+    _escape_markup = None
     _console_err = None
     _console_out = None
+
+
+def _safe_markup(msg: str) -> str:
+    """Escape user-controlled text so it cannot inject or break Rich markup.
+
+    A message containing ``[``/``]`` sequences would otherwise be parsed as
+    console markup — at best mangling the output, at worst raising
+    ``MarkupError`` inside an error-reporting path.
+    """
+    if _escape_markup is None:
+        return msg
+    return _escape_markup(msg)
 
 
 def _has_rich() -> bool:
@@ -251,7 +267,7 @@ class Output:
             msg: The error message to print.
         """
         if _has_rich() and _console_err is not None:
-            _console_err.print(f"[bold red]Error:[/bold red] {msg}")
+            _console_err.print(f"[bold red]Error:[/bold red] {_safe_markup(msg)}")
         else:
             print(f"Error: {msg}", file=sys.stderr)
 
@@ -265,7 +281,7 @@ class Output:
             msg: The success message to print.
         """
         if _has_rich() and _console_out is not None:
-            _console_out.print(f"[bold green]✓[/bold green] {msg}")
+            _console_out.print(f"[bold green]✓[/bold green] {_safe_markup(msg)}")
         else:
             print(msg)
 
@@ -279,6 +295,6 @@ class Output:
             msg: The info message to print.
         """
         if _has_rich() and _console_out is not None:
-            _console_out.print(f"[bold blue]ℹ[/bold blue] {msg}")
+            _console_out.print(f"[bold blue]ℹ[/bold blue] {_safe_markup(msg)}")
         else:
             print(msg)
